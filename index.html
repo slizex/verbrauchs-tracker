@@ -202,14 +202,65 @@ body.design-modern .ghostbtn{background:rgba(255,255,255,.05);border-color:rgba(
 body.design-modern .authmsg.err{background:rgba(248,113,113,.16);color:#fca5a5}
 body.design-modern .authmsg.ok{background:rgba(34,197,94,.15);color:#86efac}
 body.design-modern .logoutbtn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:rgba(238,242,255,.72)}
+/* ===== Dezente Grafiken & Animationen ===== */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes floatBlob{0%{transform:translate(0,0) scale(1)}50%{transform:translate(16px,-20px) scale(1.08)}100%{transform:translate(0,0) scale(1)}}
+@keyframes logoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes drawline{from{stroke-dashoffset:var(--len,600)}to{stroke-dashoffset:0}}
+@keyframes shimmer{to{background-position:200% 0}}
+.btn{transition:filter .15s,transform .08s,box-shadow .2s}
+.btn:active{transform:translateY(1px) scale(.995)}
+.iconbtn{transition:background-color .15s,transform .1s}
+.iconbtn:active{transform:scale(.88)}
+.tab{transition:background-color .18s,color .18s,border-color .18s,transform .1s}
+.tab:active{transform:scale(.98)}
+@media (prefers-reduced-motion: no-preference){
+  .card{animation:fadeInUp .42s ease both}
+  .tgroup,.tgcompact,.tcard{animation:fadeInUp .36s ease both}
+  .vrow,.yearrow{animation:fadeInUp .3s ease both}
+  .authcard{animation:fadeInUp .5s cubic-bezier(.2,.7,.2,1) both}
+  .authlogo{animation:logoFloat 4.5s ease-in-out infinite}
+  .authblobs span{animation:floatBlob 16s ease-in-out infinite}
+  .authblobs span:nth-child(2){animation-duration:20s;animation-delay:-5s}
+  .authblobs span:nth-child(3){animation-duration:24s;animation-delay:-9s}
+  .authcard::before{animation:shimmer 7s linear infinite}
+  .spk-line{animation:drawline .8s ease forwards}
+}
+/* Login modern */
+.authscreen{position:relative;overflow:hidden;background:radial-gradient(1100px 620px at 82% -12%,color-mix(in srgb,var(--accent) 16%,transparent),transparent 62%),var(--bg)}
+.authblobs{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.authblobs span{position:absolute;display:block;border-radius:50%;filter:blur(64px);opacity:.5;will-change:transform}
+.authblobs span:nth-child(1){width:340px;height:340px;left:-90px;top:-70px;background:radial-gradient(circle,#f59e0b,transparent 70%)}
+.authblobs span:nth-child(2){width:300px;height:300px;right:-80px;top:18%;background:radial-gradient(circle,#0284c7,transparent 70%)}
+.authblobs span:nth-child(3){width:300px;height:300px;left:28%;bottom:-110px;background:radial-gradient(circle,#c2410c,transparent 70%)}
+.authcard{position:relative;z-index:1;overflow:hidden}
+.authcard::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg,#f59e0b,#0284c7,#c2410c,#f59e0b);background-size:200% 100%}
+.authlogo{width:64px;height:64px;margin:0 auto 12px;border-radius:18px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,var(--accent),#f97316);box-shadow:0 14px 30px -12px var(--accent);will-change:transform}
+.authlogo svg{display:block}
+body.design-modern .authscreen{background:radial-gradient(1100px 620px at 82% -12%,rgba(99,102,241,.22),transparent 62%),#0a0f1f}
+body.design-modern .authblobs span{opacity:.42}
+body.design-modern .authlogo{box-shadow:0 16px 36px -12px var(--accent)}
+/* Sparkline (Auswertung) */
+.sparkline{display:block;width:100%;height:42px;margin:12px 0 2px}
+.spk-line{stroke-dasharray:600;vector-effect:non-scaling-stroke}
+.spk-zero{stroke:var(--muted);stroke-dasharray:3 4;opacity:.45;vector-effect:non-scaling-stroke}
+/* Differenz: Trend + Kostenbalken */
+.diffbox .difftop{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:2px}
+.difftrend{display:inline-flex;align-items:center}
+.difftrend svg{display:block}
+.costbar{height:8px;border-radius:999px;background:rgba(255,255,255,.24);overflow:hidden;margin:14px 4px 0}
+.costbar>i{display:block;height:100%;border-radius:999px;background:#fff;box-shadow:0 0 10px rgba(255,255,255,.5);transition:width .5s ease}
+.costcap{font-size:.82rem;opacity:.95;margin-top:7px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body data-cat="strom" class="app-hidden">
 
 <div id="authscreen" class="authscreen">
+  <div class="authblobs" aria-hidden="true"><span></span><span></span><span></span></div>
   <div class="authcard">
-    <h1>📊 Verbrauchs-Tracker</h1>
+    <div class="authlogo" aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="12" width="4.2" height="8" rx="1.3" fill="currentColor" opacity=".72"/><rect x="9.9" y="7" width="4.2" height="13" rx="1.3" fill="currentColor"/><rect x="16.8" y="4" width="4.2" height="16" rx="1.3" fill="currentColor" opacity=".86"/></svg></div>
+    <h1>Verbrauchs-Tracker</h1>
     <p class="authsub">Bitte melde dich an, um deine Verbräuche zu sehen.</p>
     <div class="field"><label for="auth_email">E-Mail</label><input type="email" id="auth_email" autocomplete="username" placeholder="name@beispiel.de"></div>
     <div class="field"><label for="auth_pass">Passwort</label><input type="password" id="auth_pass" autocomplete="current-password" placeholder="mindestens 6 Zeichen"></div>
@@ -509,6 +560,11 @@ function categoryShell(cat){
 }
 function row(label,val,cls){return '<div class="rrow '+(cls||"")+'"><span>'+label+'</span><b>'+val+'</b></div>';}
 
+function trendIcon(pos){
+  return pos
+    ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17 L10 11 L14 15 L20 8"/><path d="M14.5 8 H20 V13.5"/></svg>'
+    : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8 L10 14 L14 10 L20 17"/><path d="M14.5 17 H20 V11.5"/></svg>';
+}
 function updateResult(){
   var cont=$("#result");if(!cont)return;
   var cat=activeCat,c=CATS[cat],u=c.unit;
@@ -530,7 +586,11 @@ function updateResult(){
   }
   var negWarn=r.verbrauch<0?'<div class="notice warn">Hinweis: Der Verbrauch ist negativ. Bei einem Zählerwechsel bitte oben „Neuer Zähler" angeben.</div>':"";
   var cls=r.differenz>0?"plus":r.differenz<0?"minus":"plus";
+  var posD=r.differenz>=0;
   var state=r.differenz>0?"Guthaben – du liegst im Plus 🙂":r.differenz<0?"Nachzahlung – du liegst im Minus":"Ausgeglichen";
+  var ratio=(r.abschlag>0)?r.gesamtkosten/r.abschlag:0;
+  var pct=Math.max(0,Math.min(100,ratio*100));
+  var costBar=(r.abschlag>0)?'<div class="costbar"><i style="width:'+pct.toFixed(0)+'%"></i></div><div class="costcap">Kosten = '+Math.round(ratio*100)+' % deines Abschlags</div>':"";
   cont.innerHTML=html+'<div class="resultcard">'+
     row("Ablesedatum",deDate(iso))+
     row("Abrechnungsmonat",billLabel(iso))+
@@ -542,7 +602,7 @@ function updateResult(){
     row("Gesamtkosten",eur(r.gesamtkosten),"hl")+
     row("Monatlicher Abschlag",eur(r.abschlag))+
   '</div>'+negWarn+
-  '<div class="diffbox '+cls+'"><div class="difflabel">Differenz</div><div class="diffval">'+eur(r.differenz)+'</div><div class="diffstate">'+state+'</div></div>';
+  '<div class="diffbox '+cls+'"><div class="difftop"><span class="difftrend">'+trendIcon(posD)+'</span><div class="difflabel">Differenz</div></div><div class="diffval">'+eur(r.differenz)+'</div><div class="diffstate">'+state+'</div>'+costBar+'</div>';
 }
 
 function monthRow(r){
@@ -560,6 +620,29 @@ function renderTariffCompact(g){
     '<span class="tgc-right"><span class="tgc-saldo '+(sp?"plus":"minus")+'">'+(sp?"+":"")+eur(g.saldo)+'</span><span class="tgc-chev">▾</span></span>'+
   '</button>';
 }
+function sparkline(rows){
+  var vals=rows.map(function(r){return isFinite(r.differenz)?r.differenz:0;});
+  if(vals.length<2)return "";
+  var W=300,H=40,pad=4,n=vals.length,i;
+  var min=Math.min.apply(null,vals),max=Math.max.apply(null,vals);
+  if(min>0)min=0;if(max<0)max=0;
+  var range=(max-min)||1;
+  var X=function(i){return pad+i*((W-2*pad)/(n-1));};
+  var Y=function(v){return pad+(H-2*pad)*(1-(v-min)/range);};
+  var zeroY=Y(0).toFixed(1),pts=[];
+  for(i=0;i<n;i++){pts.push(X(i).toFixed(1)+" "+Y(vals[i]).toFixed(1));}
+  var line="M"+pts.join(" L");
+  var area="M"+X(0).toFixed(1)+" "+zeroY+" L"+pts.join(" L")+" L"+X(n-1).toFixed(1)+" "+zeroY+" Z";
+  var pos=vals[n-1]>=0,col=pos?"var(--pos)":"var(--neg)";
+  var gid="spg"+Math.random().toString(36).slice(2,7);
+  return '<svg class="sparkline" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">'+
+    '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+col+'" stop-opacity=".30"/><stop offset="1" stop-color="'+col+'" stop-opacity="0"/></linearGradient></defs>'+
+    '<line class="spk-zero" x1="'+pad+'" y1="'+zeroY+'" x2="'+(W-pad)+'" y2="'+zeroY+'"/>'+
+    '<path class="spk-area" d="'+area+'" fill="url(#'+gid+')"/>'+
+    '<path class="spk-line" d="'+line+'" fill="none" stroke="'+col+'" stroke-width="2"/>'+
+    '<circle class="spk-dot" cx="'+X(n-1).toFixed(1)+'" cy="'+Y(vals[n-1]).toFixed(1)+'" r="3.2" fill="'+col+'"/>'+
+  '</svg>';
+}
 function renderTariffGroup(g,expanded,isCurrent){
   var cat=activeCat;
   var anb=g.tariff?escapeHtml(g.tariff.anbieter||"(ohne Namen)"):"Ohne Tarif";
@@ -574,7 +657,7 @@ function renderTariffGroup(g,expanded,isCurrent){
   var out='<div class="tgroup'+(isCurrent?" current":"")+'"><div class="tghead">'+
     '<div class="tgtop"><span class="tgname">'+CATS[cat].icon+' '+anb+(isCurrent?' <span class="badge">aktuell</span>':"")+'</span></div>'+
     '<div class="tgperiod">'+headPeriod+'</div>'+
-    '<div class="tgsaldo '+(spos?"plus":"minus")+'"><span>'+headLabel+'</span><b>'+(spos?"+":"")+eur(g.saldo)+'</b><small>'+(spos?"Guthaben":"Nachzahlung")+'</small></div>';
+    '<div class="tgsaldo '+(spos?"plus":"minus")+'"><span>'+headLabel+'</span><b>'+(spos?"+":"")+eur(g.saldo)+'</b><small>'+(spos?"Guthaben":"Nachzahlung")+'</small></div>'+sparkline(g.rows);
   if(complete.length>=1&&!(complete.length===1&&!hasLeftover)){
     g.years.forEach(function(y){
       var yp=y.sum>=0;
