@@ -15,8 +15,8 @@ body[data-cat="wasser"]{--accent:#0284c7}
 body[data-cat="gas"]{--accent:#c2410c}
 .wrap{max-width:680px;margin:0 auto;padding:0 16px}
 header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
-h1{font-size:1.4rem;margin:14px 0 10px;display:flex;align-items:center;gap:8px}
-.tabs{display:flex;gap:8px;padding-bottom:12px}
+h1{font-size:1.4rem;margin:14px 0 6px;display:flex;align-items:center;gap:8px}
+.tabs{display:flex;gap:8px;padding-bottom:14px;margin-top:14px}
 .tab{flex:1;border:2px solid var(--line);background:#fff;border-radius:999px;padding:12px 6px;font-size:1rem;font-weight:600;color:var(--muted);cursor:pointer;min-height:54px}
 .tab.active{border-color:var(--accent);color:#111;background:color-mix(in srgb,var(--accent) 12%,#fff)}
 main{padding:16px 0 30px}
@@ -254,6 +254,16 @@ body.design-modern .authlogo{box-shadow:0 16px 36px -12px var(--accent)}
 .linkbtn{display:block;width:100%;margin-top:12px;background:none;border:none;color:var(--accent);font-size:.92rem;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .linkbtn:hover{filter:brightness(1.12)}
 body.design-modern .linkbtn{color:var(--accent)}
+.backuplist{display:flex;flex-direction:column;gap:8px;margin:4px 0 10px}
+.bkrow{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
+.bkmain{min-width:0}
+.bkkind{font-weight:700}
+.bkdate{color:var(--muted);font-size:.9rem}
+.bkrestore{border:1px solid var(--line);border-radius:9px;font-size:.9rem;font-weight:700;color:var(--accent);background:none;cursor:pointer;padding:9px 12px;white-space:nowrap}
+.bkrestore:hover{background:color-mix(in srgb,var(--accent) 10%,#fff)}
+body.design-modern .bkrow{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.10)}
+body.design-modern .bkrestore{border-color:rgba(255,255,255,.16)}
+body.design-modern .bkrestore:hover{background:rgba(255,255,255,.08)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -314,6 +324,13 @@ body.design-modern .linkbtn{color:var(--accent)}
   <input type="file" id="importFile" accept="application/json" hidden>
   <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
   <p>Tabelle exportieren/importieren bezieht sich auf den gerade gewählten Bereich. Die Komplett-Sicherung (JSON) enthält alle Bereiche. Deine Daten werden sicher in deiner Datenbank gespeichert und sind auf allen Geräten verfügbar.</p>
+
+  <div class="datatitle">☁️ Automatische Cloud-Backups</div>
+  <div class="backup">
+    <button id="autoBackupBtn">☁️ Jetzt in der Cloud sichern</button>
+  </div>
+  <div id="backupList" class="backuplist"></div>
+  <p>Die App legt ab Monatsmitte automatisch ein Backup an. Es werden die letzten <b>3</b> Backups behalten (das älteste fällt weg). Du kannst jederzeit ein Backup wiederherstellen.</p>
 </div></footer>
 
 <script>
@@ -323,6 +340,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 var sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
 var currentUser=null,enteredUserId=null;
+var BACKUPS=[],BACKUP_MAX=3;
 var CATS={
   strom:{label:"Strom",icon:"⚡",unit:"kWh",billUnit:"kWh",valDec:0,verbrauchDec:0,
     grundkostenLabel:"Grundkosten",
@@ -901,6 +919,55 @@ async function delAbschlag(id){
   }catch(err){toast("Löschen fehlgeschlagen: "+errMsg(err),true);}
 }
 
+/* ---------- Cloud-Backups (Supabase) ---------- */
+function backupPeriod(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
+function deDateTime(iso){try{var d=new Date(iso);return d.toLocaleDateString("de-DE")+", "+d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+" Uhr";}catch(e){return iso;}}
+async function loadBackups(){
+  try{var r=await sb.from("backups").select("id,kind,period,created_at").order("created_at",{ascending:false});BACKUPS=(r&&!r.error&&r.data)?r.data:[];}
+  catch(e){BACKUPS=[];}
+}
+async function pruneBackups(){
+  if(BACKUPS.length<=BACKUP_MAX)return;
+  var extra=BACKUPS.slice(BACKUP_MAX),ids=extra.map(function(b){return b.id;});
+  var r=await sb.from("backups").delete().in("id",ids);
+  if(!r.error)BACKUPS=BACKUPS.slice(0,BACKUP_MAX);
+}
+async function createBackup(kind,period){
+  var r=await sb.from("backups").insert({kind:kind||"manual",period:period||null,data:STATE}).select("id,kind,period,created_at").single();
+  if(r.error)throw r.error;
+  BACKUPS.unshift(r.data);
+  await pruneBackups();
+}
+async function maybeAutoBackup(){
+  try{
+    if(new Date().getDate()<15)return;
+    var p=backupPeriod();
+    if(BACKUPS.some(function(b){return b.kind==="auto"&&b.period===p;}))return;
+    await createBackup("auto",p);renderBackups();
+  }catch(e){}
+}
+async function manualBackup(){
+  try{await createBackup("manual",backupPeriod());renderBackups();toast("In der Cloud gesichert ✅");}
+  catch(e){toast("Sicherung fehlgeschlagen: "+errMsg(e),true);}
+}
+async function restoreBackup(id){
+  var b=BACKUPS.find(function(x){return x.id===id;});if(!b)return;
+  if(!confirm("Backup vom "+deDateTime(b.created_at)+" wiederherstellen? Deine aktuellen Daten werden dadurch ersetzt."))return;
+  try{
+    var r=await sb.from("backups").select("data").eq("id",id).single();
+    if(r.error)throw r.error;
+    await replaceAllInDB(normalize(r.data.data));
+    await loadFromDB();renderApp();await loadBackups();renderBackups();toast("Backup wiederhergestellt ✅");
+  }catch(e){toast("Wiederherstellen fehlgeschlagen: "+errMsg(e),true);}
+}
+function renderBackups(){
+  var el=$("#backupList");if(!el)return;
+  if(!BACKUPS.length){el.innerHTML='<div class="notice">Noch keine Cloud-Backups vorhanden – wird ab Monatsmitte automatisch angelegt.</div>';return;}
+  el.innerHTML=BACKUPS.map(function(b){
+    var k=(b.kind==="auto")?"🗓️ Automatisch":"💾 Manuell";
+    return '<div class="bkrow"><div class="bkmain"><div class="bkkind">'+k+'</div><div class="bkdate">'+deDateTime(b.created_at)+'</div></div><button class="bkrestore" data-action="restore-backup" data-id="'+b.id+'">↩️ Wiederherstellen</button></div>';
+  }).join("");
+}
 /* ---------- Backup / Export / Import ---------- */
 function exportData(){
   var blob=new Blob([JSON.stringify(STATE,null,2)],{type:"application/json"});
@@ -1084,12 +1151,13 @@ async function enterApp(session){
   currentUser=session.user;showAuth(false);
   try{await loadFromDB();}catch(e){toast("Daten konnten nicht geladen werden: "+errMsg(e),true);}
   renderApp();
+  try{await loadBackups();renderBackups();await maybeAutoBackup();}catch(e){}
 }
 function handleSession(session){
   if(session&&session.user){
     if(enteredUserId===session.user.id){currentUser=session.user;return;}
     enteredUserId=session.user.id;enterApp(session);
-  }else{enteredUserId=null;currentUser=null;var app=$("#app");if(app)app.innerHTML="";showAuth(true);}
+  }else{enteredUserId=null;currentUser=null;BACKUPS=[];var app=$("#app");if(app)app.innerHTML="";var bl=$("#backupList");if(bl)bl.innerHTML="";showAuth(true);}
 }
 function init(){
   var savedDesign="classic";try{savedDesign=localStorage.getItem("verbrauchsTrackerDesign")||"classic";}catch(e){}
@@ -1103,6 +1171,8 @@ function init(){
   $("#csvExportBtn").addEventListener("click",exportCSV);
   $("#csvImportBtn").addEventListener("click",function(){$("#csvFile").click();});
   $("#csvFile").addEventListener("change",onCSVImport);
+  $("#autoBackupBtn").addEventListener("click",manualBackup);
+  $("#backupList").addEventListener("click",function(e){var b=e.target.closest("[data-action='restore-backup']");if(b)restoreBackup(b.dataset.id);});
   $("#auth_login").addEventListener("click",doLogin);
   $("#auth_signup").addEventListener("click",doSignup);
   $("#auth_pass").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
