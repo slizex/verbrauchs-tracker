@@ -251,6 +251,9 @@ body.design-modern .authlogo{box-shadow:0 16px 36px -12px var(--accent)}
 .costbar{height:8px;border-radius:999px;background:rgba(255,255,255,.24);overflow:hidden;margin:14px 4px 0}
 .costbar>i{display:block;height:100%;border-radius:999px;background:#fff;box-shadow:0 0 10px rgba(255,255,255,.5);transition:width .5s ease}
 .costcap{font-size:.82rem;opacity:.95;margin-top:7px}
+.linkbtn{display:block;width:100%;margin-top:12px;background:none;border:none;color:var(--accent);font-size:.92rem;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.linkbtn:hover{filter:brightness(1.12)}
+body.design-modern .linkbtn{color:var(--accent)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -261,13 +264,20 @@ body.design-modern .authlogo{box-shadow:0 16px 36px -12px var(--accent)}
   <div class="authcard">
     <div class="authlogo" aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="12" width="4.2" height="8" rx="1.3" fill="currentColor" opacity=".72"/><rect x="9.9" y="7" width="4.2" height="13" rx="1.3" fill="currentColor"/><rect x="16.8" y="4" width="4.2" height="16" rx="1.3" fill="currentColor" opacity=".86"/></svg></div>
     <h1>Verbrauchs-Tracker</h1>
-    <p class="authsub">Bitte melde dich an, um deine Verbräuche zu sehen.</p>
-    <div class="field"><label for="auth_email">E-Mail</label><input type="email" id="auth_email" autocomplete="username" placeholder="name@beispiel.de"></div>
-    <div class="field"><label for="auth_pass">Passwort</label><input type="password" id="auth_pass" autocomplete="current-password" placeholder="mindestens 6 Zeichen"></div>
+    <p class="authsub" id="auth_sub">Bitte melde dich an, um deine Verbräuche zu sehen.</p>
     <div id="auth_msg" class="authmsg" hidden></div>
-    <button id="auth_login" class="btn big">Anmelden</button>
-    <button id="auth_signup" class="btn ghostbtn">Neues Konto erstellen</button>
-    <p class="authhint">Beim allerersten Mal „Neues Konto erstellen" – danach immer „Anmelden".</p>
+    <div id="auth_login_panel">
+      <div class="field"><label for="auth_email">E-Mail</label><input type="email" id="auth_email" autocomplete="username" placeholder="name@beispiel.de"></div>
+      <div class="field"><label for="auth_pass">Passwort</label><input type="password" id="auth_pass" autocomplete="current-password" placeholder="mindestens 6 Zeichen"></div>
+      <button id="auth_login" class="btn big">Anmelden</button>
+      <button id="auth_signup" class="btn ghostbtn">Neues Konto erstellen</button>
+      <button id="auth_forgot" class="linkbtn" type="button">Passwort vergessen?</button>
+      <p class="authhint">Beim allerersten Mal „Neues Konto erstellen" – danach immer „Anmelden".</p>
+    </div>
+    <div id="auth_reset_panel" hidden>
+      <div class="field"><label for="auth_newpass">Neues Passwort</label><input type="password" id="auth_newpass" autocomplete="new-password" placeholder="mindestens 6 Zeichen"></div>
+      <button id="auth_setpass" class="btn big">Neues Passwort speichern</button>
+    </div>
   </div>
 </div>
 
@@ -1035,6 +1045,41 @@ async function doSignup(){
   }catch(e){authMsg(loginErrorText(e),"err");}
 }
 async function doLogout(){try{await sb.auth.signOut();}catch(e){}authMsg("",null);var p=$("#auth_pass");if(p)p.value="";}
+var pendingRecovery=(/type=recovery/i.test(location.hash)||/[?&]type=recovery/i.test(location.search));
+function showResetMode(on){
+  var lp=$("#auth_login_panel"),rp=$("#auth_reset_panel"),sub=$("#auth_sub");
+  if(lp)lp.hidden=on; if(rp)rp.hidden=!on;
+  if(sub)sub.textContent=on?"Bitte vergib jetzt dein neues Passwort.":"Bitte melde dich an, um deine Verbräuche zu sehen.";
+}
+async function doForgot(){
+  var email=($("#auth_email").value||"").trim();
+  if(!email){authMsg("Bitte zuerst deine E-Mail-Adresse oben eingeben.","err");return;}
+  authMsg("E-Mail wird gesendet …","");
+  try{
+    var r=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+    if(r.error){authMsg(loginErrorText(r.error),"err");return;}
+    authMsg("Wir haben dir eine E-Mail zum Zurücksetzen geschickt. Bitte klicke den Link darin an – danach kannst du hier ein neues Passwort vergeben.","ok");
+  }catch(e){authMsg(loginErrorText(e),"err");}
+}
+async function doSetPassword(){
+  var p=$("#auth_newpass").value||"";
+  if(p.length<6){authMsg("Das Passwort muss mindestens 6 Zeichen haben.","err");return;}
+  authMsg("Passwort wird gespeichert …","");
+  try{
+    var r=await sb.auth.updateUser({password:p});
+    if(r.error){authMsg(loginErrorText(r.error),"err");return;}
+    pendingRecovery=false;showResetMode(false);
+    authMsg("Passwort geändert ✅ Du wirst angemeldet …","ok");
+    var s=await sb.auth.getSession();
+    if(s&&s.data&&s.data.session)handleSession(s.data.session);
+  }catch(e){authMsg(loginErrorText(e),"err");}
+}
+function enterRecovery(session){
+  currentUser=session?session.user:null;enteredUserId=null;
+  showAuth(true);showResetMode(true);
+  var p=$("#auth_newpass");if(p)p.value="";
+  authMsg("Du kannst jetzt ein neues Passwort vergeben.","ok");
+}
 async function enterApp(session){
   currentUser=session.user;showAuth(false);
   try{await loadFromDB();}catch(e){toast("Daten konnten nicht geladen werden: "+errMsg(e),true);}
@@ -1061,8 +1106,15 @@ function init(){
   $("#auth_login").addEventListener("click",doLogin);
   $("#auth_signup").addEventListener("click",doSignup);
   $("#auth_pass").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
+  $("#auth_forgot").addEventListener("click",doForgot);
+  $("#auth_setpass").addEventListener("click",doSetPassword);
+  $("#auth_newpass").addEventListener("keydown",function(e){if(e.key==="Enter")doSetPassword();});
   $("#logoutBtn").addEventListener("click",doLogout);
-  sb.auth.onAuthStateChange(function(evt,session){setTimeout(function(){handleSession(session);},0);});
+  sb.auth.onAuthStateChange(function(evt,session){setTimeout(function(){
+    if(evt==="PASSWORD_RECOVERY")pendingRecovery=true;
+    if(pendingRecovery&&session&&session.user){enterRecovery(session);return;}
+    handleSession(session);
+  },0);});
 }
 init();
 })();
