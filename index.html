@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
 <meta name="theme-color" content="#f59e0b">
 <title>Verbrauchs-Tracker</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Verbrauch">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{--accent:#f59e0b;--bg:#f4f6f9;--card:#fff;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--pos:#16a34a;--neg:#dc2626;--radius:16px}
 *{box-sizing:border-box}
@@ -1114,7 +1120,7 @@ function applyDesign(d){
   var modern=(d==="modern");
   document.body.classList.toggle("design-modern",modern);
   document.querySelectorAll(".dt-btn").forEach(function(b){b.classList.toggle("active",b.dataset.design===(modern?"modern":"classic"));});
-  var tc=document.querySelector('meta[name="theme-color"]');if(tc)tc.setAttribute("content",modern?"#0a0f1f":"#f59e0b");
+  var tc=document.querySelector('meta[name="theme-color"]');if(tc)tc.setAttribute("content",IS_TEST?"#7c3aed":(modern?"#0a0f1f":"#f59e0b"));
   try{localStorage.setItem("verbrauchsTrackerDesign",modern?"modern":"classic");}catch(e){}
 }
 /* ---------- Auth ---------- */
@@ -1223,6 +1229,9 @@ function init(){
     if(pendingRecovery&&session&&session.user){enterRecovery(session);return;}
     handleSession(session);
   },0);});
+  if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  }
 }
 init();
 })();
