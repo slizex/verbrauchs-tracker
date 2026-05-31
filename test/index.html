@@ -22,8 +22,8 @@ body[data-cat="gas"]{--accent:#c2410c}
 .wrap{max-width:680px;margin:0 auto;padding:0 16px}
 header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
 h1{font-size:1.4rem;margin:14px 0 6px;display:flex;align-items:center;gap:8px}
-.tabs{display:flex;gap:8px;padding-bottom:14px;margin-top:14px}
-.tab{flex:1;border:2px solid var(--line);background:#fff;border-radius:999px;padding:12px 6px;font-size:1rem;font-weight:600;color:var(--muted);cursor:pointer;min-height:54px}
+.tabs{display:flex;gap:7px;padding-bottom:14px;margin-top:14px;flex-wrap:wrap}
+.tab{flex:1 1 64px;border:2px solid var(--line);background:#fff;border-radius:999px;padding:12px 4px;font-size:.94rem;font-weight:600;color:var(--muted);cursor:pointer;min-height:54px}
 .tab.active{border-color:var(--accent);color:#111;background:color-mix(in srgb,var(--accent) 12%,#fff)}
 main{padding:16px 0 30px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:0 0 16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
@@ -287,6 +287,27 @@ body.test-env .authcard::before{background:linear-gradient(90deg,#7c3aed,#db2777
 body.test-env.design-modern{background:#160e26;background-image:radial-gradient(900px 500px at 85% -5%,rgba(168,85,247,.30),transparent 60%),radial-gradient(800px 460px at -5% 15%,rgba(219,39,119,.18),transparent 55%),linear-gradient(160deg,#160e26 0%,#1a1030 55%,#160e26 100%)}
 body.test-env.design-modern header{background:rgba(22,14,38,.6)}
 body.test-env.design-modern h1{color:#e9d5ff}
+/* ---- Gesamt-Übersicht ---- */
+.ovgrid{display:flex;flex-direction:column;gap:12px}
+.ovcard{border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;background:#fff;transition:border-color .15s,transform .1s}
+.ovcard:hover{border-color:var(--accent)}
+.ovcard:active{transform:scale(.995)}
+.ovtop{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.ovname{font-weight:800;font-size:1.05rem}
+.ovdiff{font-weight:800;white-space:nowrap}
+.ovdiff.plus{color:var(--pos)}.ovdiff.minus{color:var(--neg)}
+.ovsub{color:var(--muted);font-size:.9rem;margin-top:3px}
+.ovsaldo{font-size:.9rem;color:var(--muted);margin-top:8px}
+.ovsaldo b.plus{color:var(--pos)}.ovsaldo b.minus{color:var(--neg)}
+.ovtotal{text-align:center;color:#fff}
+.ovtotal.plus{background:linear-gradient(135deg,#15a34a,#22c55e)}
+.ovtotal.minus{background:linear-gradient(135deg,#e11d48,#fb7185)}
+.ovtotlabel{opacity:.92;font-weight:600}
+.ovtotval{font-size:2rem;font-weight:800;margin:2px 0}
+.ovtotstate{opacity:.95;font-size:.95rem}
+.ovhint{color:var(--muted);font-size:.85rem;text-align:center;margin-top:2px}
+body.design-modern .ovcard{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.10)}
+body.design-modern .ovtotal{box-shadow:0 16px 40px -14px rgba(0,0,0,.6)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -330,12 +351,14 @@ body.test-env.design-modern h1{color:#e9d5ff}
     <button class="tab active" data-cat="strom">⚡ Strom</button>
     <button class="tab" data-cat="wasser">💧 Wasser</button>
     <button class="tab" data-cat="gas">🔥 Gas</button>
+    <button class="tab" data-cat="overview">📊 Gesamt</button>
   </nav>
 </div></header>
 
 <main><div class="wrap" id="app"></div></main>
 
 <footer><div class="wrap">
+  <p id="hhnote" class="ovhint" style="margin:0 0 6px"></p>
   <div class="datatitle">Daten &amp; Sicherung</div>
   <div class="backup">
     <button id="csvExportBtn">⬇️ Tabelle exportieren (Excel)</button>
@@ -477,9 +500,9 @@ async function loadFromDB(){
 async function replaceAllInDB(data){
   if(!currentUser)throw new Error("Nicht angemeldet.");
   var uidv=currentUser.id;
-  var d1=await sb.from("readings").delete().eq("user_id",uidv);if(d1.error)throw d1.error;
-  var d2=await sb.from("tariffs").delete().eq("user_id",uidv);if(d2.error)throw d2.error;
-  var d3=await sb.from("abschlag_changes").delete().eq("user_id",uidv);if(d3.error)throw d3.error;
+  var d1=await sb.from("readings").delete().not("id","is",null);if(d1.error)throw d1.error;
+  var d2=await sb.from("tariffs").delete().not("id","is",null);if(d2.error)throw d2.error;
+  var d3=await sb.from("abschlag_changes").delete().not("id","is",null);if(d3.error)throw d3.error;
   var tRows=[],rRows=[],aRows=[];
   ["strom","wasser","gas"].forEach(function(cat){
     (data[cat].tariffs||[]).forEach(function(t){tRows.push(tariffToCols(cat,t));});
@@ -591,11 +614,45 @@ function tariffGroups(cat){
 function tariffSaldoInfo(cat,tid){var g=tariffGroups(cat).find(function(x){return x.tid===tid;});return g?{saldo:g.saldo,months:g.rows.length}:{saldo:0,months:0};}
 
 /* ---------- Rendering ---------- */
+function renderOverview(){
+  var cats=["strom","wasser","gas"],totalSaldo=0,cards="";
+  cats.forEach(function(cat){
+    var c=CATS[cat];
+    var rows=history(cat).filter(function(r){return !r.baseline;});
+    var cur=tariffForDate(cat,todayISO());
+    var g=cur?tariffGroups(cat).find(function(x){return x.tid===cur.id;}):null;
+    var saldo=g?g.saldo:0;totalSaldo+=saldo;
+    var last=rows.length?rows[rows.length-1]:null;
+    var diffHtml,sub;
+    if(last&&isFinite(last.differenz)){
+      var pos=last.differenz>=0;
+      diffHtml='<span class="ovdiff '+(pos?"plus":"minus")+'">'+(pos?"+":"")+eur(last.differenz)+'</span>';
+      sub=billLabel(last.reading.datum)+' · '+fmtVerb(cat,last.verbrauch)+' '+(c.billUnit||c.unit)+' · '+eur(last.gesamtkosten);
+    }else{diffHtml='<span class="ovdiff">–</span>';sub='Noch keine Auswertung';}
+    var sp=saldo>=0;
+    cards+='<div class="ovcard" data-action="goto-cat" data-cat="'+cat+'">'+
+      '<div class="ovtop"><span class="ovname">'+c.icon+' '+c.label+'</span>'+diffHtml+'</div>'+
+      '<div class="ovsub">'+sub+'</div>'+(g?sparkline(g.rows):"")+
+      '<div class="ovsaldo">Tarif-Saldo: <b class="'+(sp?"plus":"minus")+'">'+(sp?"+":"")+eur(saldo)+'</b> · '+(sp?"Guthaben":"Nachzahlung")+'</div>'+
+    '</div>';
+  });
+  var tp=totalSaldo>=0;
+  return '<section class="card"><h2 class="sect">📊 Gesamt-Übersicht</h2>'+
+      '<div class="ovgrid">'+cards+'</div>'+
+      '<p class="ovhint">Tippe auf einen Bereich für Details und neue Ablesungen.</p>'+
+    '</section>'+
+    '<div class="card ovtotal '+(tp?"plus":"minus")+'">'+
+      '<div class="ovtotlabel">Gesamt-Saldo (laufende Tarife)</div>'+
+      '<div class="ovtotval">'+(tp?"+":"")+eur(totalSaldo)+'</div>'+
+      '<div class="ovtotstate">'+(tp?"Guthaben über alle Bereiche 🙂":"Nachzahlung über alle Bereiche")+'</div>'+
+    '</div>';
+}
 function renderApp(){
   document.body.setAttribute("data-cat",activeCat);
   document.querySelectorAll(".tab").forEach(function(b){b.classList.toggle("active",b.dataset.cat===activeCat);});
   var app=$("#app");
-  if(CATS[activeCat].tariffFields){app.innerHTML=categoryShell(activeCat);wireCategory();updateResult();renderVerlauf();renderTarife();}
+  if(activeCat==="overview"){app.innerHTML=renderOverview();return;}
+  if(CATS[activeCat]&&CATS[activeCat].tariffFields){app.innerHTML=categoryShell(activeCat);wireCategory();updateResult();renderVerlauf();renderTarife();}
   else{app.innerHTML=placeholder(activeCat);}
 }
 function placeholder(cat){var c=CATS[cat];return '<div class="placeholder"><div class="phicon">'+c.icon+'</div><h2>'+c.label+' folgt in Kürze</h2><p>Dieser Bereich wird als Nächstes ergänzt – mit derselben einfachen Bedienung wie Strom und Wasser.</p></div>';}
@@ -856,6 +913,7 @@ function onAppClick(e){
   else if(act==="del-tariff")delTariff(id);
   else if(act==="del-abschlag")delAbschlag(id);
   else if(act==="open-abschlag")openAbschlag();
+  else if(act==="goto-cat"){activeCat=btn.dataset.cat;tarifeOpen=false;expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});}
 }
 function openAbschlag(){
   tarifeOpen=true;renderTarife();
@@ -1187,6 +1245,7 @@ async function enterApp(session){
   try{await loadFromDB();}catch(e){toast("Daten konnten nicht geladen werden: "+errMsg(e),true);}
   renderApp();
   try{await loadBackups();renderBackups();await maybeAutoBackup();}catch(e){}
+  try{var hm=await sb.from("household_members").select("user_id");var n=(hm&&hm.data&&hm.data.length)?hm.data.length:1;var he=$("#hhnote");if(he)he.textContent=(n>1)?("👨‍👩‍👧 Gemeinsamer Haushalt · "+n+" Mitglieder teilen diese Daten"):"";}catch(e){}
 }
 function handleSession(session){
   if(session&&session.user){
