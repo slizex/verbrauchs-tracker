@@ -118,7 +118,6 @@ details.info li{margin-bottom:6px}
 .pos{color:var(--pos);font-weight:700}.neg{color:var(--neg);font-weight:700}
 .placeholder{text-align:center;padding:40px 16px;color:var(--muted)}
 .phicon{font-size:3rem}
-.datatitle{font-weight:700;margin-bottom:8px}
 .backup{display:flex;gap:10px;margin-bottom:10px}
 .backup button{flex:1;background:#fff;border:2px solid var(--line);border-radius:12px;padding:12px;font-weight:600;cursor:pointer;color:var(--text)}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(40px);background:#111;color:#fff;padding:12px 18px;border-radius:12px;opacity:0;transition:.25s;z-index:100;max-width:90%;text-align:center;pointer-events:none}
@@ -126,6 +125,16 @@ details.info li{margin-bottom:6px}
 #toast.err{background:var(--neg)}
 footer{padding:10px 0 40px;color:var(--muted);font-size:.85rem;text-align:center}
 footer p{margin:14px 0 0}
+/* Footer aufgeräumt: einklappbare Bereiche */
+.foot{border:1px solid var(--line);border-radius:14px;background:#fff;margin-bottom:10px;text-align:left}
+.foot>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;font-weight:700;color:var(--text);font-size:.96rem}
+.foot>summary::-webkit-details-marker{display:none}
+.foot>summary::after{content:"\203A";font-size:1.4rem;line-height:1;color:var(--muted);transition:transform .2s}
+.foot[open]>summary::after{transform:rotate(90deg)}
+.foot>summary:hover{color:var(--accent)}
+.footbody{padding:0 16px 14px}
+.footbody p{margin:10px 0 0;text-align:left}
+body.design-modern .foot{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.10)}
 @media(max-width:480px){body{font-size:17px}.tgrid{grid-template-columns:1fr}}
 /* ===== Design-Umschalter (Segmented Control) ===== */
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
@@ -358,28 +367,36 @@ body.design-modern .ovtotal{box-shadow:0 16px 40px -14px rgba(0,0,0,.6)}
 <main><div class="wrap" id="app"></div></main>
 
 <footer><div class="wrap">
-  <p id="hhnote" class="ovhint" style="margin:0 0 6px"></p>
-  <div class="datatitle">Daten &amp; Sicherung</div>
-  <div class="backup">
-    <button id="csvExportBtn">⬇️ Tabelle exportieren (Excel)</button>
-    <button id="csvImportBtn">⬆️ Tabelle importieren (CSV)</button>
-  </div>
-  <div class="backup">
-    <button id="exportBtn">💾 Komplett-Sicherung (JSON)</button>
-    <button id="importBtn">↩️ Sicherung laden (JSON)</button>
-  </div>
-  <input type="file" id="importFile" accept="application/json" hidden>
-  <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
-  <p>Tabelle exportieren/importieren bezieht sich auf den gerade gewählten Bereich. Die Komplett-Sicherung (JSON) enthält alle Bereiche. Deine Daten werden sicher in deiner Datenbank gespeichert und sind auf allen Geräten verfügbar.</p>
+  <p id="hhnote" class="ovhint" style="margin:0 0 10px"></p>
 
-  <div class="datatitle">☁️ Automatische Cloud-Backups</div>
-  <div class="backup">
-    <button id="autoBackupBtn">☁️ Jetzt in der Cloud sichern</button>
-  </div>
-  <div id="backupList" class="backuplist"></div>
-  <p>Die App legt ab Monatsmitte automatisch ein Backup an. Es werden die letzten <b>3</b> Backups behalten (das älteste fällt weg). Du kannst jederzeit ein Backup wiederherstellen.</p>
+  <details class="foot">
+    <summary>📄 Daten &amp; Sicherung</summary>
+    <div class="footbody">
+      <div class="backup">
+        <button id="csvExportBtn">⬇️ Tabelle exportieren (Excel)</button>
+        <button id="csvImportBtn">⬆️ Tabelle importieren (CSV)</button>
+      </div>
+      <div class="backup">
+        <button id="exportBtn">💾 Komplett-Sicherung (JSON)</button>
+        <button id="importBtn">↩️ Sicherung laden (JSON)</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json" hidden>
+      <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
+      <p>Tabelle exportieren/importieren bezieht sich auf den gerade gewählten Bereich. Die Komplett-Sicherung (JSON) enthält alle Bereiche. Deine Daten werden sicher in deiner Datenbank gespeichert und sind auf allen Geräten verfügbar.</p>
+    </div>
+  </details>
 
-  <div class="datatitle">Umgebung wechseln</div>
+  <details class="foot">
+    <summary>☁️ Automatische Cloud-Backups</summary>
+    <div class="footbody">
+      <div class="backup">
+        <button id="autoBackupBtn">☁️ Jetzt in der Cloud sichern</button>
+      </div>
+      <div id="backupList" class="backuplist"></div>
+      <p>Die App legt ab Monatsmitte automatisch ein Backup an. Es werden die letzten <b>3</b> Backups behalten (das älteste fällt weg). Du kannst jederzeit ein Backup wiederherstellen.</p>
+    </div>
+  </details>
+
   <div class="envswitch" id="envswitch"></div>
   <p id="envnote">Du bist in der <b>Live-Umgebung</b> mit deinen echten Daten.</p>
 </div></footer>
