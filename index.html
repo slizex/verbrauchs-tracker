@@ -1,0 +1,988 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
+<meta name="theme-color" content="#f59e0b">
+<title>Verbrauchs-Tracker</title>
+<style>
+:root{--accent:#f59e0b;--bg:#f4f6f9;--card:#fff;--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--pos:#16a34a;--neg:#dc2626;--radius:16px}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:18px;line-height:1.45}
+body[data-cat="strom"]{--accent:#f59e0b}
+body[data-cat="wasser"]{--accent:#0284c7}
+body[data-cat="gas"]{--accent:#c2410c}
+.wrap{max-width:680px;margin:0 auto;padding:0 16px}
+header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+h1{font-size:1.4rem;margin:14px 0 10px;display:flex;align-items:center;gap:8px}
+.tabs{display:flex;gap:8px;padding-bottom:12px}
+.tab{flex:1;border:2px solid var(--line);background:#fff;border-radius:999px;padding:12px 6px;font-size:1rem;font-weight:600;color:var(--muted);cursor:pointer;min-height:54px}
+.tab.active{border-color:var(--accent);color:#111;background:color-mix(in srgb,var(--accent) 12%,#fff)}
+main{padding:16px 0 30px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:0 0 16px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.sect{font-size:1.15rem;margin:0 0 14px}
+.field{margin-bottom:14px}
+.field label{display:block;font-weight:600;margin-bottom:6px}
+input[type=text],input[type=date]{width:100%;padding:14px;font-size:1.05rem;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--text)}
+input:focus{outline:none;border-color:var(--accent)}
+.btn{display:block;width:100%;border:none;border-radius:12px;padding:15px;font-size:1.05rem;font-weight:700;cursor:pointer;color:#fff;background:var(--accent)}
+.btn.big{min-height:56px;font-size:1.1rem}
+.result{margin:6px 0 16px}
+.resultcard{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.rrow{display:flex;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.rrow:last-child{border-bottom:none}
+.rrow span{color:var(--muted)}
+.rrow.hl{background:#fafafa}.rrow.hl b{color:#111}
+.diffbox{margin-top:14px;border-radius:14px;padding:16px;text-align:center;color:#fff}
+.diffbox.plus{background:var(--pos)}.diffbox.minus{background:var(--neg)}
+.diffbox .difflabel{opacity:.9;font-weight:600}
+.diffbox .diffval{font-size:2rem;font-weight:800;margin:2px 0}
+.diffbox .diffstate{font-size:.95rem;opacity:.95}
+.notice{background:#f3f4f6;border-radius:12px;padding:14px;color:#374151}
+.notice.warn{background:#fef3c7;color:#92400e}
+.notice.ok{background:#dcfce7;color:#166534}
+.lastinfo{font-size:.95rem;color:var(--muted);margin-bottom:10px}
+.metchange{margin:-2px 0 14px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:#fafafa}
+.metchange summary{cursor:pointer;font-weight:600;font-size:.95rem;color:var(--muted)}
+.metchange .field{margin:10px 0 0}
+.mcflag{display:inline-block;background:#fde68a;color:#92400e;font-size:.72rem;padding:1px 7px;border-radius:999px;font-weight:700;vertical-align:middle}
+.vlist{display:flex;flex-direction:column;gap:10px}
+.vrow{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.vrow.baseline{background:#fafafa}
+.vmonth{font-weight:700}
+.vdate,.vsub{color:var(--muted);font-size:.9rem;font-weight:400}
+.vsub{margin-top:2px}
+.vright{display:flex;align-items:center;gap:8px}
+.vdiff{font-weight:800;white-space:nowrap}
+.vdiff.plus{color:var(--pos)}.vdiff.minus{color:var(--neg)}
+.iconbtn{background:none;border:none;font-size:1.05rem;cursor:pointer;padding:6px;border-radius:8px}
+.iconbtn:hover{background:#f0f0f0}
+.saldo{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:12px 14px;border-radius:12px;margin-bottom:12px;color:#fff}
+.saldo b{font-size:1.2rem}.saldo small{opacity:.9}
+.saldo.plus{background:var(--pos)}.saldo.minus{background:var(--neg)}
+.tgroup{margin-bottom:18px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.tgroup.current{border-color:var(--accent)}
+.tghead{background:#f8fafc;padding:12px 14px;border-bottom:1px solid var(--line)}
+.tgtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tgname{font-weight:700;font-size:1.05rem}
+.tgperiod{color:var(--muted);font-size:.85rem;margin:2px 0 8px}
+.tgsaldo{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:8px 12px;border-radius:10px;color:#fff}
+.tgsaldo b{font-size:1.15rem;white-space:nowrap}.tgsaldo small{opacity:.9}
+.tgsaldo.plus{background:var(--pos)}.tgsaldo.minus{background:var(--neg)}
+.yearrow{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 12px;margin-top:8px;border-radius:8px;background:#fff;border:1px dashed var(--line);font-size:.92rem}
+.yearrow b{white-space:nowrap}.yearrow.plus b{color:var(--pos)}.yearrow.minus b{color:var(--neg)}
+.grouptoggle{margin-top:10px;width:100%;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px;font-weight:600;color:var(--accent);cursor:pointer;font-size:.9rem}
+.tgroup .vlist{padding:10px}
+.moreinfo{color:var(--muted);font-size:.85rem;text-align:center;padding:6px}
+.tgcompact{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.tgcompact:hover{background:#fafafa}
+.tgc-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tgc-name{font-weight:700}
+.tgc-period{color:var(--muted);font-size:.85rem}
+.tgc-right{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.tgc-saldo{font-weight:800}
+.tgc-saldo.plus{color:var(--pos)}.tgc-saldo.minus{color:var(--neg)}
+.tgc-chev{color:var(--muted);font-size:.8rem}
+.tcardsaldo{margin-top:8px;font-weight:700;font-size:.92rem}
+.tcardsaldo.plus{color:var(--pos)}.tcardsaldo.minus{color:var(--neg)}
+.abrow{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:8px}
+.abrow b{margin-left:auto}
+.tarifehead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.linkbtn{background:none;border:none;color:var(--accent);font-weight:700;cursor:pointer;font-size:1rem;white-space:nowrap}
+.tarifform label{display:block;font-weight:600;margin:0 0 12px}
+.tarifform input{margin-top:6px}
+.tcard{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
+.tcard.current{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,#fff)}
+.tcardhead{display:flex;align-items:center;gap:8px;font-size:1.05rem;margin-bottom:8px}
+.badge{background:var(--accent);color:#fff;font-size:.75rem;padding:2px 8px;border-radius:999px;font-weight:700}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}
+.tgrid>div{display:flex;flex-direction:column}
+.tgrid span{color:var(--muted);font-size:.85rem}
+.tvalid{margin-top:8px;color:var(--muted);font-size:.9rem}
+.tactions{margin-top:10px}
+.tactions .iconbtn{border:1px solid var(--line)}
+.tactions .abschlagbtn{border-color:var(--accent);color:var(--accent);font-weight:700}
+h3{font-size:1rem;margin:18px 0 10px}
+.hint{color:var(--muted);font-size:.88rem;margin:8px 0 0}
+.muted{color:var(--muted)}
+details.info summary{cursor:pointer;font-weight:700}
+details.info ul{margin:12px 0 0;padding-left:18px}
+details.info li{margin-bottom:6px}
+.pos{color:var(--pos);font-weight:700}.neg{color:var(--neg);font-weight:700}
+.placeholder{text-align:center;padding:40px 16px;color:var(--muted)}
+.phicon{font-size:3rem}
+.datatitle{font-weight:700;margin-bottom:8px}
+.backup{display:flex;gap:10px;margin-bottom:10px}
+.backup button{flex:1;background:#fff;border:2px solid var(--line);border-radius:12px;padding:12px;font-weight:600;cursor:pointer;color:var(--text)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(40px);background:#111;color:#fff;padding:12px 18px;border-radius:12px;opacity:0;transition:.25s;z-index:100;max-width:90%;text-align:center;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.err{background:var(--neg)}
+footer{padding:10px 0 40px;color:var(--muted);font-size:.85rem;text-align:center}
+footer p{margin:14px 0 0}
+@media(max-width:480px){body{font-size:17px}.tgrid{grid-template-columns:1fr}}
+/* ===== Design-Umschalter (Segmented Control) ===== */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.designtoggle{display:inline-flex;background:#eef1f6;border:1px solid var(--line);border-radius:999px;padding:3px}
+.dt-btn{border:none;background:none;padding:7px 14px;border-radius:999px;font-weight:700;font-size:.82rem;color:var(--muted);cursor:pointer}
+.dt-btn.active{background:#fff;color:#111;box-shadow:0 1px 4px rgba(0,0,0,.14)}
+/* ===== MODERNES DESIGN (umschaltbar) ===== */
+body.design-modern{--card:rgba(255,255,255,.055);--text:#eef2ff;--muted:rgba(238,242,255,.62);--line:rgba(255,255,255,.12);--pos:#22c55e;--neg:#fb7185;color:var(--text);background:#0a0f1f;background-image:radial-gradient(900px 500px at 85% -5%,rgba(99,102,241,.28),transparent 60%),radial-gradient(800px 460px at -5% 15%,rgba(56,189,248,.16),transparent 55%),linear-gradient(160deg,#0a0f1f 0%,#0c1430 55%,#0a0f1f 100%);background-attachment:fixed}
+body.design-modern[data-cat="strom"]{--g1:#f59e0b;--g2:#f97316;--accent:#fbbf24}
+body.design-modern[data-cat="wasser"]{--g1:#22d3ee;--g2:#3b82f6;--accent:#38bdf8}
+body.design-modern[data-cat="gas"]{--g1:#fb7185;--g2:#f97316;--accent:#fb923c}
+body.design-modern header{background:rgba(10,16,33,.55);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.08)}
+body.design-modern h1{color:#fff}
+body.design-modern .card{background:var(--card);border:1px solid rgba(255,255,255,.10);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 12px 42px -16px rgba(0,0,0,.7)}
+body.design-modern input[type=text],body.design-modern input[type=date]{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:var(--text)}
+body.design-modern input::placeholder{color:rgba(238,242,255,.4)}
+body.design-modern input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}
+body.design-modern input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.55)}
+body.design-modern .tab{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:rgba(238,242,255,.66);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:background-color .18s,box-shadow .2s}
+body.design-modern .tab:hover{background:rgba(255,255,255,.09)}
+body.design-modern .tab.active{background:linear-gradient(135deg,var(--g1),var(--g2));border-color:transparent;color:#0b1020;box-shadow:0 8px 24px -6px var(--g2)}
+body.design-modern .btn{background:linear-gradient(135deg,var(--g1),var(--g2));color:#0b1020;box-shadow:0 12px 30px -10px var(--g2);transition:filter .15s,transform .1s}
+body.design-modern .btn:hover{filter:brightness(1.07)}
+body.design-modern .btn:active{transform:translateY(1px)}
+body.design-modern .resultcard{border-color:rgba(255,255,255,.12)}
+body.design-modern .rrow{border-color:rgba(255,255,255,.08)}
+body.design-modern .rrow.hl{background:rgba(255,255,255,.045)}
+body.design-modern .rrow.hl b{color:#fff}
+body.design-modern .notice{background:rgba(255,255,255,.05);color:rgba(238,242,255,.82)}
+body.design-modern .notice.warn{background:rgba(245,158,11,.15);color:#fcd34d}
+body.design-modern .notice.ok{background:rgba(34,197,94,.15);color:#86efac}
+body.design-modern .lastinfo{color:var(--muted)}
+body.design-modern .diffbox{box-shadow:0 16px 40px -14px rgba(0,0,0,.6)}
+body.design-modern .diffbox.plus{background:linear-gradient(135deg,#15a34a,#22c55e)}
+body.design-modern .diffbox.minus{background:linear-gradient(135deg,#e11d48,#fb7185)}
+body.design-modern .saldo.plus,body.design-modern .tgsaldo.plus{background:linear-gradient(135deg,#15a34a,#22c55e)}
+body.design-modern .saldo.minus,body.design-modern .tgsaldo.minus{background:linear-gradient(135deg,#e11d48,#fb7185)}
+body.design-modern .tgroup{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.10)}
+body.design-modern .tgroup.current{border-color:var(--accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 60%,transparent),0 14px 36px -16px var(--accent)}
+body.design-modern .tghead{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.08)}
+body.design-modern .yearrow{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.16)}
+body.design-modern .vrow{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.09)}
+body.design-modern .vrow.baseline{background:rgba(255,255,255,.02)}
+body.design-modern .grouptoggle{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:var(--accent)}
+body.design-modern .tgcompact{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10)}
+body.design-modern .tgcompact:hover{background:rgba(255,255,255,.08)}
+body.design-modern .tcard{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10)}
+body.design-modern .tcard.current{background:color-mix(in srgb,var(--accent) 12%,rgba(255,255,255,.04));border-color:var(--accent)}
+body.design-modern .badge{background:linear-gradient(135deg,var(--g1),var(--g2));color:#0b1020}
+body.design-modern .iconbtn:hover{background:rgba(255,255,255,.12)}
+body.design-modern .tactions .iconbtn{border-color:rgba(255,255,255,.16)}
+body.design-modern .metchange{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.10)}
+body.design-modern .backup button{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14);color:var(--text)}
+body.design-modern #toast{background:rgba(18,24,46,.92);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14)}
+body.design-modern .designtoggle{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14)}
+body.design-modern .dt-btn{color:rgba(238,242,255,.62)}
+body.design-modern .dt-btn.active{background:linear-gradient(135deg,var(--g1),var(--g2));color:#0b1020;box-shadow:0 6px 16px -6px var(--g2)}
+/* ---- Login / Auth ---- */
+input[type=email],input[type=password]{width:100%;padding:14px;font-size:1.05rem;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--text)}
+input[type=email]:focus,input[type=password]:focus{outline:none;border-color:var(--accent)}
+.authscreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.authscreen[hidden]{display:none}
+.authcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px;max-width:390px;width:100%;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.authcard h1{justify-content:center;margin:0 0 4px}
+.authsub{color:var(--muted);text-align:center;margin:0 0 18px}
+.authcard .btn{margin-top:10px}
+.authmsg{padding:10px 12px;border-radius:10px;margin:4px 0;font-size:.95rem}
+.authmsg.err{background:#fee2e2;color:#b91c1c}
+.authmsg.ok{background:#dcfce7;color:#166534}
+.ghostbtn{background:none;border:2px solid var(--line);color:var(--text)}
+.authhint{color:var(--muted);font-size:.85rem;text-align:center;margin:14px 0 0}
+.topright{display:flex;align-items:center;gap:10px}
+.logoutbtn{background:none;border:2px solid var(--line);border-radius:999px;padding:9px 14px;font-weight:600;color:var(--muted);cursor:pointer;font-size:.85rem;white-space:nowrap}
+.logoutbtn:hover{background:#f0f0f0}
+body.app-hidden header,body.app-hidden main,body.app-hidden footer{display:none}
+body.design-modern input[type=email],body.design-modern input[type=password]{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:var(--text)}
+body.design-modern input[type=email]:focus,body.design-modern input[type=password]:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}
+body.design-modern .authcard{background:var(--card);border-color:rgba(255,255,255,.10);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 12px 42px -16px rgba(0,0,0,.7)}
+body.design-modern .ghostbtn{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14);color:var(--text)}
+body.design-modern .authmsg.err{background:rgba(248,113,113,.16);color:#fca5a5}
+body.design-modern .authmsg.ok{background:rgba(34,197,94,.15);color:#86efac}
+body.design-modern .logoutbtn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:rgba(238,242,255,.72)}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body data-cat="strom" class="app-hidden">
+
+<div id="authscreen" class="authscreen">
+  <div class="authcard">
+    <h1>📊 Verbrauchs-Tracker</h1>
+    <p class="authsub">Bitte melde dich an, um deine Verbräuche zu sehen.</p>
+    <div class="field"><label for="auth_email">E-Mail</label><input type="email" id="auth_email" autocomplete="username" placeholder="name@beispiel.de"></div>
+    <div class="field"><label for="auth_pass">Passwort</label><input type="password" id="auth_pass" autocomplete="current-password" placeholder="mindestens 6 Zeichen"></div>
+    <div id="auth_msg" class="authmsg" hidden></div>
+    <button id="auth_login" class="btn big">Anmelden</button>
+    <button id="auth_signup" class="btn ghostbtn">Neues Konto erstellen</button>
+    <p class="authhint">Beim allerersten Mal „Neues Konto erstellen" – danach immer „Anmelden".</p>
+  </div>
+</div>
+
+<header><div class="wrap">
+  <div class="topbar">
+    <h1>📊 Verbrauchs-Tracker</h1>
+    <div class="topright">
+      <div class="designtoggle" role="group" aria-label="Design wählen">
+        <button class="dt-btn active" data-design="classic">Klassisch</button>
+        <button class="dt-btn" data-design="modern">Modern</button>
+      </div>
+      <button id="logoutBtn" class="logoutbtn" hidden>Abmelden</button>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-cat="strom">⚡ Strom</button>
+    <button class="tab" data-cat="wasser">💧 Wasser</button>
+    <button class="tab" data-cat="gas">🔥 Gas</button>
+  </nav>
+</div></header>
+
+<main><div class="wrap" id="app"></div></main>
+
+<footer><div class="wrap">
+  <div class="datatitle">Daten &amp; Sicherung</div>
+  <div class="backup">
+    <button id="csvExportBtn">⬇️ Tabelle exportieren (Excel)</button>
+    <button id="csvImportBtn">⬆️ Tabelle importieren (CSV)</button>
+  </div>
+  <div class="backup">
+    <button id="exportBtn">💾 Komplett-Sicherung (JSON)</button>
+    <button id="importBtn">↩️ Sicherung laden (JSON)</button>
+  </div>
+  <input type="file" id="importFile" accept="application/json" hidden>
+  <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
+  <p>Tabelle exportieren/importieren bezieht sich auf den gerade gewählten Bereich. Die Komplett-Sicherung (JSON) enthält alle Bereiche. Deine Daten werden sicher in deiner Datenbank gespeichert und sind auf allen Geräten verfügbar.</p>
+</div></footer>
+
+<script>
+(function(){
+"use strict";
+var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
+var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
+var sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+var currentUser=null,enteredUserId=null;
+var CATS={
+  strom:{label:"Strom",icon:"⚡",unit:"kWh",billUnit:"kWh",valDec:0,verbrauchDec:0,
+    grundkostenLabel:"Grundkosten",
+    verbrauchskostenLabel:"Verbrauchskosten",
+    verbrauchsHinweis:"Verbrauch × Arbeitspreis",
+    verbrauchskosten:function(t,v){return v*(t.arbeitspreis||0);},
+    tariffFields:[
+      {key:"anbieter",label:"Anbieter",num:false,ph:"z. B. Stadtwerke"},
+      {key:"grundpreisJahr",label:"Grundpreis pro Jahr (€ brutto)",num:true,ph:"z. B. 120,00"},
+      {key:"arbeitspreis",label:"Arbeitspreis (€/kWh brutto)",num:true,ph:"z. B. 0,32"},
+      {key:"abschlag",label:"Monatlicher Abschlag (€)",num:true,ph:"z. B. 85,00"}
+    ],
+    priceRows:function(t){return '<div><span>Arbeitspreis</span><b>'+priceNum(t.arbeitspreis)+' €/kWh</b></div>';}
+  },
+  wasser:{label:"Wasser",icon:"💧",unit:"m³",billUnit:"m³",valDec:3,verbrauchDec:3,
+    grundkostenLabel:"Grundkosten inkl. Niederschlag",
+    verbrauchskostenLabel:"Verbrauchskosten Wasser und Kanal",
+    verbrauchsHinweis:"Verbrauch × (Wasser + Kanal)",
+    verbrauchskosten:function(t,v){return v*(t.wasserKanal||0);},
+    tariffFields:[
+      {key:"anbieter",label:"Anbieter",num:false,ph:"z. B. Stadt Solms"},
+      {key:"grundpreisJahr",label:"Grundpreis pro Jahr inkl. Niederschlag (€ brutto)",num:true,ph:"z. B. 184,86"},
+      {key:"wasserKanal",label:"Wasser + Kanal (€/m³ brutto)",num:true,ph:"z. B. 7,5615"},
+      {key:"abschlag",label:"Monatlicher Abschlag (€)",num:true,ph:"z. B. 63,28"}
+    ],
+    priceRows:function(t){return '<div><span>Wasser + Kanal</span><b>'+priceNum(t.wasserKanal)+' €/m³</b></div>';}
+  },
+  gas:{label:"Gas",icon:"🔥",unit:"m³",billUnit:"kWh",valDec:0,verbrauchDec:1,gas:true,
+    grundkostenLabel:"Grundkosten",
+    verbrauchskostenLabel:"Verbrauchskosten",
+    verbrauchsHinweis:"Verbrauch (kWh) × Arbeitspreis · kWh = m³ × Wandelfaktor × Zustandszahl × Brennwert",
+    verbrauchskosten:function(t,v){return v*(t.arbeitspreis||0);},
+    tariffFields:[
+      {key:"anbieter",label:"Anbieter",num:false,ph:"z. B. enwag"},
+      {key:"grundpreisJahr",label:"Grundpreis pro Jahr (€ brutto)",num:true,ph:"z. B. 110,00"},
+      {key:"arbeitspreis",label:"Arbeitspreis (€/kWh brutto)",num:true,ph:"z. B. 0,0988"},
+      {key:"abschlag",label:"Monatlicher Abschlag (€)",num:true,ph:"z. B. 51,00"}
+    ],
+    priceRows:function(t){return '<div><span>Arbeitspreis</span><b>'+priceNum(t.arbeitspreis)+' €/kWh</b></div>';}
+  }
+};
+var STATE=defaults();
+var activeCat="strom";
+var tarifeOpen=false;
+var expandedGroups={};
+
+/* ---------- Helpers ---------- */
+function $(s,r){return (r||document).querySelector(s);}
+function uid(){return "id"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function todayISO(){var t=new Date();return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");}
+function deDate(iso){if(!iso)return"";var p=iso.split("-");return p[2]+"."+p[1]+"."+p[0];}
+function monthLabel(iso){var n=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];var p=iso.split("-");return n[Number(p[1])-1]+" "+p[0];}
+function addDays(iso,d){var p=iso.split("-").map(Number);var dt=new Date(p[0],p[1]-1,p[2]);dt.setDate(dt.getDate()+d);return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
+/* Abrechnungsmonat: Ablesung am Monatsanfang zählt für den Vormonat (Ablesedatum minus 1 Tag) */
+function billISO(iso){return addDays(iso,-1);}
+function billKey(iso){return billISO(iso).slice(0,7);}
+function billLabel(iso){return monthLabel(billISO(iso));}
+function eur(n){return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR"}).format(n);}
+function priceNum(n){return new Intl.NumberFormat("de-DE",{minimumFractionDigits:2,maximumFractionDigits:5}).format(n);}
+function fmtVal(cat,n){return new Intl.NumberFormat("de-DE",{minimumFractionDigits:0,maximumFractionDigits:CATS[cat].valDec}).format(n);}
+function fmtVerb(cat,n){return new Intl.NumberFormat("de-DE",{minimumFractionDigits:0,maximumFractionDigits:CATS[cat].verbrauchDec}).format(n);}
+function fmtMwh(n){return new Intl.NumberFormat("de-DE",{minimumFractionDigits:3,maximumFractionDigits:4}).format(n);}
+function numOr(v,d){var n=Number(v);return isFinite(n)?n:d;}
+function parseNum(v){if(v==null)return NaN;var s=String(v).trim();if(!s)return NaN;s=s.replace(/[^0-9.,-]/g,"");if(s.indexOf(",")>=0){s=s.replace(/\./g,"").replace(",",".");}return parseFloat(s);}
+function csvNum(n,dec){return Number(n).toFixed(dec).replace(".",",");}
+function csvVal(cat,n){var s=Number(n).toFixed(CATS[cat].valDec);if(s.indexOf(".")>=0)s=s.replace(/\.?0+$/,"");return s.replace(".",",");}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+
+/* ---------- Persistence ---------- */
+function defConv(){return {wandelfaktor:1,zustandszahl:0.9546,brennwert:11.552};}
+function defaults(){var d={version:1,strom:cat0(),wasser:cat0(),gas:cat0()};d.gas.conversion=defConv();return d;}
+function cat0(){return {tariffs:[],readings:[],abschlagChanges:[]};}
+function normalize(d){var b=defaults();if(!d||typeof d!=="object")return b;["strom","wasser","gas"].forEach(function(c){if(d[c]&&typeof d[c]==="object"){b[c].tariffs=Array.isArray(d[c].tariffs)?d[c].tariffs:[];b[c].readings=Array.isArray(d[c].readings)?d[c].readings:[];b[c].abschlagChanges=Array.isArray(d[c].abschlagChanges)?d[c].abschlagChanges:[];}});var dc=d.gas&&d.gas.conversion;b.gas.conversion=dc?{wandelfaktor:numOr(dc.wandelfaktor,1),zustandszahl:numOr(dc.zustandszahl,0.9546),brennwert:numOr(dc.brennwert,11.552)}:defConv();return b;}
+function gasFactor(){var c=STATE.gas.conversion||defConv();return numOr(c.wandelfaktor,1)*numOr(c.zustandszahl,0)*numOr(c.brennwert,0);}
+function errMsg(e){return (e&&e.message)?e.message:String(e||"Unbekannter Fehler");}
+function nOrNull(x){return (x==null||x==="")?null:Number(x);}
+function rowToTariff(r){var t={id:r.id,anbieter:r.anbieter||"",grundpreisJahr:Number(r.grundpreis_jahr),abschlag:Number(r.abschlag),gueltigAb:r.gueltig_ab,erstelltAm:r.erstellt_am};if(r.arbeitspreis!=null)t.arbeitspreis=Number(r.arbeitspreis);if(r.wasser_kanal!=null)t.wasserKanal=Number(r.wasser_kanal);return t;}
+function rowToReading(r){var o={id:r.id,datum:r.datum,zaehlerstand:Number(r.zaehlerstand),erfasstAm:r.erfasst_am};if(r.startwert!=null)o.startwert=Number(r.startwert);if(r.zaehlerstand_kwh!=null)o.zaehlerstandKwh=Number(r.zaehlerstand_kwh);return o;}
+function rowToAbschlag(r){return {id:r.id,betrag:Number(r.betrag),gueltigAb:r.gueltig_ab,erstelltAm:r.erstellt_am};}
+function tariffToCols(cat,t){return {category:cat,anbieter:t.anbieter||null,grundpreis_jahr:nOrNull(t.grundpreisJahr),arbeitspreis:nOrNull(t.arbeitspreis),wasser_kanal:nOrNull(t.wasserKanal),abschlag:nOrNull(t.abschlag),gueltig_ab:t.gueltigAb,erstellt_am:t.erstelltAm||new Date().toISOString()};}
+function readingToCols(cat,r){return {category:cat,datum:r.datum,zaehlerstand:nOrNull(r.zaehlerstand),startwert:(r.startwert!=null?Number(r.startwert):null),zaehlerstand_kwh:(r.zaehlerstandKwh!=null?Number(r.zaehlerstandKwh):null),erfasst_am:r.erfasstAm||new Date().toISOString()};}
+function abschlagToCols(cat,a){return {category:cat,betrag:nOrNull(a.betrag),gueltig_ab:a.gueltigAb,erstellt_am:a.erstelltAm||new Date().toISOString()};}
+async function loadFromDB(){
+  var st=defaults();
+  var res=await Promise.all([
+    sb.from("tariffs").select("*"),
+    sb.from("readings").select("*"),
+    sb.from("abschlag_changes").select("*"),
+    sb.from("gas_conversion").select("*").maybeSingle()
+  ]);
+  var tRes=res[0],rRes=res[1],aRes=res[2],cRes=res[3];
+  var err=tRes.error||rRes.error||aRes.error;if(err)throw err;
+  (tRes.data||[]).forEach(function(r){if(st[r.category])st[r.category].tariffs.push(rowToTariff(r));});
+  (rRes.data||[]).forEach(function(r){if(st[r.category])st[r.category].readings.push(rowToReading(r));});
+  (aRes.data||[]).forEach(function(r){if(st[r.category])st[r.category].abschlagChanges.push(rowToAbschlag(r));});
+  if(cRes&&cRes.data){st.gas.conversion={wandelfaktor:Number(cRes.data.wandelfaktor),zustandszahl:Number(cRes.data.zustandszahl),brennwert:Number(cRes.data.brennwert)};}
+  STATE=st;
+}
+async function replaceAllInDB(data){
+  if(!currentUser)throw new Error("Nicht angemeldet.");
+  var uidv=currentUser.id;
+  var d1=await sb.from("readings").delete().eq("user_id",uidv);if(d1.error)throw d1.error;
+  var d2=await sb.from("tariffs").delete().eq("user_id",uidv);if(d2.error)throw d2.error;
+  var d3=await sb.from("abschlag_changes").delete().eq("user_id",uidv);if(d3.error)throw d3.error;
+  var tRows=[],rRows=[],aRows=[];
+  ["strom","wasser","gas"].forEach(function(cat){
+    (data[cat].tariffs||[]).forEach(function(t){tRows.push(tariffToCols(cat,t));});
+    (data[cat].readings||[]).forEach(function(r){rRows.push(readingToCols(cat,r));});
+    (data[cat].abschlagChanges||[]).forEach(function(a){aRows.push(abschlagToCols(cat,a));});
+  });
+  if(tRows.length){var it=await sb.from("tariffs").insert(tRows);if(it.error)throw it.error;}
+  if(rRows.length){var ir=await sb.from("readings").insert(rRows);if(ir.error)throw ir.error;}
+  if(aRows.length){var ia=await sb.from("abschlag_changes").insert(aRows);if(ia.error)throw ia.error;}
+  var conv=(data.gas&&data.gas.conversion)?data.gas.conversion:defConv();
+  var ic=await sb.from("gas_conversion").upsert({user_id:uidv,wandelfaktor:Number(conv.wandelfaktor),zustandszahl:Number(conv.zustandszahl),brennwert:Number(conv.brennwert),updated_at:new Date().toISOString()},{onConflict:"user_id"});if(ic.error)throw ic.error;
+}
+
+/* ---------- Domain logic ---------- */
+function tariffsAsc(cat){return STATE[cat].tariffs.slice().sort(function(a,b){return a.gueltigAb===b.gueltigAb?(a.erstelltAm<b.erstelltAm?-1:1):(a.gueltigAb<b.gueltigAb?-1:1);});}
+function tariffForDate(cat,iso){var ts=STATE[cat].tariffs.filter(function(t){return t.gueltigAb<=iso;}).sort(function(a,b){return a.gueltigAb===b.gueltigAb?(a.erstelltAm<b.erstelltAm?1:-1):(a.gueltigAb<b.gueltigAb?1:-1);});return ts[0]||null;}
+function readingsAsc(cat){return STATE[cat].readings.slice().sort(function(a,b){return a.datum===b.datum?0:(a.datum<b.datum?-1:1);});}
+function prevReading(cat,iso){var rs=STATE[cat].readings.filter(function(r){return r.datum<iso;}).sort(function(a,b){return a.datum<b.datum?1:-1;});return rs[0]||null;}
+function validUntil(cat,t){var next=tariffsAsc(cat).find(function(x){return x.gueltigAb>t.gueltigAb;});return next?addDays(next.gueltigAb,-1):null;}
+function abschlagForDate(cat,iso){
+  var ev=[];
+  STATE[cat].tariffs.forEach(function(t){ev.push({date:t.gueltigAb,betrag:t.abschlag,rank:0,ord:t.erstelltAm||""});});
+  (STATE[cat].abschlagChanges||[]).forEach(function(a){ev.push({date:a.gueltigAb,betrag:a.betrag,rank:1,ord:a.erstelltAm||""});});
+  ev=ev.filter(function(e){return e.date<=iso;});
+  if(!ev.length)return null;
+  ev.sort(function(a,b){if(a.date!==b.date)return a.date<b.date?1:-1;if(a.rank!==b.rank)return a.rank<b.rank?1:-1;return a.ord<b.ord?1:-1;});
+  return ev[0].betrag;
+}
+function compute(cat,iso,z,sw){
+  if(CATS[cat].gas)return computeGas(cat,iso,z);
+  var tariff=tariffForDate(cat,iso),prev=prevReading(cat,iso);
+  var hasStart=(sw!=null&&isFinite(sw));
+  var basis=hasStart?sw:(prev?prev.zaehlerstand:null);
+  var r={tariff:tariff,prev:prev,baseline:(basis==null),verbrauch:null,grundkosten:null,verbrauchskosten:null,gesamtkosten:null,abschlag:null,differenz:null};
+  if(tariff){r.grundkosten=tariff.grundpreisJahr/12;r.abschlag=abschlagForDate(cat,iso);}
+  if(basis!=null&&isFinite(z)){
+    r.verbrauch=z-basis;
+    if(tariff){r.verbrauchskosten=CATS[cat].verbrauchskosten(tariff,r.verbrauch);r.gesamtkosten=r.grundkosten+r.verbrauchskosten;r.differenz=r.abschlag-r.gesamtkosten;}
+  }
+  return r;
+}
+function history(cat){
+  var rs=readingsAsc(cat);
+  if(CATS[cat].gas)return historyGas(rs);
+  return rs.map(function(r,i){
+    var prev=i>0?rs[i-1]:null,tariff=tariffForDate(cat,r.datum);
+    var hasStart=(r.startwert!=null&&isFinite(r.startwert));
+    var basis=hasStart?r.startwert:(prev?prev.zaehlerstand:null);
+    var row={reading:r,prev:prev,tariff:tariff,baseline:(basis==null),meterChange:hasStart};
+    if(basis!=null){
+      row.verbrauch=r.zaehlerstand-basis;
+      if(tariff){row.grundkosten=tariff.grundpreisJahr/12;row.verbrauchskosten=CATS[cat].verbrauchskosten(tariff,row.verbrauch);row.gesamtkosten=row.grundkosten+row.verbrauchskosten;row.abschlag=abschlagForDate(cat,r.datum);row.differenz=row.abschlag-row.gesamtkosten;}
+    }
+    return row;
+  });
+}
+/* Gas: Verbrauch in kWh über kumulierte kWh-Kette. Importierte Ablesungen haben zaehlerstandKwh (exakt aus Tabelle), neue werden mit dem aktuellen Faktor (m³ × Wandelfaktor × Zustandszahl × Brennwert) fortgeschrieben. */
+function historyGas(rs){
+  var F=gasFactor(),prevKwh=null,prevZ=null;
+  return rs.map(function(r,i){
+    var prev=i>0?rs[i-1]:null,tariff=tariffForDate("gas",r.datum);
+    var kwh;
+    if(r.zaehlerstandKwh!=null&&isFinite(r.zaehlerstandKwh))kwh=r.zaehlerstandKwh;
+    else if(prev==null)kwh=r.zaehlerstand*F;
+    else kwh=prevKwh+(r.zaehlerstand-prevZ)*F;
+    var row={reading:r,prev:prev,tariff:tariff,baseline:(prev==null),kwh:kwh};
+    if(prev!=null){
+      row.verbrauch=kwh-prevKwh;
+      if(tariff){row.grundkosten=tariff.grundpreisJahr/12;row.verbrauchskosten=row.verbrauch*tariff.arbeitspreis;row.gesamtkosten=row.grundkosten+row.verbrauchskosten;row.abschlag=abschlagForDate("gas",r.datum);row.differenz=row.abschlag-row.gesamtkosten;}
+    }
+    prevKwh=kwh;prevZ=r.zaehlerstand;
+    return row;
+  });
+}
+function computeGas(cat,iso,z){
+  var tariff=tariffForDate(cat,iso),prev=prevReading(cat,iso),F=gasFactor();
+  var r={tariff:tariff,prev:prev,baseline:(prev==null),verbrauch:null,grundkosten:null,verbrauchskosten:null,gesamtkosten:null,abschlag:null,differenz:null,kwh:null};
+  if(tariff){r.grundkosten=tariff.grundpreisJahr/12;r.abschlag=abschlagForDate(cat,iso);}
+  if(isFinite(z)){
+    if(prev){
+      var hist=history("gas"),prevKwh=prev.zaehlerstand*F;
+      for(var k=0;k<hist.length;k++){if(hist[k].reading.id===prev.id){prevKwh=hist[k].kwh;break;}}
+      r.kwh=prevKwh+(z-prev.zaehlerstand)*F;
+      r.verbrauch=r.kwh-prevKwh;
+      if(tariff){r.verbrauchskosten=r.verbrauch*tariff.arbeitspreis;r.gesamtkosten=r.grundkosten+r.verbrauchskosten;r.differenz=r.abschlag-r.gesamtkosten;}
+    }else{r.kwh=z*F;}
+  }
+  return r;
+}
+function tariffGroups(cat){
+  var rows=history(cat).filter(function(r){return !r.baseline;});
+  var groups=[];
+  rows.forEach(function(r){
+    var tid=r.tariff?r.tariff.id:"_none";
+    var g=groups[groups.length-1];
+    if(!g||g.tid!==tid){g={tid:tid,tariff:r.tariff,rows:[]};groups.push(g);}
+    g.rows.push(r);
+  });
+  groups.forEach(function(g){
+    g.saldo=g.rows.reduce(function(s,r){return s+(isFinite(r.differenz)?r.differenz:0);},0);
+    g.years=[];
+    for(var i=0;i<g.rows.length;i+=12){
+      var ch=g.rows.slice(i,i+12);
+      g.years.push({rows:ch,complete:ch.length===12,sum:ch.reduce(function(s,r){return s+(isFinite(r.differenz)?r.differenz:0);},0),start:ch[0].reading.datum,end:ch[ch.length-1].reading.datum});
+    }
+  });
+  return groups;
+}
+function tariffSaldoInfo(cat,tid){var g=tariffGroups(cat).find(function(x){return x.tid===tid;});return g?{saldo:g.saldo,months:g.rows.length}:{saldo:0,months:0};}
+
+/* ---------- Rendering ---------- */
+function renderApp(){
+  document.body.setAttribute("data-cat",activeCat);
+  document.querySelectorAll(".tab").forEach(function(b){b.classList.toggle("active",b.dataset.cat===activeCat);});
+  var app=$("#app");
+  if(CATS[activeCat].tariffFields){app.innerHTML=categoryShell(activeCat);wireCategory();updateResult();renderVerlauf();renderTarife();}
+  else{app.innerHTML=placeholder(activeCat);}
+}
+function placeholder(cat){var c=CATS[cat];return '<div class="placeholder"><div class="phicon">'+c.icon+'</div><h2>'+c.label+' folgt in Kürze</h2><p>Dieser Bereich wird als Nächstes ergänzt – mit derselben einfachen Bedienung wie Strom und Wasser.</p></div>';}
+function categoryShell(cat){
+  var c=CATS[cat],u=c.unit;
+  return ''+
+  '<section class="card">'+
+    '<h2 class="sect">'+c.icon+' Neue Ablesung</h2>'+
+    '<div class="field"><label for="ablesedatum">Ablesedatum</label><input type="date" id="ablesedatum" value="'+todayISO()+'"></div>'+
+    '<div class="field"><label for="zaehlerstand">Zählerstand ('+u+')</label><input type="text" inputmode="decimal" id="zaehlerstand" placeholder="z. B. '+(cat==="wasser"?"204,45":"12345")+'"></div>'+
+    '<details class="metchange"><summary>🔧 Neuer Zähler eingebaut?</summary><div class="field"><label for="startwert">Anfangsstand des neuen Zählers ('+u+')</label><input type="text" inputmode="decimal" id="startwert" placeholder="z. B. 0"></div><p class="hint">Nur ausfüllen, wenn seit der letzten Ablesung ein neuer Zähler eingebaut wurde – der Verbrauch wird dann ab diesem Anfangsstand gerechnet.</p></details>'+
+    '<div id="result" class="result"></div>'+
+    '<button class="btn big" data-action="save-reading">Ablesung speichern</button>'+
+  '</section>'+
+  '<section class="card" id="verlauf"></section>'+
+  '<details class="card info"><summary>ℹ️ Wie wird gerechnet?</summary><ul>'+
+    '<li><b>Verbrauch</b> = aktueller Zählerstand − letzter Zählerstand</li>'+
+    '<li><b>'+c.grundkostenLabel+'</b> = Grundpreis pro Jahr ÷ 12</li>'+
+    '<li><b>'+c.verbrauchskostenLabel+'</b> = '+c.verbrauchsHinweis+'</li>'+
+    '<li><b>Gesamtkosten</b> = Grundkosten + Verbrauchskosten</li>'+
+    '<li><b>Differenz</b> = Abschlag − Gesamtkosten · <span class="pos">Plus = Guthaben</span>, <span class="neg">Minus = Nachzahlung</span></li>'+
+    '<li><b>Tarif-Saldo</b> je Tarif; nach je 12 Monaten eine <b>Jahresabrechnung</b>. Der Verlauf zeigt den aktuellen Tarif (max. 12 Monate); ältere Tarife lassen sich aufklappen.</li>'+
+  '</ul></details>'+
+  '<section class="card" id="tarife"></section>';
+}
+function row(label,val,cls){return '<div class="rrow '+(cls||"")+'"><span>'+label+'</span><b>'+val+'</b></div>';}
+
+function updateResult(){
+  var cont=$("#result");if(!cont)return;
+  var cat=activeCat,c=CATS[cat],u=c.unit;
+  var iso=$("#ablesedatum").value||todayISO();
+  var z=parseNum($("#zaehlerstand").value);
+  var swEl=$("#startwert"),sw=swEl?parseNum(swEl.value):NaN;
+  var tariff=tariffForDate(cat,iso);
+  var prev=prevReading(cat,iso);
+  var html=prev?'<div class="lastinfo">Letzter gespeicherter Stand: <b>'+fmtVal(cat,prev.zaehlerstand)+' '+u+'</b> am '+deDate(prev.datum)+'</div>':"";
+  if(!tariff){cont.innerHTML=html+'<div class="notice warn">⚠️ Für den '+deDate(iso)+' ist noch <b>kein Tarif</b> hinterlegt. Bitte trage zuerst weiter unten unter „Tarife" einen Tarif ein.</div>';return;}
+  if(!isFinite(z)){cont.innerHTML=html+'<div class="notice">Bitte gib oben deinen aktuellen <b>Zählerstand</b> ein – das Ergebnis erscheint dann sofort.</div>';return;}
+  var r=compute(cat,iso,z,isFinite(sw)?sw:null);
+  var bu=c.billUnit||u;
+  var mwhRow=(c.gas&&r.kwh!=null)?row("Zählerstand in MWh",fmtMwh(r.kwh/1000)+" MWh"):"";
+  if(r.baseline){
+    cont.innerHTML=html+'<div class="resultcard">'+row("Ablesedatum",deDate(iso))+row("Zählerstand",fmtVal(cat,z)+" "+u)+mwhRow+'</div>'+
+      '<div class="notice ok">✅ Das ist deine <b>erste Ablesung</b> (Startwert). Ab der nächsten Ablesung berechnen wir automatisch Verbrauch und Kosten.</div>';
+    return;
+  }
+  var negWarn=r.verbrauch<0?'<div class="notice warn">Hinweis: Der Verbrauch ist negativ. Bei einem Zählerwechsel bitte oben „Neuer Zähler" angeben.</div>':"";
+  var cls=r.differenz>0?"plus":r.differenz<0?"minus":"plus";
+  var state=r.differenz>0?"Guthaben – du liegst im Plus 🙂":r.differenz<0?"Nachzahlung – du liegst im Minus":"Ausgeglichen";
+  cont.innerHTML=html+'<div class="resultcard">'+
+    row("Ablesedatum",deDate(iso))+
+    row("Abrechnungsmonat",billLabel(iso))+
+    row("Zählerstand",fmtVal(cat,z)+" "+u)+
+    mwhRow+
+    row("Verbrauch für den Monat",fmtVerb(cat,r.verbrauch)+" "+bu,"hl")+
+    row(c.grundkostenLabel,eur(r.grundkosten))+
+    row(c.verbrauchskostenLabel,eur(r.verbrauchskosten))+
+    row("Gesamtkosten",eur(r.gesamtkosten),"hl")+
+    row("Monatlicher Abschlag",eur(r.abschlag))+
+  '</div>'+negWarn+
+  '<div class="diffbox '+cls+'"><div class="difflabel">Differenz</div><div class="diffval">'+eur(r.differenz)+'</div><div class="diffstate">'+state+'</div></div>';
+}
+
+function monthRow(r){
+  var cat=activeCat,iso=r.reading.datum,pos=r.differenz>=0;
+  var mc=r.meterChange?' <span class="mcflag">neuer Zähler</span>':"";
+  var act='<div class="vactions"><button class="iconbtn" data-action="edit-reading" data-id="'+r.reading.id+'" title="Bearbeiten">✏️</button><button class="iconbtn" data-action="del-reading" data-id="'+r.reading.id+'" title="Löschen">🗑️</button></div>';
+  return '<div class="vrow"><div class="vmain"><div class="vmonth">'+billLabel(iso)+' <span class="vdate">(Ablesung '+deDate(iso)+')</span>'+mc+'</div><div class="vsub">'+fmtVerb(cat,r.verbrauch)+' '+(CATS[cat].billUnit||CATS[cat].unit)+' · Kosten '+eur(r.gesamtkosten)+' · Abschlag '+eur(r.abschlag)+'</div></div><div class="vright"><div class="vdiff '+(pos?"plus":"minus")+'">'+(pos?"+":"")+eur(r.differenz)+'</div>'+act+'</div></div>';
+}
+function renderTariffCompact(g){
+  var cat=activeCat;
+  var anb=g.tariff?escapeHtml(g.tariff.anbieter||"(ohne Namen)"):"Ohne Tarif";
+  var first=g.rows[0].reading.datum,last=g.rows[g.rows.length-1].reading.datum,sp=g.saldo>=0;
+  return '<button class="tgcompact" data-action="toggle-group" data-id="'+g.tid+'">'+
+    '<span class="tgc-main"><span class="tgc-name">'+CATS[cat].icon+' '+anb+'</span><span class="tgc-period">'+billLabel(first)+' – '+billLabel(last)+' · '+g.rows.length+' Mon.</span></span>'+
+    '<span class="tgc-right"><span class="tgc-saldo '+(sp?"plus":"minus")+'">'+(sp?"+":"")+eur(g.saldo)+'</span><span class="tgc-chev">▾</span></span>'+
+  '</button>';
+}
+function renderTariffGroup(g,expanded,isCurrent){
+  var cat=activeCat;
+  var anb=g.tariff?escapeHtml(g.tariff.anbieter||"(ohne Namen)"):"Ohne Tarif";
+  var first=g.rows[0].reading.datum,last=g.rows[g.rows.length-1].reading.datum,n=g.rows.length;
+  var spos=g.saldo>=0;
+  var complete=g.years.filter(function(y){return y.complete;});
+  var hasLeftover=g.years.some(function(y){return !y.complete;});
+  var headLabel,headPeriod;
+  if(complete.length===1&&!hasLeftover){headLabel="Jahresabrechnung";headPeriod=billLabel(first)+" – "+billLabel(last)+" · 12 Monate";}
+  else if(complete.length===0){headLabel="Saldo bisher";headPeriod=billLabel(first)+" – "+billLabel(last)+" · "+n+" Monat"+(n===1?"":"e");}
+  else{headLabel="Tarif-Saldo gesamt";headPeriod=billLabel(first)+" – "+billLabel(last)+" · "+n+" Monate";}
+  var out='<div class="tgroup'+(isCurrent?" current":"")+'"><div class="tghead">'+
+    '<div class="tgtop"><span class="tgname">'+CATS[cat].icon+' '+anb+(isCurrent?' <span class="badge">aktuell</span>':"")+'</span></div>'+
+    '<div class="tgperiod">'+headPeriod+'</div>'+
+    '<div class="tgsaldo '+(spos?"plus":"minus")+'"><span>'+headLabel+'</span><b>'+(spos?"+":"")+eur(g.saldo)+'</b><small>'+(spos?"Guthaben":"Nachzahlung")+'</small></div>';
+  if(complete.length>=1&&!(complete.length===1&&!hasLeftover)){
+    g.years.forEach(function(y){
+      var yp=y.sum>=0;
+      var lbl=y.complete?("📅 Jahresabrechnung "+billLabel(y.start)+" – "+billLabel(y.end)):("Weitere Monate "+billLabel(y.start)+(y.rows.length>1?" – "+billLabel(y.end):""));
+      out+='<div class="yearrow '+(yp?"plus":"minus")+'"><span>'+lbl+'</span><b>'+(yp?"+":"")+eur(y.sum)+'</b></div>';
+    });
+  }
+  if(!isCurrent){out+='<button class="grouptoggle" data-action="toggle-group" data-id="'+g.tid+'">'+(expanded?"▴ Monate ausblenden":"▾ "+n+" Monat"+(n===1?"":"e")+" anzeigen")+'</button>';}
+  out+='</div>';
+  if(expanded){
+    var shown=g.rows.slice().reverse().slice(0,12);
+    out+='<div class="vlist">';
+    shown.forEach(function(r){out+=monthRow(r);});
+    if(g.rows.length>12){out+='<div class="moreinfo">… und '+(g.rows.length-12)+' weitere Monate (vollständig im Excel-Export)</div>';}
+    out+='</div>';
+  }
+  out+='</div>';
+  return out;
+}
+function renderVerlauf(){
+  var cont=$("#verlauf");if(!cont)return;
+  var cat=activeCat;
+  var rows=history(cat);
+  if(!rows.length){cont.innerHTML='<h2 class="sect">📊 Verlauf</h2><div class="notice">Noch keine Ablesungen gespeichert.</div>';return;}
+  var cur=tariffForDate(cat,todayISO()),curTid=cur?cur.id:null;
+  var html='<h2 class="sect">📊 Verlauf</h2>';
+  tariffGroups(cat).slice().reverse().forEach(function(g){
+    var isCurrent=(g.tid===curTid),expanded=isCurrent||!!expandedGroups[g.tid];
+    html+=(!isCurrent&&!expanded)?renderTariffCompact(g):renderTariffGroup(g,expanded,isCurrent);
+  });
+  var base=rows.filter(function(r){return r.baseline;})[0];
+  if(base){
+    html+='<div class="vrow baseline"><div class="vmain"><div class="vmonth">Startwert</div><div class="vsub">Zählerstand '+fmtVal(cat,base.reading.zaehlerstand)+' '+CATS[cat].unit+' am '+deDate(base.reading.datum)+'</div></div><div class="vactions"><button class="iconbtn" data-action="edit-reading" data-id="'+base.reading.id+'" title="Bearbeiten">✏️</button><button class="iconbtn" data-action="del-reading" data-id="'+base.reading.id+'" title="Löschen">🗑️</button></div></div>';
+  }
+  cont.innerHTML=html;
+}
+
+function tariffCard(t,current){
+  var cat=activeCat;
+  var bis=validUntil(cat,t);
+  var gueltig="gültig ab "+deDate(t.gueltigAb)+(bis?" bis "+deDate(bis):" (laufend)");
+  var si=tariffSaldoInfo(cat,t.id),sp=si.saldo>=0;
+  var saldoLine=si.months?'<div class="tcardsaldo '+(sp?"plus":"minus")+'">Tarif-Saldo: '+(sp?"+":"")+eur(si.saldo)+' · '+(sp?"Guthaben":"Nachzahlung")+' ('+si.months+' Monat'+(si.months===1?"":"e")+')</div>':"";
+  return '<div class="tcard '+(current?"current":"")+'">'+
+    '<div class="tcardhead"><b>'+escapeHtml(t.anbieter||"(ohne Namen)")+'</b>'+(current?'<span class="badge">aktuell</span>':"")+'</div>'+
+    '<div class="tgrid">'+
+      '<div><span>Grundpreis/Jahr</span><b>'+eur(t.grundpreisJahr)+'</b></div>'+
+      CATS[cat].priceRows(t)+
+      '<div><span>Abschlag</span><b>'+eur(t.abschlag)+'</b></div>'+
+      '<div><span>Grundkosten/Monat</span><b>'+eur(t.grundpreisJahr/12)+'</b></div>'+
+    '</div>'+
+    '<div class="tvalid">'+gueltig+'</div>'+saldoLine+
+    '<div class="tactions">'+(current?'<button class="iconbtn abschlagbtn" data-action="open-abschlag" title="Abschlag anpassen">💶 Abschlag anpassen</button>':"")+'<button class="iconbtn" data-action="del-tariff" data-id="'+t.id+'" title="Tarif löschen">🗑️ löschen</button></div>'+
+  '</div>';
+}
+function abschlagListHtml(){
+  var cat=activeCat;
+  var list=(STATE[cat].abschlagChanges||[]).slice().sort(function(a,b){return a.gueltigAb<b.gueltigAb?1:-1;});
+  if(!list.length)return '<div class="muted">Keine Abschlag-Anpassungen.</div>';
+  return list.map(function(a){return '<div class="abrow"><span>ab '+deDate(a.gueltigAb)+'</span><b>'+eur(a.betrag)+'</b><button class="iconbtn" data-action="del-abschlag" data-id="'+a.id+'" title="Löschen">🗑️</button></div>';}).join("");
+}
+function renderTarife(){
+  var cont=$("#tarife");if(!cont)return;
+  var cat=activeCat,c=CATS[cat];
+  var cur=tariffForDate(cat,todayISO());
+  var curAb=cur?abschlagForDate(cat,todayISO()):null;
+  var all=tariffsAsc(cat).reverse();
+  var curHtml=cur?tariffCard(cur,true):'<div class="notice warn">Noch kein Tarif hinterlegt. Bitte unten einen Tarif eintragen.</div>';
+  var archived=all.filter(function(t){return !cur||t.id!==cur.id;});
+  var archHtml=archived.length?archived.map(function(t){return tariffCard(t,false);}).join(""):'<div class="muted">Keine archivierten Tarife.</div>';
+  var open=tarifeOpen||!cur;
+  var formFields=c.tariffFields.map(function(f){return '<label>'+f.label+'<input type="text" '+(f.num?'inputmode="decimal" ':"")+'id="tf_'+f.key+'" placeholder="'+f.ph+'"'+(f.num?"":' autocomplete="off"')+'></label>';}).join("");
+  var convBlock="";
+  if(c.gas){var cv=STATE.gas.conversion||defConv();convBlock='<h3>🔧 Umrechnung m³ → kWh (gilt für alle Tarife)</h3>'+
+    '<form id="convForm" class="tarifform">'+
+      '<label>Wandelfaktor<input type="text" inputmode="decimal" id="cv_wf" value="'+String(cv.wandelfaktor).replace(".",",")+'"></label>'+
+      '<label>Zustandszahl<input type="text" inputmode="decimal" id="cv_zz" value="'+String(cv.zustandszahl).replace(".",",")+'"></label>'+
+      '<label>Brennwert (kWh/m³)<input type="text" inputmode="decimal" id="cv_bw" value="'+String(cv.brennwert).replace(".",",")+'"></label>'+
+      '<button type="submit" class="btn">Umrechnung speichern</button>'+
+      '<p class="hint">Faktor m³ → kWh = Wandelfaktor × Zustandszahl × Brennwert = <b>'+priceNum(gasFactor())+' kWh/m³</b>. Gilt für neue Ablesungen; importierte historische Werte bleiben exakt erhalten.</p>'+
+    '</form>';}
+  cont.innerHTML=''+
+    '<div class="tarifehead"><h2 class="sect">⚙️ Tarife ('+c.label+')</h2><button class="linkbtn" data-action="toggle-tarife">'+(open?"▲ einklappen":"▼ ausklappen")+'</button></div>'+
+    '<div style="'+(open?"":"display:none")+'">'+
+      convBlock+
+      '<h3>Aktueller Tarif</h3>'+curHtml+
+      '<h3 id="abschlagHead">💶 Abschlag anpassen (ohne Tarifwechsel)</h3>'+
+      '<form id="abForm" class="tarifform">'+
+        '<label>Neuer Abschlag (€)<input type="text" inputmode="decimal" id="ab_betrag" placeholder="z. B. 60,00"'+(curAb!=null?' value="'+String(curAb).replace(".",",")+'"':"")+'></label>'+
+        '<label>Gültig ab (ab welchem Ablesedatum)<input type="date" id="ab_gueltig" value="'+todayISO()+'"></label>'+
+        '<button type="submit" class="btn">Abschlag speichern</button>'+
+        '<p class="hint">Für den <b>aktuellen Tarif</b>: ändert nur den monatlichen Abschlag ab diesem Datum – Anbieter und Preise bleiben gleich. Alle <b>früheren Monate behalten ihren bisherigen Abschlag</b>.</p>'+
+      '</form>'+
+      abschlagListHtml()+
+      '<h3>Neuen Tarif eintragen</h3>'+
+      '<form id="tarifForm" class="tarifform">'+formFields+
+        '<label>Gültig ab<input type="date" id="tf_gueltig" value="'+todayISO()+'"></label>'+
+        '<button type="submit" class="btn">Tarif speichern</button>'+
+        '<p class="hint">Nur bei echtem Tarifwechsel (neuer Anbieter/Preise). Beim Speichern wird der bisherige Tarif automatisch archiviert. Vergangene Monate werden weiterhin mit dem damals gültigen Tarif berechnet.</p>'+
+      '</form>'+
+      '<h3>Archivierte Tarife</h3>'+archHtml+
+    '</div>';
+  var form=$("#tarifForm");if(form)form.addEventListener("submit",onTarifSubmit);
+  var abf=$("#abForm");if(abf)abf.addEventListener("submit",onAbSubmit);
+  var cvf=$("#convForm");if(cvf)cvf.addEventListener("submit",onConvSubmit);
+}
+async function onConvSubmit(e){
+  e.preventDefault();
+  var wf=parseNum($("#cv_wf").value),zz=parseNum($("#cv_zz").value),bw=parseNum($("#cv_bw").value);
+  if(!isFinite(wf)||!isFinite(zz)||!isFinite(bw)){toast("Bitte alle drei Werte gültig eingeben.",true);return;}
+  try{
+    var r=await sb.from("gas_conversion").upsert({user_id:currentUser.id,wandelfaktor:wf,zustandszahl:zz,brennwert:bw,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+    if(r.error)throw r.error;
+    STATE.gas.conversion={wandelfaktor:wf,zustandszahl:zz,brennwert:bw};
+    renderTarife();renderVerlauf();updateResult();toast("Umrechnung gespeichert ✅");
+  }catch(err){toast("Speichern fehlgeschlagen: "+errMsg(err),true);}
+}
+
+/* ---------- Events ---------- */
+function wireCategory(){
+  $("#ablesedatum").addEventListener("input",updateResult);
+  $("#zaehlerstand").addEventListener("input",updateResult);
+  var sw=$("#startwert");if(sw)sw.addEventListener("input",updateResult);
+}
+function onAppClick(e){
+  var btn=e.target.closest("[data-action]");if(!btn)return;
+  var act=btn.dataset.action,id=btn.dataset.id;
+  if(act==="save-reading")saveReading();
+  else if(act==="toggle-tarife"){tarifeOpen=!tarifeOpen;renderTarife();}
+  else if(act==="toggle-group"){expandedGroups[id]=!expandedGroups[id];renderVerlauf();}
+  else if(act==="del-reading")delReading(id);
+  else if(act==="edit-reading")editReading(id);
+  else if(act==="del-tariff")delTariff(id);
+  else if(act==="del-abschlag")delAbschlag(id);
+  else if(act==="open-abschlag")openAbschlag();
+}
+function openAbschlag(){
+  tarifeOpen=true;renderTarife();
+  var inp=$("#ab_betrag");if(inp){try{inp.focus({preventScroll:true});}catch(e){inp.focus();}}
+  var head=$("#abschlagHead");if(head)head.scrollIntoView({behavior:"smooth",block:"start"});
+}
+async function saveReading(){
+  var cat=activeCat,u=CATS[cat].unit;
+  var iso=$("#ablesedatum").value,z=parseNum($("#zaehlerstand").value);
+  var swEl=$("#startwert"),sw=swEl?parseNum(swEl.value):NaN;
+  if(!iso){toast("Bitte ein Ablesedatum wählen.",true);return;}
+  if(!isFinite(z)){toast("Bitte einen gültigen Zählerstand eingeben.",true);return;}
+  if(!tariffForDate(cat,iso)){toast("Bitte zuerst einen Tarif für dieses Datum hinterlegen.",true);tarifeOpen=true;renderTarife();return;}
+  var mk=billKey(iso),existing=STATE[cat].readings.find(function(r){return billKey(r.datum)===mk;});
+  if(existing&&!confirm("Für "+billLabel(iso)+" gibt es bereits eine Ablesung ("+fmtVal(cat,existing.zaehlerstand)+" "+u+" am "+deDate(existing.datum)+"). Möchtest du sie überschreiben?"))return;
+  try{
+    if(existing){
+      var patch={datum:iso,zaehlerstand:z,startwert:(isFinite(sw)?sw:null),erfasst_am:new Date().toISOString()};
+      var ru=await sb.from("readings").update(patch).eq("id",existing.id).select().single();
+      if(ru.error)throw ru.error;
+      var idx=STATE[cat].readings.findIndex(function(r){return r.id===existing.id;});
+      STATE[cat].readings[idx]=rowToReading(ru.data);
+    }else{
+      var cols=readingToCols(cat,{datum:iso,zaehlerstand:z,startwert:(isFinite(sw)?sw:null)});
+      var ri=await sb.from("readings").insert(cols).select().single();
+      if(ri.error)throw ri.error;
+      STATE[cat].readings.push(rowToReading(ri.data));
+    }
+    renderVerlauf();updateResult();if(swEl)swEl.value="";toast("Ablesung gespeichert ✅");
+  }catch(err){toast("Speichern fehlgeschlagen: "+errMsg(err),true);}
+}
+async function delReading(id){
+  var cat=activeCat;var r=STATE[cat].readings.find(function(x){return x.id===id;});if(!r)return;
+  if(!confirm("Ablesung "+billLabel(r.datum)+" ("+fmtVal(cat,r.zaehlerstand)+" "+CATS[cat].unit+") wirklich löschen?"))return;
+  try{
+    var d=await sb.from("readings").delete().eq("id",id);if(d.error)throw d.error;
+    STATE[cat].readings=STATE[cat].readings.filter(function(x){return x.id!==id;});
+    renderVerlauf();updateResult();toast("Ablesung gelöscht.");
+  }catch(err){toast("Löschen fehlgeschlagen: "+errMsg(err),true);}
+}
+function editReading(id){
+  var cat=activeCat;var r=STATE[cat].readings.find(function(x){return x.id===id;});if(!r)return;
+  $("#ablesedatum").value=r.datum;$("#zaehlerstand").value=String(r.zaehlerstand).replace(".",",");
+  var swEl=$("#startwert");if(swEl)swEl.value=(r.startwert!=null?String(r.startwert).replace(".",","):"");
+  updateResult();window.scrollTo({top:0,behavior:"smooth"});toast("Werte geladen – du kannst sie ändern und erneut speichern.");
+}
+async function onTarifSubmit(e){
+  e.preventDefault();
+  var cat=activeCat,c=CATS[cat];
+  var gueltig=$("#tf_gueltig").value||todayISO();
+  var obj={gueltigAb:gueltig,erstelltAm:new Date().toISOString()};
+  var ok=true,msg="";
+  c.tariffFields.forEach(function(f){
+    var el=$("#tf_"+f.key),v=el?el.value:"";
+    if(f.num){var nn=parseNum(v);if(!isFinite(nn)||nn<0){ok=false;msg=f.label;}obj[f.key]=nn;}
+    else{v=(v||"").trim();if(!v){ok=false;msg=f.label;}obj[f.key]=v;}
+  });
+  if(!ok){toast("Bitte gültig ausfüllen: "+msg,true);return;}
+  var hadCurrent=!!tariffForDate(cat,todayISO());
+  try{
+    var r=await sb.from("tariffs").insert(tariffToCols(cat,obj)).select().single();
+    if(r.error)throw r.error;
+    STATE[cat].tariffs.push(rowToTariff(r.data));
+    tarifeOpen=true;renderTarife();renderVerlauf();updateResult();
+    toast(hadCurrent?"Tarif gespeichert. Vorheriger Tarif archiviert ✅":"Tarif gespeichert ✅");
+  }catch(err){toast("Speichern fehlgeschlagen: "+errMsg(err),true);}
+}
+async function delTariff(id){
+  var cat=activeCat;var t=STATE[cat].tariffs.find(function(x){return x.id===id;});if(!t)return;
+  if(!confirm('Tarif „'+(t.anbieter||"")+'" wirklich löschen? Vergangene Monate werden dann neu berechnet.'))return;
+  try{
+    var d=await sb.from("tariffs").delete().eq("id",id);if(d.error)throw d.error;
+    STATE[cat].tariffs=STATE[cat].tariffs.filter(function(x){return x.id!==id;});
+    renderTarife();renderVerlauf();updateResult();toast("Tarif gelöscht.");
+  }catch(err){toast("Löschen fehlgeschlagen: "+errMsg(err),true);}
+}
+async function onAbSubmit(e){
+  e.preventDefault();
+  var cat=activeCat;
+  var betrag=parseNum($("#ab_betrag").value),gueltig=$("#ab_gueltig").value||todayISO();
+  if(!isFinite(betrag)||betrag<0){toast("Bitte einen gültigen Abschlag eingeben.",true);return;}
+  if(!tariffForDate(cat,gueltig)){toast("Für dieses Datum gibt es noch keinen Tarif. Bitte zuerst einen Tarif anlegen.",true);return;}
+  try{
+    var r=await sb.from("abschlag_changes").insert(abschlagToCols(cat,{betrag:betrag,gueltigAb:gueltig})).select().single();
+    if(r.error)throw r.error;
+    STATE[cat].abschlagChanges.push(rowToAbschlag(r.data));
+    tarifeOpen=true;renderTarife();renderVerlauf();updateResult();toast("Abschlag angepasst ✅");
+  }catch(err){toast("Speichern fehlgeschlagen: "+errMsg(err),true);}
+}
+async function delAbschlag(id){
+  var cat=activeCat;
+  try{
+    var d=await sb.from("abschlag_changes").delete().eq("id",id);if(d.error)throw d.error;
+    STATE[cat].abschlagChanges=(STATE[cat].abschlagChanges||[]).filter(function(x){return x.id!==id;});
+    renderTarife();renderVerlauf();updateResult();toast("Abschlag-Anpassung gelöscht.");
+  }catch(err){toast("Löschen fehlgeschlagen: "+errMsg(err),true);}
+}
+
+/* ---------- Backup / Export / Import ---------- */
+function exportData(){
+  var blob=new Blob([JSON.stringify(STATE,null,2)],{type:"application/json"});
+  var url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download="verbrauchs-tracker-sicherung-"+todayISO()+".json";a.click();URL.revokeObjectURL(url);
+}
+function csvEsc(s){s=String(s);if(/[";\n\r]/.test(s)){return '"'+s.replace(/"/g,'""')+'"';}return s;}
+function exportCSV(){
+  var cat=activeCat,c=CATS[cat],u=c.unit,bu=c.billUnit||u,sep=";",gas=!!c.gas;
+  var rows=history(cat);
+  var head=gas
+    ?["Abrechnungsmonat","Ablesedatum","Zählerstand (m³)","Zählerstand (MWh)","Verbrauch (kWh)",c.grundkostenLabel+" (EUR)",c.verbrauchskostenLabel+" (EUR)","Gesamtkosten (EUR)","Abschlag (EUR)","Differenz (EUR)","Anbieter","Status"]
+    :["Abrechnungsmonat","Ablesedatum","Zählerstand ("+u+")","Verbrauch ("+bu+")",c.grundkostenLabel+" (EUR)",c.verbrauchskostenLabel+" (EUR)","Gesamtkosten (EUR)","Abschlag (EUR)","Differenz (EUR)","Anbieter","Status"];
+  var lines=[head.map(csvEsc).join(sep)];
+  rows.forEach(function(r){
+    var iso=r.reading.datum,a=r.tariff?r.tariff.anbieter:"",arr;
+    if(gas){
+      if(r.baseline)arr=["Startwert",deDate(iso),csvVal(cat,r.reading.zaehlerstand),csvNum(r.kwh/1000,4),"","","","","","",a,"Startwert"];
+      else arr=[billLabel(iso),deDate(iso),csvVal(cat,r.reading.zaehlerstand),csvNum(r.kwh/1000,4),csvNum(r.verbrauch,1),csvNum(r.grundkosten,2),csvNum(r.verbrauchskosten,2),csvNum(r.gesamtkosten,2),csvNum(r.abschlag,2),csvNum(r.differenz,2),a,(r.differenz>=0?"Guthaben":"Nachzahlung")];
+    }else{
+      if(r.baseline)arr=["Startwert",deDate(iso),csvVal(cat,r.reading.zaehlerstand),"","","","","","",a,"Startwert"];
+      else arr=[billLabel(iso),deDate(iso),csvVal(cat,r.reading.zaehlerstand),csvVal(cat,r.verbrauch),csvNum(r.grundkosten,2),csvNum(r.verbrauchskosten,2),csvNum(r.gesamtkosten,2),csvNum(r.abschlag,2),csvNum(r.differenz,2),a,(r.differenz>=0?"Guthaben":"Nachzahlung")];
+    }
+    lines.push(arr.map(csvEsc).join(sep));
+  });
+  var csv="﻿"+lines.join("\r\n");
+  var blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  var url=URL.createObjectURL(blob),el=document.createElement("a");
+  el.href=url;el.download=cat+"-tracker-tabelle-"+todayISO()+".csv";el.click();URL.revokeObjectURL(url);
+  toast("Tabelle exportiert ✅");
+}
+function splitCSV(line,sep){
+  var out=[],cur="",q=false;
+  for(var i=0;i<line.length;i++){var ch=line[i];
+    if(q){if(ch==='"'){if(line[i+1]==='"'){cur+='"';i++;}else q=false;}else cur+=ch;}
+    else{if(ch==='"')q=true;else if(ch===sep){out.push(cur);cur="";}else cur+=ch;}
+  }
+  out.push(cur);return out;
+}
+function parseDateAny(s){
+  s=String(s).trim();var m;
+  if(m=s.match(/^(\d{4})-(\d{2})-(\d{2})/))return m[1]+"-"+m[2]+"-"+m[3];
+  if(m=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/))return m[3]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[1]).padStart(2,"0");
+  return null;
+}
+function parseReadingsCSV(text){
+  text=text.replace(/^﻿/,"");
+  var lines=text.split(/\r?\n/).filter(function(l){return l.trim()!=="";});
+  if(!lines.length)return {rows:[],skipped:0};
+  var sep=lines[0].indexOf(";")>=0?";":(lines[0].indexOf("\t")>=0?"\t":",");
+  var header=splitCSV(lines[0],sep).map(function(h){return h.trim().toLowerCase();});
+  var di=header.findIndex(function(h){return /ablese|datum/.test(h);});
+  var zi=header.findIndex(function(h){return /z[äa]hler|stand/.test(h);});
+  var start=1;
+  if(di<0||zi<0){di=0;zi=1;start=0;}
+  var rows=[],skipped=0;
+  for(var i=start;i<lines.length;i++){
+    var ce=splitCSV(lines[i],sep);
+    var iso=parseDateAny(ce[di]||""),z=parseNum(ce[zi]||"");
+    if(iso&&isFinite(z)&&String(ce[zi]).trim()!=="")rows.push({datum:iso,zaehler:z});
+    else skipped++;
+  }
+  return {rows:rows,skipped:skipped};
+}
+function onCSVImport(e){
+  var f=e.target.files[0];if(!f)return;var cat=activeCat;
+  var reader=new FileReader();
+  reader.onload=function(){(async function(){
+    try{
+      var res=parseReadingsCSV(reader.result);
+      if(!res.rows.length){toast('Keine gültigen Zeilen gefunden (Spalten „Ablesedatum" und „Zählerstand" erwartet).',true);return;}
+      if(!confirm(res.rows.length+" Ablesung(en) in den Bereich "+CATS[cat].label+" übernehmen?"))return;
+      var added=0,updated=0;
+      for(var i=0;i<res.rows.length;i++){
+        var rw=res.rows[i],bk=billKey(rw.datum),ex=STATE[cat].readings.find(function(r){return billKey(r.datum)===bk;});
+        if(ex){
+          var ru=await sb.from("readings").update({datum:rw.datum,zaehlerstand:rw.zaehler,erfasst_am:new Date().toISOString()}).eq("id",ex.id).select().single();
+          if(ru.error)throw ru.error;
+          var ix=STATE[cat].readings.findIndex(function(r){return r.id===ex.id;});STATE[cat].readings[ix]=rowToReading(ru.data);updated++;
+        }else{
+          var ri=await sb.from("readings").insert({category:cat,datum:rw.datum,zaehlerstand:rw.zaehler}).select().single();
+          if(ri.error)throw ri.error;STATE[cat].readings.push(rowToReading(ri.data));added++;
+        }
+      }
+      renderVerlauf();updateResult();
+      toast(added+" neu, "+updated+" aktualisiert"+(res.skipped?", "+res.skipped+" übersprungen":"")+" ✅");
+    }catch(err){toast("Import fehlgeschlagen: "+errMsg(err),true);}
+  })();};
+  reader.readAsText(f);e.target.value="";
+}
+function onImport(e){
+  var f=e.target.files[0];if(!f)return;
+  var reader=new FileReader();
+  reader.onload=function(){(async function(){
+    try{
+      var data=normalize(JSON.parse(reader.result));
+      if(!confirm("Aktuelle Daten durch die Sicherung ersetzen? Das überschreibt ALLE Bereiche (Strom, Wasser, Gas) in der Datenbank."))return;
+      toast("Sicherung wird geladen …");
+      await replaceAllInDB(data);
+      await loadFromDB();renderApp();toast("Sicherung geladen ✅");
+    }catch(err){toast("Sicherung konnte nicht geladen werden: "+errMsg(err),true);}
+  })();};
+  reader.readAsText(f);e.target.value="";
+}
+
+/* ---------- Toast ---------- */
+var toastTimer;
+function toast(msg,err){
+  var t=$("#toast");if(!t){t=document.createElement("div");t.id="toast";document.body.appendChild(t);}
+  t.textContent=msg;t.className=err?"show err":"show";clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.className="";},3000);
+}
+
+/* ---------- Init ---------- */
+function applyDesign(d){
+  var modern=(d==="modern");
+  document.body.classList.toggle("design-modern",modern);
+  document.querySelectorAll(".dt-btn").forEach(function(b){b.classList.toggle("active",b.dataset.design===(modern?"modern":"classic"));});
+  var tc=document.querySelector('meta[name="theme-color"]');if(tc)tc.setAttribute("content",modern?"#0a0f1f":"#f59e0b");
+  try{localStorage.setItem("verbrauchsTrackerDesign",modern?"modern":"classic");}catch(e){}
+}
+/* ---------- Auth ---------- */
+function showAuth(show){document.body.classList.toggle("app-hidden",show);var a=$("#authscreen");if(a)a.hidden=!show;var lo=$("#logoutBtn");if(lo)lo.hidden=show;}
+function authMsg(text,kind){var m=$("#auth_msg");if(!m)return;if(!text){m.hidden=true;m.textContent="";return;}m.hidden=false;m.textContent=text;m.className="authmsg "+(kind||"");}
+function loginErrorText(e){var m=errMsg(e);if(/invalid login/i.test(m))return "E-Mail oder Passwort ist falsch.";if(/email not confirmed/i.test(m))return "Bitte bestätige zuerst deine E-Mail-Adresse (Link in der Bestätigungs-Mail).";if(/already registered|already been registered/i.test(m))return "Für diese E-Mail gibt es bereits ein Konto. Bitte melde dich an.";if(/rate limit|too many/i.test(m))return "Zu viele Versuche. Bitte kurz warten und erneut probieren.";return m;}
+async function doLogin(){
+  var email=($("#auth_email").value||"").trim(),pass=$("#auth_pass").value||"";
+  if(!email||!pass){authMsg("Bitte E-Mail und Passwort eingeben.","err");return;}
+  authMsg("Anmeldung läuft …","");
+  try{var r=await sb.auth.signInWithPassword({email:email,password:pass});if(r.error){authMsg(loginErrorText(r.error),"err");return;}authMsg("",null);}
+  catch(e){authMsg(loginErrorText(e),"err");}
+}
+async function doSignup(){
+  var email=($("#auth_email").value||"").trim(),pass=$("#auth_pass").value||"";
+  if(!email||!pass){authMsg("Bitte E-Mail und Passwort eingeben.","err");return;}
+  if(pass.length<6){authMsg("Das Passwort muss mindestens 6 Zeichen haben.","err");return;}
+  authMsg("Konto wird erstellt …","");
+  try{
+    var r=await sb.auth.signUp({email:email,password:pass});
+    if(r.error){authMsg(loginErrorText(r.error),"err");return;}
+    if(r.data&&r.data.session)authMsg("Konto erstellt – du wirst angemeldet …","ok");
+    else authMsg("Konto erstellt. Bitte bestätige die E-Mail, die wir dir geschickt haben, und melde dich anschließend an.","ok");
+  }catch(e){authMsg(loginErrorText(e),"err");}
+}
+async function doLogout(){try{await sb.auth.signOut();}catch(e){}authMsg("",null);var p=$("#auth_pass");if(p)p.value="";}
+async function enterApp(session){
+  currentUser=session.user;showAuth(false);
+  try{await loadFromDB();}catch(e){toast("Daten konnten nicht geladen werden: "+errMsg(e),true);}
+  renderApp();
+}
+function handleSession(session){
+  if(session&&session.user){
+    if(enteredUserId===session.user.id){currentUser=session.user;return;}
+    enteredUserId=session.user.id;enterApp(session);
+  }else{enteredUserId=null;currentUser=null;var app=$("#app");if(app)app.innerHTML="";showAuth(true);}
+}
+function init(){
+  var savedDesign="classic";try{savedDesign=localStorage.getItem("verbrauchsTrackerDesign")||"classic";}catch(e){}
+  applyDesign(savedDesign);
+  document.querySelectorAll(".dt-btn").forEach(function(b){b.addEventListener("click",function(){applyDesign(b.dataset.design);});});
+  document.querySelectorAll(".tab").forEach(function(b){b.addEventListener("click",function(){activeCat=b.dataset.cat;tarifeOpen=false;expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});});});
+  $("#app").addEventListener("click",onAppClick);
+  $("#exportBtn").addEventListener("click",exportData);
+  $("#importBtn").addEventListener("click",function(){$("#importFile").click();});
+  $("#importFile").addEventListener("change",onImport);
+  $("#csvExportBtn").addEventListener("click",exportCSV);
+  $("#csvImportBtn").addEventListener("click",function(){$("#csvFile").click();});
+  $("#csvFile").addEventListener("change",onCSVImport);
+  $("#auth_login").addEventListener("click",doLogin);
+  $("#auth_signup").addEventListener("click",doSignup);
+  $("#auth_pass").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
+  $("#logoutBtn").addEventListener("click",doLogout);
+  sb.auth.onAuthStateChange(function(evt,session){setTimeout(function(){handleSession(session);},0);});
+}
+init();
+})();
+</script>
+</body>
+</html>

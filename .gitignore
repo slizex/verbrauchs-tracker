@@ -1,0 +1,15 @@
+# Persönliche Daten – NIEMALS ins öffentliche Repo!
+verbrauchs-historie.json
+strom-historie.json
+*-historie.json
+*-sicherung-*.json
+*-tabelle-*.csv
+
+# Lokale Backups / Entwicklungsdateien
+index-localstorage-backup.html
+.claude/
+
+# System
+Thumbs.db
+.DS_Store
+desktop.ini
