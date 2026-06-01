@@ -285,11 +285,17 @@ body.v2dark .mcflag{color:#fcd34d}
 .hhwide,.invcopy{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px;color:var(--accent);font:inherit;font-weight:600;cursor:pointer;margin-top:10px}
 .hhfull{width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;background:var(--panel);color:var(--fg);font:inherit;margin-bottom:10px}
 .catcfg{display:flex;flex-direction:column;gap:11px;margin:6px 0 0}
-.cattoggle{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;background:var(--panel)}
-.catsw{width:42px;height:24px;border-radius:99px;background:var(--border2);position:relative;cursor:pointer;flex:none;transition:background .15s;border:none}
-.catsw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
-.catsw.on{background:var(--accent)}
-.catsw.on::after{transform:translateX(18px)}
+.catrow{display:flex;flex-direction:column;gap:8px}
+.cattoggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;background:var(--panel);cursor:pointer;font:inherit;color:var(--fg);text-align:left}
+.cattoggle.on{border-color:color-mix(in srgb,var(--accent) 40%,var(--border))}
+.catname{font-weight:500}
+.catsw{width:42px;height:24px;border-radius:99px;background:var(--border2);position:relative;flex:none;transition:background .18s}
+.catsw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .18s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.cattoggle.on .catsw{background:var(--accent)}
+.cattoggle.on[data-cat="strom"] .catsw{background:#f59e0b}
+.cattoggle.on[data-cat="wasser"] .catsw{background:#0ea5e9}
+.cattoggle.on[data-cat="gas"] .catsw{background:#f97316}
+.cattoggle.on .catsw::after{transform:translateX(18px)}
 .catcheck{display:flex;align-items:center;gap:9px;font-size:.9rem}
 .meterinp{width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 11px;background:var(--panel);color:var(--fg);font:inherit;margin-top:8px}
 .catnewlabel{margin:8px 0 9px;font-size:.9rem}
@@ -302,6 +308,9 @@ body.v2dark .mcflag{color:#fcd34d}
 .tarifehead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
 .tarifform{display:flex;flex-direction:column;gap:10px;margin:8px 0 4px}
 .tarifform label{display:flex;flex-direction:column;gap:5px;font-size:.85rem;font-weight:500}
+.tarifform select{width:100%;padding:10px 12px;font-size:.95rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel);color:var(--fg);font-family:inherit;cursor:pointer}
+.tarifform select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent)}
+.optsep{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted2);font-weight:600;margin:8px 0 0;padding-top:12px;border-top:1px solid var(--border)}
 .tcard{border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;background:var(--panel)}
 .tcard.current{border-color:color-mix(in srgb,var(--accent) 45%,var(--border))}
 .tcardhead{display:flex;align-items:center;gap:8px;margin-bottom:12px}
@@ -588,10 +597,10 @@ function normalize(d){var b=defaults();if(!d||typeof d!=="object")return b;["str
 function gasFactor(){var c=STATE.gas.conversion||defConv();return numOr(c.wandelfaktor,1)*numOr(c.zustandszahl,0)*numOr(c.brennwert,0);}
 function errMsg(e){return (e&&e.message)?e.message:String(e||"Unbekannter Fehler");}
 function nOrNull(x){return (x==null||x==="")?null:Number(x);}
-function rowToTariff(r){var t={id:r.id,anbieter:r.anbieter||"",grundpreisJahr:Number(r.grundpreis_jahr),abschlag:Number(r.abschlag),gueltigAb:r.gueltig_ab,erstelltAm:r.erstellt_am};if(r.arbeitspreis!=null)t.arbeitspreis=Number(r.arbeitspreis);if(r.wasser_kanal!=null)t.wasserKanal=Number(r.wasser_kanal);return t;}
+function rowToTariff(r){var t={id:r.id,anbieter:r.anbieter||"",grundpreisJahr:Number(r.grundpreis_jahr),abschlag:Number(r.abschlag),gueltigAb:r.gueltig_ab,erstelltAm:r.erstellt_am};if(r.arbeitspreis!=null)t.arbeitspreis=Number(r.arbeitspreis);if(r.wasser_kanal!=null)t.wasserKanal=Number(r.wasser_kanal);if(r.laufzeit)t.laufzeit=r.laufzeit;if(r.vertragsstart)t.vertragsstart=r.vertragsstart;if(r.kundennummer)t.kundennummer=r.kundennummer;return t;}
 function rowToReading(r){var o={id:r.id,datum:r.datum,zaehlerstand:Number(r.zaehlerstand),erfasstAm:r.erfasst_am};if(r.startwert!=null)o.startwert=Number(r.startwert);if(r.zaehlerstand_kwh!=null)o.zaehlerstandKwh=Number(r.zaehlerstand_kwh);return o;}
 function rowToAbschlag(r){return {id:r.id,betrag:Number(r.betrag),gueltigAb:r.gueltig_ab,erstelltAm:r.erstellt_am};}
-function tariffToCols(cat,t){return {category:cat,anbieter:t.anbieter||null,grundpreis_jahr:nOrNull(t.grundpreisJahr),arbeitspreis:nOrNull(t.arbeitspreis),wasser_kanal:nOrNull(t.wasserKanal),abschlag:nOrNull(t.abschlag),gueltig_ab:t.gueltigAb,erstellt_am:t.erstelltAm||new Date().toISOString(),household_id:activeHousehold};}
+function tariffToCols(cat,t){return {category:cat,anbieter:t.anbieter||null,grundpreis_jahr:nOrNull(t.grundpreisJahr),arbeitspreis:nOrNull(t.arbeitspreis),wasser_kanal:nOrNull(t.wasserKanal),abschlag:nOrNull(t.abschlag),laufzeit:t.laufzeit||null,vertragsstart:t.vertragsstart||null,kundennummer:t.kundennummer||null,gueltig_ab:t.gueltigAb,erstellt_am:t.erstelltAm||new Date().toISOString(),household_id:activeHousehold};}
 function readingToCols(cat,r){return {category:cat,datum:r.datum,zaehlerstand:nOrNull(r.zaehlerstand),startwert:(r.startwert!=null?Number(r.startwert):null),zaehlerstand_kwh:(r.zaehlerstandKwh!=null?Number(r.zaehlerstandKwh):null),erfasst_am:r.erfasstAm||new Date().toISOString(),household_id:activeHousehold};}
 function abschlagToCols(cat,a){return {category:cat,betrag:nOrNull(a.betrag),gueltig_ab:a.gueltigAb,erstellt_am:a.erstelltAm||new Date().toISOString(),household_id:activeHousehold};}
 async function loadFromDB(){
@@ -1109,6 +1118,11 @@ function tariffCard(t,current){
   var gueltig="gültig ab "+deDate(t.gueltigAb)+(bis?" bis "+deDate(bis):" (laufend)");
   var si=tariffSaldoInfo(cat,t.id),sp=si.saldo>=0;
   var saldoLine=si.months?'<div class="tcardsaldo '+(sp?"plus":"minus")+'">Tarif-Saldo: '+(sp?"+":"")+eur(si.saldo)+' · '+(sp?"Guthaben":"Nachzahlung")+' ('+si.months+' Monat'+(si.months===1?"":"e")+')</div>':"";
+  var lzLabel={flex:"Flexibel / monatlich kündbar","12":"12 Monate","24":"24 Monate"};
+  var optRows="";
+  if(t.laufzeit)optRows+='<div><span>Laufzeit</span><b>'+(lzLabel[t.laufzeit]||escapeHtml(String(t.laufzeit)))+'</b></div>';
+  if(t.vertragsstart)optRows+='<div><span>Vertragsstart</span><b>'+deDate(t.vertragsstart)+'</b></div>';
+  if(t.kundennummer)optRows+='<div><span>Kundennummer</span><b>'+escapeHtml(t.kundennummer)+'</b></div>';
   return '<div class="tcard '+(current?"current":"")+'">'+
     '<div class="tcardhead"><b>'+escapeHtml(t.anbieter||"(ohne Namen)")+'</b>'+(current?'<span class="badge">aktuell</span>':"")+'</div>'+
     '<div class="tgrid">'+
@@ -1116,6 +1130,7 @@ function tariffCard(t,current){
       CATS[cat].priceRows(t)+
       '<div><span>Abschlag</span><b>'+eur(t.abschlag)+'</b></div>'+
       '<div><span>Grundkosten/Monat</span><b>'+eur(t.grundpreisJahr/12)+'</b></div>'+
+      optRows+
     '</div>'+
     '<div class="tvalid">'+gueltig+'</div>'+saldoLine+
     '<div class="tactions">'+(current?'<button class="iconbtn abschlagbtn" data-action="open-abschlag" title="Abschlag anpassen">💶 Abschlag anpassen</button>':"")+'<button class="iconbtn" data-action="del-tariff" data-id="'+t.id+'" title="Tarif löschen">🗑️ löschen</button></div>'+
@@ -1163,6 +1178,10 @@ function renderTarife(){
       '<h3>Neuen Tarif eintragen</h3>'+
       '<form id="tarifForm" class="tarifform">'+formFields+
         '<label>Gültig ab<input type="date" id="tf_gueltig" value="'+todayISO()+'"></label>'+
+        '<div class="optsep">Optionale Vertragsdetails</div>'+
+        '<label>Laufzeit<select id="tf_laufzeit"><option value="">— keine Angabe —</option><option value="flex">Flexibel / monatlich kündbar</option><option value="12">12 Monate</option><option value="24">24 Monate</option></select></label>'+
+        '<label>Vertragsstart<input type="date" id="tf_vertragsstart"></label>'+
+        '<label>Kundennummer<input type="text" id="tf_kundennummer" placeholder="optional" autocomplete="off"></label>'+
         '<button type="submit" class="btn">Tarif speichern</button>'+
         '<p class="hint">Nur bei echtem Tarifwechsel (neuer Anbieter/Preise). Beim Speichern wird der bisherige Tarif automatisch archiviert. Vergangene Monate werden weiterhin mit dem damals gültigen Tarif berechnet.</p>'+
       '</form>'+
@@ -1268,6 +1287,9 @@ async function onTarifSubmit(e){
     else{v=(v||"").trim();if(!v){ok=false;msg=f.label;}obj[f.key]=v;}
   });
   if(!ok){toast("Bitte gültig ausfüllen: "+msg,true);return;}
+  var lz=$("#tf_laufzeit");if(lz&&lz.value)obj.laufzeit=lz.value;
+  var vs=$("#tf_vertragsstart");if(vs&&vs.value)obj.vertragsstart=vs.value;
+  var kn=$("#tf_kundennummer");if(kn&&(kn.value||"").trim())obj.kundennummer=kn.value.trim();
   var hadCurrent=!!tariffForDate(cat,todayISO());
   try{
     var r=await sb.from("tariffs").insert(tariffToCols(cat,obj)).select().single();
@@ -1584,10 +1606,10 @@ async function setHouseholdConfig(cfg){
   catch(e){if(h)h.category_config=prev;renderTabs();toast("Konnte Einstellung nicht speichern: "+errMsg(e),true);}
 }
 function toggleCat(cat){
-  var cfg=householdConfig()||{},ncfg=JSON.parse(JSON.stringify(cfg));
-  if(!ncfg[cat])ncfg[cat]={enabled:false};
-  var willEnable=!(ncfg[cat].enabled===true);
-  if(!willEnable&&["strom","wasser","gas"].filter(function(c){return ncfg[c]&&ncfg[c].enabled===true;}).length<=1){toast("Mindestens eine Kategorie muss aktiv bleiben.",true);return;}
+  var cur=householdConfig()||{},eff=householdCats(),ncfg={};
+  ["strom","wasser","gas"].forEach(function(c){ncfg[c]={enabled:eff.indexOf(c)>=0};if(cur[c]&&cur[c].meter)ncfg[c].meter=cur[c].meter;});
+  var willEnable=!ncfg[cat].enabled;
+  if(!willEnable&&["strom","wasser","gas"].filter(function(c){return ncfg[c].enabled;}).length<=1){toast("Mindestens eine Kategorie muss aktiv bleiben.",true);return;}
   ncfg[cat].enabled=willEnable;
   setHouseholdConfig(ncfg).then(function(){renderAccount();});
 }
@@ -1598,9 +1620,9 @@ function saveMeter(cat,value){
   setHouseholdConfig(ncfg);
 }
 function catCfgEditorActive(){
-  var cfg=householdConfig()||{};
+  var cfg=householdConfig()||{},eff=householdCats();
   return ["strom","wasser","gas"].map(function(c){
-    var en=cfg[c]&&cfg[c].enabled===true,meter=(cfg[c]&&cfg[c].meter)?escapeHtml(cfg[c].meter):"";
+    var en=eff.indexOf(c)>=0,meter=(cfg[c]&&cfg[c].meter)?escapeHtml(cfg[c].meter):"";
     return '<div class="catrow"><button class="cattoggle'+(en?" on":"")+'" role="switch" aria-checked="'+(en?"true":"false")+'" data-action="cat-toggle" data-cat="'+c+'"><span class="catname">'+CATS[c].icon+' '+CATS[c].label+'</span><span class="catsw"></span></button>'+(en?'<input class="meterinp" id="meter_'+c+'" data-cat="'+c+'" placeholder="Zähler-Nr. (optional)" value="'+meter+'">':"")+'</div>';
   }).join("");
 }
