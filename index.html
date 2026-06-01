@@ -58,10 +58,14 @@ input:focus{outline:none;border-color:var(--accent)}
 .vrow.baseline{background:#fafafa}
 .vmonth{font-weight:700}
 .vdate,.vsub{color:var(--muted);font-size:.9rem;font-weight:400}
-.vsub{margin-top:2px}
-.vright{display:flex;align-items:center;gap:8px}
+.vmain{flex:1 1 auto;min-width:0}
+.vsub{display:flex;flex-wrap:wrap;column-gap:12px;row-gap:1px;margin-top:3px}
+.vsub span{white-space:nowrap}
+.vdate{white-space:nowrap}
+.vright{display:flex;align-items:center;gap:8px;flex:none}
 .vdiff{font-weight:800;white-space:nowrap}
 .vdiff.plus{color:var(--pos)}.vdiff.minus{color:var(--neg)}
+@media(max-width:480px){.vrow{flex-direction:column;align-items:stretch;gap:9px}.vright{width:100%;justify-content:space-between}.vsub{column-gap:14px}}
 .iconbtn{background:none;border:none;font-size:1.05rem;cursor:pointer;padding:6px;border-radius:8px}
 .iconbtn:hover{background:#f0f0f0}
 .saldo{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:12px 14px;border-radius:12px;margin-bottom:12px;color:#fff}
@@ -139,16 +143,17 @@ footer p{margin:14px 0 0}
 .cnote{color:var(--muted)}
 /* Mein Konto / Haushalte */
 .accemail{margin:0 0 12px;text-align:left}
-.acclabel{font-weight:700;font-size:.9rem;margin-bottom:7px;text-align:left}
-.hhlist{display:flex;flex-direction:column;gap:8px}
+.acclabel{font-weight:700;font-size:.92rem;margin-bottom:9px;text-align:left}
+.accsep{margin-top:24px}
+.hhlist{display:flex;flex-direction:column;gap:10px}
 .hhopt{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:12px;padding:11px 13px;background:#fff;cursor:pointer;text-align:left;font:inherit;color:var(--text)}
 .hhopt:hover{border-color:var(--accent)}
 .hhopt.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,#fff)}
 .hhname{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .hhtag{font-size:.82rem;color:var(--muted);white-space:nowrap}
 .hhopt.active .hhtag{color:var(--accent);font-weight:700}
-.hhmeta{margin:9px 0 0;color:var(--muted);font-size:.86rem;text-align:left}
-.hhadd{display:flex;gap:8px;margin-top:12px}
+.hhmeta{margin:12px 0 0;color:var(--muted);font-size:.86rem;text-align:left}
+.hhadd{display:flex;gap:8px;margin-top:14px}
 .hhadd input{flex:1;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:11px;font:inherit;background:#fff;color:var(--text)}
 .hhaddbtn{border:1px solid var(--line);border-radius:11px;background:#fff;padding:0 14px;font-weight:700;cursor:pointer;white-space:nowrap;color:var(--accent)}
 .hhaddbtn:hover{background:color-mix(in srgb,var(--accent) 10%,#fff)}
@@ -157,8 +162,9 @@ body.design-modern .hhopt,body.design-modern .hhadd input,body.design-modern .hh
 body.design-modern .hhaddbtn{color:var(--accent)}
 body.design-modern .hhopt.active{background:color-mix(in srgb,var(--accent) 16%,transparent);border-color:var(--accent)}
 /* Runder Konto-Button + Einstellungsseite */
-.accountbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;padding:0}
+.accountbtn{display:inline-flex;align-items:center;gap:7px;height:40px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;padding:0 14px;font-weight:700;font-size:.85rem}
 .accountbtn svg{display:block}
+@media(max-width:430px){.accountbtn span{display:none}.accountbtn{padding:0;width:40px;justify-content:center}}
 .accountbtn:hover{color:var(--text);border-color:var(--accent)}
 body.settings-open .accountbtn{background:var(--accent);border-color:var(--accent);color:#fff}
 body.design-modern .accountbtn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:rgba(238,242,255,.8)}
@@ -171,7 +177,7 @@ body.settings-open .tabs{display:none}
 .backbtn:hover{filter:brightness(1.07)}
 .backbtn:active{transform:translateY(1px)}
 .settitle{font-size:1.2rem;margin:0 0 14px}
-.accountcard{padding:18px}
+.accountcard{padding:20px}
 .logoutbtn-wide{display:block;width:100%;margin-top:16px;background:none;border:2px solid var(--line);border-radius:14px;padding:14px;font-weight:700;color:var(--muted);cursor:pointer;font-size:1rem}
 .logoutbtn-wide:hover{background:#f0f0f0;color:var(--text)}
 body.design-modern .logoutbtn-wide{border-color:rgba(255,255,255,.16);color:rgba(238,242,255,.8)}
@@ -186,7 +192,7 @@ body.design-modern .logoutbtn-wide:hover{background:rgba(255,255,255,.06)}
 .invhint{color:var(--muted);font-size:.85rem;margin:9px 0 0;text-align:left}
 body.design-modern .hhwide,body.design-modern .invcopy{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14);color:var(--accent)}
 /* Kategorie-Auswahl je Haushalt */
-.catcfg{display:flex;flex-direction:column;gap:8px;margin:4px 0 0}
+.catcfg{display:flex;flex-direction:column;gap:11px;margin:6px 0 0}
 .catrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cattoggle{flex:1 1 150px;display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px 12px;cursor:pointer;font:inherit;color:var(--text)}
 .cattoggle .catname{font-weight:700}
@@ -198,8 +204,8 @@ body.design-modern .hhwide,body.design-modern .invcopy{background:rgba(255,255,2
 .meterinp{flex:1 1 150px;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font:inherit;background:#fff;color:var(--text)}
 .catcheck{flex:1 1 150px;display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:11px 12px;font-weight:700;cursor:pointer}
 .catcheck input{width:18px;height:18px;accent-color:var(--accent)}
-.hhfull{display:block;width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;font:inherit;background:#fff;color:var(--text);margin-bottom:8px}
-.catnewlabel{font-size:.86rem;color:var(--muted);margin:2px 0 6px}
+.hhfull{display:block;width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;font:inherit;background:#fff;color:var(--text);margin-bottom:10px}
+.catnewlabel{font-size:.86rem;color:var(--muted);margin:8px 0 9px}
 .meterno{color:var(--muted);font-size:.9rem;margin:-4px 0 12px}
 body.design-modern .cattoggle,body.design-modern .meterinp,body.design-modern .catcheck,body.design-modern .hhfull{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14);color:var(--text)}
 body.design-modern .catsw{background:rgba(255,255,255,.22)}
@@ -212,6 +218,28 @@ body.design-modern .catsw{background:rgba(255,255,255,.22)}
 .onbbtn{margin-top:8px;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
 .onbbtn:hover{filter:brightness(1.07)}
 body.design-modern .onbbtn{color:#0b1020}
+/* Aktiver-Haushalt-Chip + Ablese-Erinnerung */
+.hhchip{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px 14px;margin-bottom:12px;cursor:pointer;font:inherit;color:var(--text)}
+.hhchip:hover{border-color:var(--accent)}
+.hhchipname{font-weight:700}
+.hhchipx{color:var(--accent);font-weight:700;font-size:.85rem;white-space:nowrap}
+.rembanner{border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 9%,#fff);border-radius:14px;padding:12px 14px;margin-bottom:14px}
+.remrow{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
+.remtxt{line-height:1.4}
+.remclose{border:none;background:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:0 2px;line-height:1}
+.rembtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.rembtn{border:none;background:var(--accent);color:#fff;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer;font-size:.9rem}
+.rembtn:hover{filter:brightness(1.07)}
+body.design-modern .hhchip{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14)}
+body.design-modern .rembanner{background:color-mix(in srgb,var(--accent) 16%,transparent)}
+body.design-modern .rembtn{color:#0b1020}
+/* Chart: antippbare Balken, Abschlag-Linie, Tipp-Zeile */
+.ycol{cursor:pointer}
+.abmark{position:absolute;left:6%;right:6%;height:0;border-top:2px dashed rgba(17,24,39,.6);pointer-events:none;z-index:2}
+body.design-modern .abmark{border-top-color:rgba(255,255,255,.8)}
+.ovlegend i.abmarkleg{display:inline-block;width:16px;height:0;border-top:2px dashed currentColor;vertical-align:middle}
+.ovbartip{text-align:center;color:var(--muted);font-size:.85rem;margin-top:8px;min-height:1.2em}
+.linkdanger{color:var(--neg)!important}
 @media(max-width:480px){body{font-size:17px}.tgrid{grid-template-columns:1fr}}
 /* ===== Design-Umschalter (Segmented Control) ===== */
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
@@ -462,7 +490,7 @@ body.design-modern .ycol.cur .ybar,body.design-modern .ycol.cur .ystack{box-shad
         <button class="dt-btn active" data-design="classic" title="Helles Design (Tag)" aria-label="Helles Design (Tag)"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19"/></svg></button>
         <button class="dt-btn" data-design="modern" title="Dunkles Design (Nacht)" aria-label="Dunkles Design (Nacht)"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.3A8.2 8.2 0 1 1 9.7 3.5a6.4 6.4 0 0 0 10.8 10.8Z"/></svg></button>
       </div>
-      <button id="accountBtn" class="accountbtn" hidden title="Mein Konto &amp; Einstellungen" aria-label="Mein Konto und Einstellungen"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5a6.5 6.5 0 0 1 13 0"/></svg></button>
+      <button id="accountBtn" class="accountbtn" hidden title="Mein Konto &amp; Einstellungen" aria-label="Mein Konto und Einstellungen"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5a6.5 6.5 0 0 1 13 0"/></svg><span>Konto</span></button>
     </div>
   </div>
   <nav class="tabs" id="tabs">
@@ -808,7 +836,7 @@ function ovCurrentGroup(cat){
   return tariffGroups(cat).find(function(x){return x.tid===cur.id;})||null;
 }
 function ovChartCard(){
-  return '<section class="card"><h2 class="sect">📅 Jahresverlauf</h2><div id="ovchartwrap">'+ovChartWrap()+'</div></section>';
+  return '<section class="card"><h2 class="sect">📅 Verlauf (aktueller Tarif)</h2><div id="ovchartwrap">'+ovChartWrap()+'</div></section>';
 }
 function ovSeg(group,val,label,active,disabled){
   return '<button class="ovsegbtn'+(active?" active":"")+'"'+(disabled?" disabled":"")+' data-action="'+group+'" data-val="'+val+'">'+label+'</button>';
@@ -842,13 +870,13 @@ function ovChartBody(metric,cat){
     var maxV=1;rows.forEach(function(r){maxV=Math.max(maxV,r.gesamtkosten||0,r.abschlag||0);});
     bars=rows.map(function(r,i){
       var k=r.gesamtkosten||0,a=r.abschlag||0,base=Math.min(k,a),delta=Math.abs(k-a),over=k>a;
-      var totH=(Math.max(k,a)/maxV*100),dcol=over?"var(--neg)":"var(--pos)";
+      var totH=(Math.max(k,a)/maxV*100),abH=(a/maxV*100),dcol=over?"var(--neg)":"var(--pos)";
       var tip=monthLabel(billKey(r.reading.datum)+"-01")+": Kosten "+eur(k)+" · Abschlag "+eur(a)+" · "+(over?"Nachzahlung ":"Guthaben ")+eur(delta);
-      return '<div class="ycol'+(i===rows.length-1?" cur":"")+'" title="'+tip+'"><div class="ystack" style="height:'+totH.toFixed(1)+'%"><i style="flex:'+delta.toFixed(2)+';background:'+dcol+'"></i><i style="flex:'+base.toFixed(2)+';background:'+col+'"></i></div></div>';
+      return '<div class="ycol'+(i===rows.length-1?" cur":"")+'" data-action="ovbar" data-tip="'+tip+'" title="'+tip+'"><div class="ystack" style="height:'+totH.toFixed(1)+'%"><i style="flex:'+delta.toFixed(2)+';background:'+dcol+'"></i><i style="flex:'+base.toFixed(2)+';background:'+col+'"></i></div><i class="abmark" style="bottom:'+abH.toFixed(1)+'%"></i></div>';
     }).join("");
     var sumK=rows.reduce(function(a,r){return a+(r.gesamtkosten||0);},0),sumA=rows.reduce(function(a,r){return a+(r.abschlag||0);},0),net=sumA-sumK;
     caption=firstFull+" – "+lastFull+" · Kosten "+eur(sumK)+" · Abschlag "+eur(sumA)+" · "+(net>=0?"Guthaben ":"Nachzahlung ")+eur(Math.abs(net));
-    legend='<div class="ovlegend"><span><b style="background:'+col+'"></b>Kosten/Abschlag</span><span><b style="background:var(--pos)"></b>Guthaben</span><span><b style="background:var(--neg)"></b>Nachzahlung</span></div>';
+    legend='<div class="ovlegend"><span><i class="abmarkleg"></i>Abschlag</span><span><b style="background:var(--pos)"></b>Guthaben</span><span><b style="background:var(--neg)"></b>Nachzahlung</span></div>';
   }else{
     var valOf=function(r){return metric==="kosten"?r.gesamtkosten:metric==="differenz"?r.differenz:r.verbrauch;};
     var vals=rows.map(valOf);
@@ -860,7 +888,7 @@ function ovChartBody(metric,cat){
       var bottom=Math.min(zeroFrac,valFrac)*100,height=Math.abs(valFrac-zeroFrac)*100;
       var bc=isDiff?(v>=0?"var(--pos)":"var(--neg)"):col;
       var tip=monthLabel(billKey(r.reading.datum)+"-01")+": "+(metric==="verbrauch"?(fmtVerb(cat,v)+" "+(c.billUnit||c.unit)):eur(v));
-      return '<div class="ycol'+(i===rows.length-1?" cur":"")+'" title="'+tip+'"><i class="ybar" style="bottom:'+bottom.toFixed(1)+'%;height:'+Math.max(height,0.8).toFixed(1)+'%;background:'+bc+'"></i></div>';
+      return '<div class="ycol'+(i===rows.length-1?" cur":"")+'" data-action="ovbar" data-tip="'+tip+'" title="'+tip+'"><i class="ybar" style="bottom:'+bottom.toFixed(1)+'%;height:'+Math.max(height,0.8).toFixed(1)+'%;background:'+bc+'"></i></div>';
     }).join("");
     if(isDiff&&minV<0)zeroLine='<div class="yzero" style="bottom:'+(zeroFrac*100).toFixed(1)+'%"></div>';
     var sv=vals.reduce(function(a,b){return a+b;},0);
@@ -868,16 +896,34 @@ function ovChartBody(metric,cat){
     else if(isDiff){caption=firstFull+" – "+lastFull+" · Netto "+(sv>=0?"+":"")+eur(sv)+" ("+(sv>=0?"Guthaben":"Nachzahlung")+")";}
     else{caption=firstFull+" – "+lastFull+" · ⌀ "+eur(sv/rows.length)+" / Monat · Summe "+eur(sv);}
   }
-  return legend+'<div class="ychart">'+zeroLine+bars+'</div><div class="ylabels">'+labels.map(function(l){return '<span>'+l+'</span>';}).join("")+'</div><p class="ovcap">'+caption+'</p>';
+  return legend+'<div class="ychart">'+zeroLine+bars+'</div><div class="ylabels">'+labels.map(function(l){return '<span>'+l+'</span>';}).join("")+'</div><p class="ovcap">'+caption+'</p><div class="ovbartip" id="ovbartip">👆 Tippe einen Balken an für den genauen Wert</div>';
 }
 function refreshOvChart(){var w=$("#ovchartwrap");if(w)w.innerHTML=ovChartWrap();}
+var reminderDismissed=false;
+function readingsDue(){
+  var cm=todayISO().slice(0,7);
+  return householdCats().filter(function(c){return STATE[c].tariffs.length>0 && !STATE[c].readings.some(function(r){return r.datum.slice(0,7)===cm;});});
+}
+function householdChipHtml(){
+  if(HOUSEHOLDS.length<2)return "";
+  return '<button class="hhchip" data-action="open-account"><span class="hhchipname">👨‍👩‍👧 '+escapeHtml(activeHouseholdName())+'</span><span class="hhchipx">wechseln ›</span></button>';
+}
+function reminderHtml(){
+  if(reminderDismissed)return "";
+  var due=readingsDue();
+  if(!due.length)return "";
+  var names=due.map(function(c){return CATS[c].icon+" "+CATS[c].label;}).join(", ");
+  var btns=due.map(function(c){return '<button class="rembtn" data-action="rem-goto" data-cat="'+c+'">'+CATS[c].icon+' '+CATS[c].label+' eintragen</button>';}).join("");
+  return '<div class="rembanner"><div class="remrow"><span class="remtxt">🔔 Für diesen Monat fehlt noch eine Ablesung: <b>'+names+'</b></span><button class="remclose" data-action="rem-dismiss" aria-label="Ausblenden">✕</button></div><div class="rembtns">'+btns+'</div></div>';
+}
+function topBanners(){return householdChipHtml()+reminderHtml();}
 function renderApp(){
   document.body.setAttribute("data-cat",activeCat);
   document.querySelectorAll(".tab").forEach(function(b){b.classList.toggle("active",b.dataset.cat===activeCat);});
-  var app=$("#app");
-  if(activeCat==="overview"){app.innerHTML=renderOverview();return;}
-  if(CATS[activeCat]&&CATS[activeCat].tariffFields){app.innerHTML=categoryShell(activeCat);wireCategory();updateResult();renderVerlauf();renderTarife();}
-  else{app.innerHTML=placeholder(activeCat);}
+  var app=$("#app"),banners=topBanners();
+  if(activeCat==="overview"){app.innerHTML=banners+renderOverview();return;}
+  if(CATS[activeCat]&&CATS[activeCat].tariffFields){app.innerHTML=banners+categoryShell(activeCat);wireCategory();updateResult();renderVerlauf();renderTarife();}
+  else{app.innerHTML=banners+placeholder(activeCat);}
 }
 function placeholder(cat){var c=CATS[cat];return '<div class="placeholder"><div class="phicon">'+c.icon+'</div><h2>'+c.label+' folgt in Kürze</h2><p>Dieser Bereich wird als Nächstes ergänzt – mit derselben einfachen Bedienung wie Strom und Wasser.</p></div>';}
 function categoryShell(cat){
@@ -946,7 +992,7 @@ function monthRow(r){
   var cat=activeCat,iso=r.reading.datum,pos=r.differenz>=0;
   var mc=r.meterChange?' <span class="mcflag">neuer Zähler</span>':"";
   var act='<div class="vactions"><button class="iconbtn" data-action="edit-reading" data-id="'+r.reading.id+'" title="Bearbeiten">✏️</button><button class="iconbtn" data-action="del-reading" data-id="'+r.reading.id+'" title="Löschen">🗑️</button></div>';
-  return '<div class="vrow"><div class="vmain"><div class="vmonth">'+billLabel(iso)+' <span class="vdate">(Ablesung '+deDate(iso)+')</span>'+mc+'</div><div class="vsub">'+fmtVerb(cat,r.verbrauch)+' '+(CATS[cat].billUnit||CATS[cat].unit)+' · Kosten '+eur(r.gesamtkosten)+' · Abschlag '+eur(r.abschlag)+'</div></div><div class="vright"><div class="vdiff '+(pos?"plus":"minus")+'">'+(pos?"+":"")+eur(r.differenz)+'</div>'+act+'</div></div>';
+  return '<div class="vrow"><div class="vmain"><div class="vmonth">'+billLabel(iso)+' <span class="vdate">(Ablesung '+deDate(iso)+')</span>'+mc+'</div><div class="vsub"><span>'+fmtVerb(cat,r.verbrauch)+' '+(CATS[cat].billUnit||CATS[cat].unit)+'</span><span>Kosten '+eur(r.gesamtkosten)+'</span><span>Abschlag '+eur(r.abschlag)+'</span></div></div><div class="vright"><div class="vdiff '+(pos?"plus":"minus")+'">'+(pos?"+":"")+eur(r.differenz)+'</div>'+act+'</div></div>';
 }
 function renderTariffCompact(g){
   var cat=activeCat;
@@ -1135,6 +1181,10 @@ function onAppClick(e){
   else if(act==="ovscope"){ovScope=btn.dataset.val;refreshOvChart();}
   else if(act==="onb-tariff"){tarifeOpen=true;renderTarife();var tf=$("#tarifForm");if(tf){tf.scrollIntoView({behavior:"smooth",block:"center"});var fa=$("#tf_anbieter");if(fa)setTimeout(function(){try{fa.focus({preventScroll:true});}catch(e){}},220);}}
   else if(act==="onb-reading"){var zi=$("#zaehlerstand");if(zi){zi.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zi.focus({preventScroll:true});}catch(e){}},220);}}
+  else if(act==="open-account")openSettings();
+  else if(act==="rem-dismiss"){reminderDismissed=true;renderApp();}
+  else if(act==="rem-goto"){activeCat=btn.dataset.cat;tarifeOpen=false;expandedGroups={};renderApp();var zr=$("#zaehlerstand");if(zr){zr.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zr.focus({preventScroll:true});}catch(e){}},250);}}
+  else if(act==="ovbar"){var ot=$("#ovbartip");if(ot)ot.textContent=btn.dataset.tip;}
 }
 function openAbschlag(){
   tarifeOpen=true;renderTarife();
@@ -1545,29 +1595,50 @@ function renderAccount(){
     '<div class="acclabel">'+(HOUSEHOLDS.length>1?"Deine Haushalte":"Dein Haushalt")+'</div>'+
     '<div class="hhlist">'+opts+'</div>'+
     '<p class="hhmeta" id="hhMeta"></p>'+
-    '<div class="acclabel" style="margin-top:16px">Was wird in „'+escapeHtml(activeHouseholdName())+'" erfasst?</div>'+
+    '<div class="acclabel accsep">Was wird in „'+escapeHtml(activeHouseholdName())+'" erfasst?</div>'+
     '<div class="catcfg">'+catCfgEditorActive()+'</div>'+
-    '<p class="ovhint" style="text-align:left;margin:2px 0 0">Tippe an/aus, was du in diesem Haushalt verfolgen möchtest. Die Zähler-Nummer ist optional (nur zur Info).</p>'+
-    '<button class="linkbtn" data-action="hh-rename" style="margin-top:10px">✏️ Aktuellen Haushalt umbenennen</button>'+
-    '<div class="acclabel" style="margin-top:20px">➕ Neuen Haushalt anlegen</div>'+
+    '<p class="ovhint" style="text-align:left;margin:10px 0 0">Tippe an/aus, was du in diesem Haushalt verfolgen möchtest. Die Zähler-Nummer ist optional (nur zur Info).</p>'+
+    '<button class="linkbtn" data-action="hh-rename" style="margin-top:16px">✏️ Aktuellen Haushalt umbenennen</button>'+
+    (HOUSEHOLDS.length>1?'<button class="linkbtn linkdanger" data-action="hh-leave" style="margin-top:10px">🚪 Diesen Haushalt verlassen</button>':"")+
+    '<div class="acclabel accsep">➕ Neuen Haushalt anlegen</div>'+
     '<input id="hhNewName" class="hhfull" type="text" maxlength="60" placeholder="Name (z. B. Ferienwohnung)">'+
     '<div class="catnewlabel">Was möchtest du dort erfassen?</div>'+
     '<div class="catcfg">'+catCfgEditorNew()+'</div>'+
-    '<button class="hhwide" data-action="hh-create">Haushalt anlegen</button>'+
-    '<div class="acclabel" style="margin-top:20px">👥 Person zu „'+escapeHtml(activeHouseholdName())+'" einladen</div>'+
+    '<button class="hhwide" style="margin-top:12px" data-action="hh-create">Haushalt anlegen</button>'+
+    '<div class="acclabel accsep">👥 Person zu „'+escapeHtml(activeHouseholdName())+'" einladen</div>'+
     '<button class="hhwide" data-action="hh-invite">Einladungs-Code erstellen</button>'+
     '<div id="inviteOut" class="inviteout" hidden></div>'+
-    '<div class="acclabel" style="margin-top:16px">Einer Einladung beitreten</div>'+
+    '<div class="acclabel accsep">Einer Einladung beitreten</div>'+
     '<div class="hhadd"><input id="hhJoinCode" type="text" maxlength="12" placeholder="Code eingeben (z. B. 197C1111)"><button class="hhaddbtn" data-action="hh-join">Beitreten</button></div>'+
-    '<p class="ovhint" style="text-align:left;margin-top:12px">Mehrere Haushalte sind praktisch, z. B. für Haupt- und Ferienwohnung – jeder hat eigene Zähler und Daten. Wen du einlädst, sieht dieselben Werte und kann mitpflegen.</p>';
+    '<p class="ovhint" style="text-align:left;margin-top:14px">Mehrere Haushalte sind praktisch, z. B. für Haupt- und Ferienwohnung – jeder hat eigene Zähler und Daten. Wen du einlädst, sieht dieselben Werte und kann mitpflegen.</p>';
   refreshHhMeta();
 }
 async function refreshHhMeta(){
   var el=$("#hhMeta");if(!el)return;if(!activeHousehold){el.textContent="";return;}
-  try{var r=await sbPub.from("household_members").select("user_id").eq("household_id",activeHousehold);
-    var n=(r&&r.data)?r.data.length:1;
-    el.textContent=(n>1)?("👨‍👩‍👧 Gemeinsamer Haushalt · "+n+" Mitglieder teilen diese Daten"):"Nur du nutzt diesen Haushalt.";
+  try{
+    var r=await sbPub.rpc("household_members_emails",{p_household_id:activeHousehold});
+    var emails=(r&&!r.error&&Array.isArray(r.data))?r.data.map(function(x){return x.email;}):[];
+    var n=emails.length||1;
+    if(n>1)el.innerHTML='👨‍👩‍👧 <b>Gemeinsamer Haushalt</b> · '+n+' Mitglieder: '+emails.map(function(e){return escapeHtml(e);}).join(", ");
+    else el.textContent="Nur du nutzt diesen Haushalt.";
   }catch(e){el.textContent="";}
+}
+async function leaveHouseholdUI(){
+  if(HOUSEHOLDS.length<2){toast("Du kannst deinen einzigen Haushalt nicht verlassen.",true);return;}
+  var nm=activeHouseholdName();
+  if(!confirm("Haushalt „"+nm+"\" wirklich verlassen? Du siehst dessen Daten dann nicht mehr."))return;
+  try{
+    var r=await sbPub.rpc("leave_household",{p_household_id:activeHousehold});
+    if(r.error)throw r.error;
+    activeHousehold=null;
+    await loadHouseholds();
+    renderTabs();
+    try{await loadFromDB();}catch(e){}
+    renderApp();
+    try{await loadBackups();renderBackups();}catch(e){}
+    renderAccount();
+    toast("Haushalt verlassen ✅");
+  }catch(e){var m=errMsg(e);if(/last_household/i.test(m))m="Das ist dein einziger Haushalt – verlassen nicht möglich.";toast("Verlassen fehlgeschlagen: "+m,true);}
 }
 async function switchHousehold(hid){
   if(!hid||hid===activeHousehold)return;
@@ -1668,7 +1739,7 @@ function init(){
   $("#csvFile").addEventListener("change",onCSVImport);
   $("#autoBackupBtn").addEventListener("click",manualBackup);
   $("#backupList").addEventListener("click",function(e){var b=e.target.closest("[data-action='restore-backup']");if(b)restoreBackup(b.dataset.id);});
-  $("#accountBody").addEventListener("click",function(e){var b=e.target.closest("[data-action]");if(!b)return;var a=b.dataset.action;if(a==="hh-switch")switchHousehold(b.dataset.id);else if(a==="hh-create")createHouseholdUI();else if(a==="hh-rename")renameHouseholdUI();else if(a==="hh-invite")inviteUI();else if(a==="hh-join")joinUI();else if(a==="hh-copy")copyInvite(b.dataset.code);else if(a==="cat-toggle")toggleCat(b.dataset.cat);});
+  $("#accountBody").addEventListener("click",function(e){var b=e.target.closest("[data-action]");if(!b)return;var a=b.dataset.action;if(a==="hh-switch")switchHousehold(b.dataset.id);else if(a==="hh-create")createHouseholdUI();else if(a==="hh-rename")renameHouseholdUI();else if(a==="hh-invite")inviteUI();else if(a==="hh-join")joinUI();else if(a==="hh-copy")copyInvite(b.dataset.code);else if(a==="cat-toggle")toggleCat(b.dataset.cat);else if(a==="hh-leave")leaveHouseholdUI();});
   $("#accountBody").addEventListener("change",function(e){var t=e.target;if(!t||!t.id)return;if(t.id.indexOf("meter_")===0&&t.dataset.cat){saveMeter(t.dataset.cat,t.value);}else if(t.id.indexOf("new_en_")===0){var c=t.id.slice(7),mi=$("#new_meter_"+c);if(mi)mi.style.display=t.checked?"":"none";}});
   $("#accountBody").addEventListener("keydown",function(e){if(!e.target)return;if(e.key==="Enter"&&e.target.id==="hhNewName"){e.preventDefault();createHouseholdUI();}else if(e.key==="Enter"&&e.target.id==="hhJoinCode"){e.preventDefault();joinUI();}});
   $("#accountBtn").addEventListener("click",toggleSettings);
