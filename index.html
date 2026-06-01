@@ -65,6 +65,15 @@ input:focus{outline:none;border-color:var(--accent)}
 .vright{display:flex;align-items:center;gap:8px;flex:none}
 .vdiff{font-weight:800;white-space:nowrap}
 .vdiff.plus{color:var(--pos)}.vdiff.minus{color:var(--neg)}
+.vrow.estim{background:#fffbeb;border-style:dashed;border-color:#fcd34d}
+.vrow.estanchor{border-left:4px solid #fbbf24}
+.estflag{display:inline-block;background:#e0e7ff;color:#3730a3;font-size:.72rem;padding:1px 7px;border-radius:999px;font-weight:700;vertical-align:middle}
+.estnote{color:var(--muted);font-size:.82rem;margin-top:4px;font-style:italic}
+.ycol.est{opacity:.5}
+.ycol.fc{opacity:.62}
+.ycol.fc .ybar,.ycol.fc .ystack{outline:2px dashed var(--muted);outline-offset:-2px}
+.fclab{font-style:italic;opacity:.72}
+.ovlegend b.fcdash{background:transparent;border:1.6px dashed var(--muted);box-sizing:border-box}
 @media(max-width:480px){.vrow{flex-direction:column;align-items:stretch;gap:9px}.vright{width:100%;justify-content:space-between}.vsub{column-gap:14px}}
 .iconbtn{background:none;border:none;font-size:1.05rem;cursor:pointer;padding:6px;border-radius:8px}
 .iconbtn:hover{background:#f0f0f0}
@@ -124,9 +133,9 @@ details.info li{margin-bottom:6px}
 .phicon{font-size:3rem}
 .backup{display:flex;gap:10px;margin-bottom:10px}
 .backup button{flex:1;background:#fff;border:2px solid var(--line);border-radius:12px;padding:12px;font-weight:600;cursor:pointer;color:var(--text)}
-#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(40px);background:#111;color:#fff;padding:12px 18px;border-radius:12px;opacity:0;transition:.25s;z-index:100;max-width:90%;text-align:center;pointer-events:none}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(60px);background:#2b2f2e;color:#f3f5f4;padding:15px 20px;border-radius:14px;font-weight:600;font-size:1rem;opacity:0;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s;z-index:100;max-width:92%;text-align:center;pointer-events:none;box-shadow:0 10px 30px -8px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.25);min-height:50px;display:flex;align-items:center;justify-content:center;gap:10px}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-#toast.err{background:var(--neg)}
+#toast.err{background:#b3261e;color:#fff}
 footer{padding:10px 0 40px;color:var(--muted);font-size:.85rem;text-align:center}
 footer p{margin:14px 0 0}
 /* Footer aufgeräumt: einklappbare Bereiche */
@@ -243,11 +252,14 @@ body.design-modern .abmark{border-top-color:rgba(255,255,255,.8)}
 @media(max-width:480px){body{font-size:17px}.tgrid{grid-template-columns:1fr}}
 /* ===== Design-Umschalter (Segmented Control) ===== */
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.designtoggle{display:inline-flex;background:#eef1f6;border:1px solid var(--line);border-radius:999px;padding:2px;gap:1px}
-.dt-btn{border:none;background:none;padding:6px 9px;border-radius:999px;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:color .15s,background-color .15s}
-.dt-btn svg{display:block}
-.dt-btn:not(.active):hover{color:var(--text)}
-.dt-btn.active{background:#fff;color:#111;box-shadow:0 1px 4px rgba(0,0,0,.14)}
+.designtoggle{display:inline-flex;background:#eef1f6;border:1px solid var(--line);border-radius:999px;padding:4px;gap:5px}
+.dt-btn{width:26px;height:26px;padding:0;border:1px solid rgba(0,0,0,.14);border-radius:50%;cursor:pointer;overflow:hidden;position:relative;transition:transform .12s ease,box-shadow .15s ease}
+.dt-btn:not(.active):hover{transform:scale(1.08)}
+.dt-btn.active{box-shadow:0 0 0 2px var(--accent);transform:scale(1.06)}
+.dt-classic{background:linear-gradient(135deg,#ffffff 0 55%,#f59e0b 55% 100%)}
+.dt-modern{background:linear-gradient(135deg,#0c1430 0 55%,#6366f1 55% 100%)}
+.dt-matlight{background:linear-gradient(135deg,#eef7f4 0 55%,#006a60 55% 100%)}
+.dt-matdark{background:linear-gradient(135deg,#10201c 0 55%,#5ee0cf 55% 100%)}
 /* ===== MODERNES DESIGN (umschaltbar) ===== */
 body.design-modern{--card:rgba(255,255,255,.055);--text:#eef2ff;--muted:rgba(238,242,255,.62);--line:rgba(255,255,255,.12);--pos:#22c55e;--neg:#fb7185;color:var(--text);background:#0a0f1f;background-image:radial-gradient(900px 500px at 85% -5%,rgba(99,102,241,.28),transparent 60%),radial-gradient(800px 460px at -5% 15%,rgba(56,189,248,.16),transparent 55%),linear-gradient(160deg,#0a0f1f 0%,#0c1430 55%,#0a0f1f 100%);background-attachment:fixed}
 body.design-modern[data-cat="strom"]{--g1:#f59e0b;--g2:#f97316;--accent:#fbbf24}
@@ -285,6 +297,8 @@ body.design-modern .tghead{background:rgba(255,255,255,.045);border-color:rgba(2
 body.design-modern .yearrow{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.16)}
 body.design-modern .vrow{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.09)}
 body.design-modern .vrow.baseline{background:rgba(255,255,255,.02)}
+body.design-modern .vrow.estim{background:rgba(251,191,36,.09);border-color:rgba(251,191,36,.4)}
+body.design-modern .estflag{background:rgba(129,140,248,.22);color:#c7d2fe}
 body.design-modern .grouptoggle{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:var(--accent)}
 body.design-modern .tgcompact{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10)}
 body.design-modern .tgcompact:hover{background:rgba(255,255,255,.08)}
@@ -297,8 +311,8 @@ body.design-modern .metchange{background:rgba(255,255,255,.03);border-color:rgba
 body.design-modern .backup button{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14);color:var(--text)}
 body.design-modern #toast{background:rgba(18,24,46,.92);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14)}
 body.design-modern .designtoggle{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14)}
-body.design-modern .dt-btn{color:rgba(238,242,255,.62)}
-body.design-modern .dt-btn.active{background:linear-gradient(135deg,var(--g1),var(--g2));color:#0b1020;box-shadow:0 6px 16px -6px var(--g2)}
+body.design-modern .dt-btn{border-color:rgba(255,255,255,.18)}
+body.design-modern .dt-btn.active{box-shadow:0 0 0 2px var(--accent)}
 /* ---- Login / Auth ---- */
 input[type=email],input[type=password]{width:100%;padding:14px;font-size:1.05rem;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--text)}
 input[type=email]:focus,input[type=password]:focus{outline:none;border-color:var(--accent)}
@@ -454,6 +468,106 @@ body.design-modern .ovseg{background:rgba(255,255,255,.06);border-color:rgba(255
 body.design-modern .ovsegbtn{color:rgba(238,242,255,.62)}
 body.design-modern .ovsegbtn.active{background:linear-gradient(135deg,var(--g1),var(--g2));color:#0b1020;box-shadow:0 6px 16px -6px var(--g2)}
 body.design-modern .ycol.cur .ybar,body.design-modern .ycol.cur .ystack{box-shadow:0 0 0 2px rgba(255,255,255,.3)}
+
+/* ============ Material Design 3 – Hell (Grün/Teal); Kategorie-Akzente bleiben erhalten ============ */
+body.design-matlight{--bg:#f3faf7;--card:#ffffff;--text:#171d1b;--muted:#3f4946;--line:#cdd7d3;--pos:#1b7f4b;--neg:#ba1a1a;--radius:18px;--matsurf2:#e9f3ef}
+body.design-matlight[data-cat="overview"]{--accent:#006a60}
+body.design-matlight header{background:#ffffff;border-bottom:1px solid var(--line)}
+body.design-matlight .card{box-shadow:0 1px 3px rgba(0,0,0,.07),0 8px 20px -14px rgba(0,0,0,.18)}
+body.design-matlight .tab{background:#fff}
+body.design-matlight .tab.active{background:color-mix(in srgb,var(--accent) 16%,#fff);border-color:var(--accent);color:#10221c}
+body.design-matlight .btn{border-radius:999px;box-shadow:0 1px 2px rgba(0,0,0,.16),0 6px 16px -8px color-mix(in srgb,var(--accent) 70%,transparent)}
+body.design-matlight input[type=text],body.design-matlight input[type=date],body.design-matlight input[type=email],body.design-matlight input[type=password]{border-radius:12px}
+body.design-matlight .rrow.hl{background:var(--matsurf2)}
+body.design-matlight .rrow.hl b{color:#0c1512}
+body.design-matlight .notice{background:var(--matsurf2);color:#28322e}
+body.design-matlight .metchange{background:var(--matsurf2)}
+body.design-matlight .backup button{background:#fff}
+body.design-matlight .designtoggle{background:var(--matsurf2)}
+body.design-matlight .accountbtn{background:#fff}
+body.design-matlight .vrow.baseline{background:var(--matsurf2)}
+body.design-matlight .ovseg{background:var(--matsurf2)}
+
+/* ============ Material Design 3 – Dunkel (Grün/Teal); Kategorie-Akzente bleiben erhalten ============ */
+body.design-matdark{--bg:#0f1513;--card:#1b211f;--text:#dee4e1;--muted:#a7b2ae;--line:#3a423f;--pos:#6dd58c;--neg:#ffb4ab;--radius:18px;--matsurf2:#252b29;--matsurf3:#2f3633;color:var(--text)}
+body.design-matdark[data-cat="strom"]{--accent:#fbbf24}
+body.design-matdark[data-cat="wasser"]{--accent:#56cdf6}
+body.design-matdark[data-cat="gas"]{--accent:#fb923c}
+body.design-matdark[data-cat="overview"]{--accent:#5ee0cf}
+body.design-matdark header{background:#141a18;border-bottom:1px solid var(--line)}
+body.design-matdark h1{color:#fff}
+body.design-matdark .card{background:var(--card);border:1px solid var(--line);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+body.design-matdark input[type=text],body.design-matdark input[type=date],body.design-matdark input[type=email],body.design-matdark input[type=password]{background:var(--matsurf2);border-color:var(--line);color:var(--text);border-radius:12px}
+body.design-matdark input::placeholder{color:rgba(222,228,225,.42)}
+body.design-matdark input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 28%,transparent)}
+body.design-matdark input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.6)}
+body.design-matdark .tab{background:var(--matsurf2);border-color:var(--line);color:var(--muted)}
+body.design-matdark .tab:hover{background:var(--matsurf3)}
+body.design-matdark .tab.active{background:var(--accent);border-color:transparent;color:#0c1512}
+body.design-matdark .btn{background:var(--accent);color:#0c1512;border-radius:999px;box-shadow:0 2px 8px -2px rgba(0,0,0,.5)}
+body.design-matdark .resultcard{border-color:var(--line)}
+body.design-matdark .rrow{border-color:var(--line)}
+body.design-matdark .rrow.hl{background:var(--matsurf2)}
+body.design-matdark .rrow.hl b{color:#fff}
+body.design-matdark .notice{background:var(--matsurf2);color:#cdd6d2}
+body.design-matdark .notice.warn{background:rgba(251,191,36,.16);color:#fcd34d}
+body.design-matdark .notice.ok{background:rgba(109,213,140,.16);color:#9ff0b4}
+body.design-matdark .lastinfo{color:var(--muted)}
+body.design-matdark .diffbox{box-shadow:0 6px 18px -8px rgba(0,0,0,.6)}
+body.design-matdark .diffbox.plus,body.design-matdark .saldo.plus,body.design-matdark .tgsaldo.plus{background:#2e7d52;color:#fff}
+body.design-matdark .diffbox.minus,body.design-matdark .saldo.minus,body.design-matdark .tgsaldo.minus{background:#a23c39;color:#fff}
+body.design-matdark .tgroup{background:var(--matsurf2);border-color:var(--line)}
+body.design-matdark .tgroup.current{border-color:var(--accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 50%,transparent)}
+body.design-matdark .tghead{background:var(--matsurf3);border-color:var(--line)}
+body.design-matdark .yearrow{background:var(--matsurf3);border-color:var(--line)}
+body.design-matdark .vrow{background:var(--matsurf2);border-color:var(--line)}
+body.design-matdark .vrow.baseline{background:#161c1a}
+body.design-matdark .vrow.estim{background:rgba(251,191,36,.10);border-color:rgba(251,191,36,.4)}
+body.design-matdark .estflag{background:rgba(94,224,207,.22);color:#bdeee6}
+body.design-matdark .grouptoggle{background:var(--matsurf2);border-color:var(--line);color:var(--accent)}
+body.design-matdark .tgcompact{background:var(--matsurf2);border-color:var(--line)}
+body.design-matdark .tgcompact:hover{background:var(--matsurf3)}
+body.design-matdark .tcard{background:var(--matsurf2);border-color:var(--line)}
+body.design-matdark .tcard.current{background:color-mix(in srgb,var(--accent) 12%,var(--matsurf2));border-color:var(--accent)}
+body.design-matdark .badge{background:var(--accent);color:#0c1512}
+body.design-matdark .iconbtn:hover{background:rgba(255,255,255,.10)}
+body.design-matdark .tactions .iconbtn{border-color:var(--line)}
+body.design-matdark .metchange{background:#161c1a;border-color:var(--line)}
+body.design-matdark .backup button{background:var(--matsurf2);border-color:var(--line);color:var(--text)}
+body.design-matdark .designtoggle{background:var(--matsurf2);border-color:var(--line)}
+body.design-matdark .dt-btn{border-color:rgba(255,255,255,.18)}
+body.design-matdark .accountbtn{background:var(--matsurf2);border-color:var(--line);color:#cdd6d2}
+body.design-matdark.settings-open .accountbtn{background:var(--accent);color:#0c1512;border-color:transparent}
+body.design-matdark .foot{background:var(--matsurf2);border-color:var(--line)}
+body.design-matdark .hhopt,body.design-matdark .hhadd input,body.design-matdark .hhaddbtn,body.design-matdark .cattoggle,body.design-matdark .meterinp,body.design-matdark .catcheck,body.design-matdark .hhfull{background:var(--matsurf2);border-color:var(--line);color:var(--text)}
+body.design-matdark .hhaddbtn{color:var(--accent)}
+body.design-matdark .hhopt.active{background:color-mix(in srgb,var(--accent) 16%,transparent);border-color:var(--accent)}
+body.design-matdark .catsw{background:rgba(255,255,255,.22)}
+body.design-matdark .onbbtn{color:#0c1512}
+body.design-matdark .hhchip{background:var(--matsurf2);border-color:var(--line)}
+body.design-matdark .rembanner{background:color-mix(in srgb,var(--accent) 16%,transparent)}
+body.design-matdark .rembtn{color:#0c1512}
+body.design-matdark .hhwide,body.design-matdark .invcopy{background:var(--matsurf2);border-color:var(--line);color:var(--accent)}
+body.design-matdark .logoutbtn-wide{border-color:var(--line);color:#cdd6d2}
+body.design-matdark .logoutbtn-wide:hover{background:var(--matsurf3)}
+body.design-matdark .abmark{border-top-color:rgba(255,255,255,.8)}
+body.design-matdark .linkbtn{color:var(--accent)}
+body.design-matdark .ovcard{background:var(--matsurf2);border-color:var(--line)}
+body.design-matdark .ovtotal{box-shadow:0 6px 18px -8px rgba(0,0,0,.6)}
+body.design-matdark .ovseg{background:var(--matsurf2);border-color:var(--line)}
+body.design-matdark .ovsegbtn{color:var(--muted)}
+body.design-matdark .ovsegbtn.active{background:var(--accent);color:#0c1512}
+body.design-matdark .ycol.cur .ybar,body.design-matdark .ycol.cur .ystack{box-shadow:0 0 0 2px rgba(255,255,255,.3)}
+body.design-matdark .authcard{background:var(--card);border-color:var(--line)}
+body.design-matdark .authscreen{background:radial-gradient(1100px 620px at 82% -12%,rgba(0,106,96,.20),transparent 62%),#0f1513}
+body.design-matdark .ghostbtn{background:var(--matsurf2);border-color:var(--line);color:var(--text)}
+body.design-matdark .authmsg.err{background:rgba(255,180,171,.16);color:#ffb4ab}
+body.design-matdark .authmsg.ok{background:rgba(109,213,140,.16);color:#9ff0b4}
+body.design-matdark .logoutbtn{background:var(--matsurf2);border-color:var(--line);color:#cdd6d2}
+body.design-matdark .bkrow{background:var(--matsurf2);border-color:var(--line)}
+body.design-matdark .bkrestore{border-color:var(--line)}
+body.design-matdark .bkrestore:hover{background:var(--matsurf3)}
+body.test-env.design-matdark header{background:#141a18;border-bottom-color:var(--line)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -487,8 +601,10 @@ body.design-modern .ycol.cur .ybar,body.design-modern .ycol.cur .ystack{box-shad
     <h1>📊 Verbrauchs-Tracker</h1>
     <div class="topright">
       <div class="designtoggle" role="group" aria-label="Design wählen">
-        <button class="dt-btn active" data-design="classic" title="Helles Design (Tag)" aria-label="Helles Design (Tag)"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19"/></svg></button>
-        <button class="dt-btn" data-design="modern" title="Dunkles Design (Nacht)" aria-label="Dunkles Design (Nacht)"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.3A8.2 8.2 0 1 1 9.7 3.5a6.4 6.4 0 0 0 10.8 10.8Z"/></svg></button>
+        <button class="dt-btn dt-classic active" data-design="classic" title="Klassisch (hell)" aria-label="Design Klassisch, hell"></button>
+        <button class="dt-btn dt-modern" data-design="modern" title="Modern (dunkel)" aria-label="Design Modern, dunkel"></button>
+        <button class="dt-btn dt-matlight" data-design="matlight" title="Material (hell)" aria-label="Design Material, hell"></button>
+        <button class="dt-btn dt-matdark" data-design="matdark" title="Material (dunkel)" aria-label="Design Material, dunkel"></button>
       </div>
       <button id="accountBtn" class="accountbtn" hidden title="Mein Konto &amp; Einstellungen" aria-label="Mein Konto und Einstellungen"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5a6.5 6.5 0 0 1 13 0"/></svg><span>Konto</span></button>
     </div>
@@ -640,6 +756,10 @@ function addDays(iso,d){var p=iso.split("-").map(Number);var dt=new Date(p[0],p[
 function billISO(iso){return addDays(iso,-1);}
 function billKey(iso){return billISO(iso).slice(0,7);}
 function billLabel(iso){return monthLabel(billISO(iso));}
+/* Abrechnungsmonat als fortlaufende Zahl (Jahr*12+Monat) – für Lücken-Erkennung zwischen zwei Ablesungen */
+function billIndex(iso){var b=billISO(iso).split("-");return Number(b[0])*12+(Number(b[1])-1);}
+/* Umkehrung: Abrechnungsmonats-Index → passendes Ablesedatum (1. des Folgemonats) */
+function billIndexToReadDatum(m){var y=Math.floor(m/12),mo=m%12,ny=y,nm=mo+1;if(nm>11){nm=0;ny=y+1;}return ny+"-"+String(nm+1).padStart(2,"0")+"-01";}
 function eur(n){return new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR"}).format(n);}
 function priceNum(n){return new Intl.NumberFormat("de-DE",{minimumFractionDigits:2,maximumFractionDigits:5}).format(n);}
 function fmtVal(cat,n){return new Intl.NumberFormat("de-DE",{minimumFractionDigits:0,maximumFractionDigits:CATS[cat].valDec}).format(n);}
@@ -726,38 +846,64 @@ function compute(cat,iso,z,sw){
   }
   return r;
 }
+/* Eine Verlaufszeile. estimated=Monatswert ist geschätzt (Sammelablesung über mehrere Monate); synthetic=komplett ergänzter Monat ohne eigene Ablesung. */
+function calcRow(cat,datum,meter,verbrauch,prevRef,opts){
+  opts=opts||{};
+  var tariff=tariffForDate(cat,datum);
+  var row={reading:opts.reading||{datum:datum,zaehlerstand:meter,_synthetic:true},prev:prevRef,tariff:tariff,baseline:false,meterChange:!!opts.meterChange,estimated:!!opts.estimated,synthetic:!!opts.synthetic,gapMonths:opts.gapMonths||0,verbrauch:verbrauch};
+  if(tariff){row.grundkosten=tariff.grundpreisJahr/12;row.verbrauchskosten=CATS[cat].verbrauchskosten(tariff,verbrauch);row.gesamtkosten=row.grundkosten+row.verbrauchskosten;row.abschlag=abschlagForDate(cat,datum);row.differenz=row.abschlag-row.gesamtkosten;}
+  return row;
+}
+/* Liegen zwischen zwei Ablesungen mehrere Abrechnungsmonate, wird der Verbrauch gleichmäßig auf die fehlenden Monate verteilt und diese als „berechnet" markiert. */
 function history(cat){
   var rs=readingsAsc(cat);
   if(CATS[cat].gas)return historyGas(rs);
-  return rs.map(function(r,i){
-    var prev=i>0?rs[i-1]:null,tariff=tariffForDate(cat,r.datum);
+  var out=[];
+  for(var i=0;i<rs.length;i++){
+    var r=rs[i],prev=i>0?rs[i-1]:null;
     var hasStart=(r.startwert!=null&&isFinite(r.startwert));
     var basis=hasStart?r.startwert:(prev?prev.zaehlerstand:null);
-    var row={reading:r,prev:prev,tariff:tariff,baseline:(basis==null),meterChange:hasStart};
-    if(basis!=null){
-      row.verbrauch=r.zaehlerstand-basis;
-      if(tariff){row.grundkosten=tariff.grundpreisJahr/12;row.verbrauchskosten=CATS[cat].verbrauchskosten(tariff,row.verbrauch);row.gesamtkosten=row.grundkosten+row.verbrauchskosten;row.abschlag=abschlagForDate(cat,r.datum);row.differenz=row.abschlag-row.gesamtkosten;}
-    }
-    return row;
-  });
+    if(basis==null){out.push({reading:r,prev:prev,tariff:tariffForDate(cat,r.datum),baseline:true,meterChange:hasStart});continue;}
+    var n=prev?(billIndex(r.datum)-billIndex(prev.datum)):1;
+    if(n>=2){
+      var total=r.zaehlerstand-basis,baseIdx=billIndex(prev.datum),prevRef=prev;
+      for(var j=1;j<=n;j++){
+        var meter=basis+total*(j/n),per=total/n;
+        if(j<n){var srow=calcRow(cat,billIndexToReadDatum(baseIdx+j),meter,per,prevRef,{estimated:true,synthetic:true,gapMonths:n});out.push(srow);prevRef=srow.reading;}
+        else out.push(calcRow(cat,r.datum,r.zaehlerstand,per,prevRef,{reading:r,meterChange:hasStart,estimated:true,gapMonths:n}));
+      }
+    }else out.push(calcRow(cat,r.datum,r.zaehlerstand,r.zaehlerstand-basis,prev,{reading:r,meterChange:hasStart}));
+  }
+  return out;
 }
 /* Gas: Verbrauch in kWh über kumulierte kWh-Kette. Importierte Ablesungen haben zaehlerstandKwh (exakt aus Tabelle), neue werden mit dem aktuellen Faktor (m³ × Wandelfaktor × Zustandszahl × Brennwert) fortgeschrieben. */
+function calcGasRow(datum,z,kwh,verbrauch,opts){
+  opts=opts||{};
+  var tariff=tariffForDate("gas",datum);
+  var row={reading:opts.reading||{datum:datum,zaehlerstand:z,_synthetic:true},prev:null,tariff:tariff,baseline:false,kwh:kwh,verbrauch:verbrauch,estimated:!!opts.estimated,synthetic:!!opts.synthetic,gapMonths:opts.gapMonths||0};
+  if(tariff){row.grundkosten=tariff.grundpreisJahr/12;row.verbrauchskosten=verbrauch*tariff.arbeitspreis;row.gesamtkosten=row.grundkosten+row.verbrauchskosten;row.abschlag=abschlagForDate("gas",datum);row.differenz=row.abschlag-row.gesamtkosten;}
+  return row;
+}
 function historyGas(rs){
-  var F=gasFactor(),prevKwh=null,prevZ=null;
-  return rs.map(function(r,i){
-    var prev=i>0?rs[i-1]:null,tariff=tariffForDate("gas",r.datum);
-    var kwh;
+  var F=gasFactor(),out=[],prevKwh=null,prevZ=null;
+  for(var i=0;i<rs.length;i++){
+    var r=rs[i],prev=i>0?rs[i-1]:null,kwh;
     if(r.zaehlerstandKwh!=null&&isFinite(r.zaehlerstandKwh))kwh=r.zaehlerstandKwh;
     else if(prev==null)kwh=r.zaehlerstand*F;
     else kwh=prevKwh+(r.zaehlerstand-prevZ)*F;
-    var row={reading:r,prev:prev,tariff:tariff,baseline:(prev==null),kwh:kwh};
-    if(prev!=null){
-      row.verbrauch=kwh-prevKwh;
-      if(tariff){row.grundkosten=tariff.grundpreisJahr/12;row.verbrauchskosten=row.verbrauch*tariff.arbeitspreis;row.gesamtkosten=row.grundkosten+row.verbrauchskosten;row.abschlag=abschlagForDate("gas",r.datum);row.differenz=row.abschlag-row.gesamtkosten;}
-    }
+    if(prev==null){out.push({reading:r,prev:null,tariff:tariffForDate("gas",r.datum),baseline:true,kwh:kwh});prevKwh=kwh;prevZ=r.zaehlerstand;continue;}
+    var n=billIndex(r.datum)-billIndex(prev.datum);
+    if(n>=2){
+      var totalK=kwh-prevKwh,totalZ=r.zaehlerstand-prevZ,baseIdx=billIndex(prev.datum),baseKwh=prevKwh,baseZ=prevZ;
+      for(var j=1;j<=n;j++){
+        var ck=baseKwh+totalK*(j/n),cz=baseZ+totalZ*(j/n),perK=totalK/n;
+        if(j<n)out.push(calcGasRow(billIndexToReadDatum(baseIdx+j),cz,ck,perK,{estimated:true,synthetic:true,gapMonths:n}));
+        else out.push(calcGasRow(r.datum,r.zaehlerstand,kwh,perK,{reading:r,estimated:true,gapMonths:n}));
+      }
+    }else out.push(calcGasRow(r.datum,r.zaehlerstand,kwh,kwh-prevKwh,{reading:r}));
     prevKwh=kwh;prevZ=r.zaehlerstand;
-    return row;
-  });
+  }
+  return out;
 }
 function computeGas(cat,iso,z){
   var tariff=tariffForDate(cat,iso),prev=prevReading(cat,iso),F=gasFactor();
@@ -857,46 +1003,71 @@ function ovChartWrap(){
   '</div>';
   return ctrl+ovChartBody(metric,scope);
 }
+/* Saisonale Hochrechnung der nächsten Monate: pro Zielmonat der Schnitt desselben Kalendermonats aus den Vorjahren; fehlt der, der Schnitt der letzten 12 Monate. Kosten/Differenz aus dem aktuell gültigen Tarif + Abschlag. */
+function forecastRows(cat,count){
+  var hist=history(cat).filter(function(r){return !r.baseline&&isFinite(r.verbrauch);});
+  if(hist.length<2)return [];
+  var lastIdx=billIndex(hist[hist.length-1].reading.datum);
+  var recent=hist.slice(-12),recentAvg=recent.reduce(function(s,r){return s+r.verbrauch;},0)/recent.length;
+  var out=[];
+  for(var k=1;k<=count;k++){
+    var idx=lastIdx+k,m=((idx%12)+12)%12,datum=billIndexToReadDatum(idx);
+    var same=hist.filter(function(r){return billIndex(r.reading.datum)%12===m;});
+    var projVerb=same.length?same.reduce(function(s,r){return s+r.verbrauch;},0)/same.length:recentAvg;
+    var tariff=tariffForDate(cat,datum);
+    var row={reading:{datum:datum,_forecast:true},tariff:tariff,verbrauch:projVerb,forecast:true,seasonal:same.length>0};
+    if(tariff){row.grundkosten=tariff.grundpreisJahr/12;row.verbrauchskosten=CATS[cat].verbrauchskosten(tariff,projVerb);row.gesamtkosten=row.grundkosten+row.verbrauchskosten;row.abschlag=abschlagForDate(cat,datum);row.differenz=row.abschlag-row.gesamtkosten;}
+    out.push(row);
+  }
+  return out;
+}
 function ovChartBody(metric,cat){
   var c=CATS[cat],colors={strom:"#f59e0b",wasser:"#38bdf8",gas:"#fb7185"},ABCOL="#94a3b8";
   var g=ovCurrentGroup(cat);
   var rows=g?g.rows.filter(function(r){return isFinite(r.gesamtkosten);}):[];
   if(!rows.length)return '<p class="ovhint" style="padding:22px 6px">Für <b>'+c.icon+' '+c.label+'</b> gibt es im aktuellen Tarif noch keine abgerechneten Monate. Sobald die erste volle Abrechnung vorliegt, erscheint hier der Verlauf.</p>';
   var col=colors[cat]||"var(--accent)";
-  var labels=rows.map(function(r){return shortMon(billKey(r.reading.datum));});
+  var fc=forecastRows(cat,3).filter(function(r){return isFinite(r.gesamtkosten);});
+  var allRows=rows.concat(fc);
+  var labelHtml=allRows.map(function(r){return '<span'+(r.forecast?' class="fclab"':'')+'>'+shortMon(billKey(r.reading.datum))+'</span>';}).join("");
   var firstFull=monthLabel(billKey(rows[0].reading.datum)+"-01"),lastFull=monthLabel(billKey(rows[rows.length-1].reading.datum)+"-01");
+  var fcCap=fc.length?' · 🔮 +'+fc.length+' Mon. Prognose (gestrichelt)':"";
   var bars="",caption="",legend="",zeroLine="";
   if(metric==="alle"){
-    var maxV=1;rows.forEach(function(r){maxV=Math.max(maxV,r.gesamtkosten||0,r.abschlag||0);});
-    bars=rows.map(function(r,i){
+    var maxV=1;allRows.forEach(function(r){maxV=Math.max(maxV,r.gesamtkosten||0,r.abschlag||0);});
+    bars=allRows.map(function(r,i){
       var k=r.gesamtkosten||0,a=r.abschlag||0,base=Math.min(k,a),delta=Math.abs(k-a),over=k>a;
       var totH=(Math.max(k,a)/maxV*100),abH=(a/maxV*100),dcol=over?"var(--neg)":"var(--pos)";
-      var tip=monthLabel(billKey(r.reading.datum)+"-01")+": Kosten "+eur(k)+" · Abschlag "+eur(a)+" · "+(over?"Nachzahlung ":"Guthaben ")+eur(delta);
-      return '<div class="ycol'+(i===rows.length-1?" cur":"")+'" data-action="ovbar" data-tip="'+tip+'" title="'+tip+'"><div class="ystack" style="height:'+totH.toFixed(1)+'%"><i style="flex:'+delta.toFixed(2)+';background:'+dcol+'"></i><i style="flex:'+base.toFixed(2)+';background:'+col+'"></i></div><i class="abmark" style="bottom:'+abH.toFixed(1)+'%"></i></div>';
+      var ml=monthLabel(billKey(r.reading.datum)+"-01");
+      var tip=r.forecast?("🔮 Prognose "+ml+": Kosten ~"+eur(k)+" · Abschlag "+eur(a)):(ml+": Kosten "+eur(k)+" · Abschlag "+eur(a)+" · "+(over?"Nachzahlung ":"Guthaben ")+eur(delta)+(r.synthetic?" · berechnet":""));
+      var cls="ycol"+(r.forecast?" fc":(r.synthetic?" est":""))+(i===rows.length-1?" cur":"");
+      return '<div class="'+cls+'" data-action="ovbar" data-tip="'+tip+'" title="'+tip+'"><div class="ystack" style="height:'+totH.toFixed(1)+'%"><i style="flex:'+delta.toFixed(2)+';background:'+dcol+'"></i><i style="flex:'+base.toFixed(2)+';background:'+col+'"></i></div><i class="abmark" style="bottom:'+abH.toFixed(1)+'%"></i></div>';
     }).join("");
     var sumK=rows.reduce(function(a,r){return a+(r.gesamtkosten||0);},0),sumA=rows.reduce(function(a,r){return a+(r.abschlag||0);},0),net=sumA-sumK;
-    caption=firstFull+" – "+lastFull+" · Kosten "+eur(sumK)+" · Abschlag "+eur(sumA)+" · "+(net>=0?"Guthaben ":"Nachzahlung ")+eur(Math.abs(net));
-    legend='<div class="ovlegend"><span><i class="abmarkleg"></i>Abschlag</span><span><b style="background:var(--pos)"></b>Guthaben</span><span><b style="background:var(--neg)"></b>Nachzahlung</span></div>';
+    caption=firstFull+" – "+lastFull+" · Kosten "+eur(sumK)+" · Abschlag "+eur(sumA)+" · "+(net>=0?"Guthaben ":"Nachzahlung ")+eur(Math.abs(net))+fcCap;
+    legend='<div class="ovlegend"><span><i class="abmarkleg"></i>Abschlag</span><span><b style="background:var(--pos)"></b>Guthaben</span><span><b style="background:var(--neg)"></b>Nachzahlung</span>'+(fc.length?'<span><b class="fcdash"></b>Prognose</span>':"")+'</div>';
   }else{
     var valOf=function(r){return metric==="kosten"?r.gesamtkosten:metric==="differenz"?r.differenz:r.verbrauch;};
-    var vals=rows.map(valOf);
+    var vals=allRows.map(valOf);
     var minV=Math.min.apply(null,vals),maxV2=Math.max.apply(null,vals);
     if(minV>0)minV=0;if(maxV2<0)maxV2=0;
     var range=(maxV2-minV)||1,zeroFrac=(0-minV)/range,isDiff=(metric==="differenz");
-    bars=rows.map(function(r,i){
+    bars=allRows.map(function(r,i){
       var v=vals[i],valFrac=(v-minV)/range;
       var bottom=Math.min(zeroFrac,valFrac)*100,height=Math.abs(valFrac-zeroFrac)*100;
       var bc=isDiff?(v>=0?"var(--pos)":"var(--neg)"):col;
-      var tip=monthLabel(billKey(r.reading.datum)+"-01")+": "+(metric==="verbrauch"?(fmtVerb(cat,v)+" "+(c.billUnit||c.unit)):eur(v));
-      return '<div class="ycol'+(i===rows.length-1?" cur":"")+'" data-action="ovbar" data-tip="'+tip+'" title="'+tip+'"><i class="ybar" style="bottom:'+bottom.toFixed(1)+'%;height:'+Math.max(height,0.8).toFixed(1)+'%;background:'+bc+'"></i></div>';
+      var ml=monthLabel(billKey(r.reading.datum)+"-01");
+      var tip=r.forecast?("🔮 Prognose "+ml+": "+(metric==="verbrauch"?("~"+fmtVerb(cat,v)+" "+(c.billUnit||c.unit)):("~"+eur(v)))):(ml+": "+(metric==="verbrauch"?(fmtVerb(cat,v)+" "+(c.billUnit||c.unit)):eur(v))+(r.synthetic?" · berechnet":""));
+      var cls="ycol"+(r.forecast?" fc":(r.synthetic?" est":""))+(i===rows.length-1?" cur":"");
+      return '<div class="'+cls+'" data-action="ovbar" data-tip="'+tip+'" title="'+tip+'"><i class="ybar" style="bottom:'+bottom.toFixed(1)+'%;height:'+Math.max(height,0.8).toFixed(1)+'%;background:'+bc+'"></i></div>';
     }).join("");
     if(isDiff&&minV<0)zeroLine='<div class="yzero" style="bottom:'+(zeroFrac*100).toFixed(1)+'%"></div>';
-    var sv=vals.reduce(function(a,b){return a+b;},0);
-    if(metric==="verbrauch"){var u=(c.billUnit||c.unit);caption=firstFull+" – "+lastFull+" · ⌀ "+fmtVerb(cat,sv/rows.length)+" "+u+" / Monat · Summe "+fmtVerb(cat,sv)+" "+u;}
-    else if(isDiff){caption=firstFull+" – "+lastFull+" · Netto "+(sv>=0?"+":"")+eur(sv)+" ("+(sv>=0?"Guthaben":"Nachzahlung")+")";}
-    else{caption=firstFull+" – "+lastFull+" · ⌀ "+eur(sv/rows.length)+" / Monat · Summe "+eur(sv);}
+    var sv=rows.map(valOf).reduce(function(a,b){return a+b;},0);
+    if(metric==="verbrauch"){var u=(c.billUnit||c.unit);caption=firstFull+" – "+lastFull+" · ⌀ "+fmtVerb(cat,sv/rows.length)+" "+u+" / Monat · Summe "+fmtVerb(cat,sv)+" "+u+fcCap;}
+    else if(isDiff){caption=firstFull+" – "+lastFull+" · Netto "+(sv>=0?"+":"")+eur(sv)+" ("+(sv>=0?"Guthaben":"Nachzahlung")+")"+fcCap;}
+    else{caption=firstFull+" – "+lastFull+" · ⌀ "+eur(sv/rows.length)+" / Monat · Summe "+eur(sv)+fcCap;}
   }
-  return legend+'<div class="ychart">'+zeroLine+bars+'</div><div class="ylabels">'+labels.map(function(l){return '<span>'+l+'</span>';}).join("")+'</div><p class="ovcap">'+caption+'</p><div class="ovbartip" id="ovbartip">👆 Tippe einen Balken an für den genauen Wert</div>';
+  return legend+'<div class="ychart">'+zeroLine+bars+'</div><div class="ylabels">'+labelHtml+'</div><p class="ovcap">'+caption+'</p><div class="ovbartip" id="ovbartip">👆 Tippe einen Balken an für den genauen Wert</div>';
 }
 function refreshOvChart(){var w=$("#ovchartwrap");if(w)w.innerHTML=ovChartWrap();}
 var reminderDismissed=false;
@@ -968,31 +1139,48 @@ function updateResult(){
     return;
   }
   var negWarn=r.verbrauch<0?'<div class="notice warn">Hinweis: Der Verbrauch ist negativ. Bei einem Zählerwechsel bitte oben „Neuer Zähler" angeben.</div>':"";
-  var cls=r.differenz>0?"plus":r.differenz<0?"minus":"plus";
-  var posD=r.differenz>=0;
-  var state=r.differenz>0?"Guthaben – du liegst im Plus 🙂":r.differenz<0?"Nachzahlung – du liegst im Minus":"Ausgeglichen";
-  var ratio=(r.abschlag>0)?r.gesamtkosten/r.abschlag:0;
+  /* Liegen mehrere Abrechnungsmonate seit der letzten Ablesung, verteilen wir den Verbrauch gleichmäßig und zeigen die Pro-Monat-Werte. */
+  var n=prev?(billIndex(iso)-billIndex(prev.datum)):1;
+  var split=n>=2;
+  var perVerb=split?r.verbrauch/n:r.verbrauch;
+  var perVK=split?CATS[cat].verbrauchskosten(r.tariff,perVerb):r.verbrauchskosten;
+  var perGes=split?(r.grundkosten+perVK):r.gesamtkosten;
+  var perDiff=split?(r.abschlag-perGes):r.differenz;
+  var fromM=prev?billLabel(billIndexToReadDatum(billIndex(prev.datum)+1)):billLabel(iso);
+  var splitNote=split?'<div class="notice">ℹ️ Diese Ablesung liegt <b>'+n+' Monate</b> nach der letzten. Der Gesamtverbrauch von <b>'+fmtVerb(cat,r.verbrauch)+' '+bu+'</b> wird gleichmäßig auf <b>'+fromM+' – '+billLabel(iso)+'</b> verteilt. Die berechneten Monate werden im Verlauf mit „🔢 berechnet" gekennzeichnet.</div>':"";
+  var cls=perDiff>0?"plus":perDiff<0?"minus":"plus";
+  var posD=perDiff>=0;
+  var state=perDiff>0?"Guthaben – du liegst im Plus 🙂":perDiff<0?"Nachzahlung – du liegst im Minus":"Ausgeglichen";
+  var ratio=(r.abschlag>0)?perGes/r.abschlag:0;
   var pct=Math.max(0,Math.min(100,ratio*100));
   var costBar=(r.abschlag>0)?'<div class="costbar"><i style="width:'+pct.toFixed(0)+'%"></i></div><div class="costcap">Kosten = '+Math.round(ratio*100)+' % deines Abschlags</div>':"";
-  cont.innerHTML=html+'<div class="resultcard">'+
+  var verbRows=split
+    ? row("Gesamtverbrauch ("+n+" Monate)",fmtVerb(cat,r.verbrauch)+" "+bu)+row("⌀ Verbrauch je Monat",fmtVerb(cat,perVerb)+" "+bu,"hl")
+    : row("Verbrauch für den Monat",fmtVerb(cat,r.verbrauch)+" "+bu,"hl");
+  cont.innerHTML=html+splitNote+'<div class="resultcard">'+
     row("Ablesedatum",deDate(iso))+
-    row("Abrechnungsmonat",billLabel(iso))+
+    row(split?"Abrechnung bis":"Abrechnungsmonat",billLabel(iso))+
     row("Zählerstand",fmtVal(cat,z)+" "+u)+
     mwhRow+
-    row("Verbrauch für den Monat",fmtVerb(cat,r.verbrauch)+" "+bu,"hl")+
+    verbRows+
     row(c.grundkostenLabel,eur(r.grundkosten))+
-    row(c.verbrauchskostenLabel,eur(r.verbrauchskosten))+
-    row("Gesamtkosten",eur(r.gesamtkosten),"hl")+
+    row(c.verbrauchskostenLabel+(split?" (je Monat)":""),eur(split?perVK:r.verbrauchskosten))+
+    row("Gesamtkosten"+(split?" (je Monat)":""),eur(split?perGes:r.gesamtkosten),"hl")+
     row("Monatlicher Abschlag",eur(r.abschlag))+
   '</div>'+negWarn+
-  '<div class="diffbox '+cls+'"><div class="difftop"><span class="difftrend">'+trendIcon(posD)+'</span><div class="difflabel">Differenz</div></div><div class="diffval">'+eur(r.differenz)+'</div><div class="diffstate">'+state+'</div>'+costBar+'</div>';
+  '<div class="diffbox '+cls+'"><div class="difftop"><span class="difftrend">'+trendIcon(posD)+'</span><div class="difflabel">Differenz'+(split?" je Monat":"")+'</div></div><div class="diffval">'+eur(perDiff)+'</div><div class="diffstate">'+state+'</div>'+costBar+'</div>';
 }
 
 function monthRow(r){
-  var cat=activeCat,iso=r.reading.datum,pos=r.differenz>=0;
+  var cat=activeCat,iso=r.reading.datum,pos=r.differenz>=0,bu=CATS[cat].billUnit||CATS[cat].unit;
+  var sub='<div class="vsub"><span>'+fmtVerb(cat,r.verbrauch)+' '+bu+'</span><span>Kosten '+eur(r.gesamtkosten)+'</span><span>Abschlag '+eur(r.abschlag)+'</span></div>';
+  if(r.synthetic){
+    return '<div class="vrow estim"><div class="vmain"><div class="vmonth">'+billLabel(iso)+' <span class="estflag">🔢 berechnet</span></div>'+sub+'<div class="estnote">Kein Zählerstand abgelesen – Wert automatisch berechnet</div></div><div class="vright"><div class="vdiff '+(pos?"plus":"minus")+'">'+(pos?"+":"")+eur(r.differenz)+'</div></div></div>';
+  }
   var mc=r.meterChange?' <span class="mcflag">neuer Zähler</span>':"";
+  var gapNote=r.estimated?'<div class="estnote">≈ Verbrauch gleichmäßig über '+r.gapMonths+' Monate verteilt (berechnet)</div>':"";
   var act='<div class="vactions"><button class="iconbtn" data-action="edit-reading" data-id="'+r.reading.id+'" title="Bearbeiten">✏️</button><button class="iconbtn" data-action="del-reading" data-id="'+r.reading.id+'" title="Löschen">🗑️</button></div>';
-  return '<div class="vrow"><div class="vmain"><div class="vmonth">'+billLabel(iso)+' <span class="vdate">(Ablesung '+deDate(iso)+')</span>'+mc+'</div><div class="vsub"><span>'+fmtVerb(cat,r.verbrauch)+' '+(CATS[cat].billUnit||CATS[cat].unit)+'</span><span>Kosten '+eur(r.gesamtkosten)+'</span><span>Abschlag '+eur(r.abschlag)+'</span></div></div><div class="vright"><div class="vdiff '+(pos?"plus":"minus")+'">'+(pos?"+":"")+eur(r.differenz)+'</div>'+act+'</div></div>';
+  return '<div class="vrow'+(r.estimated?' estanchor':'')+'"><div class="vmain"><div class="vmonth">'+billLabel(iso)+' <span class="vdate">(Ablesung '+deDate(iso)+')</span>'+mc+'</div>'+sub+gapNote+'</div><div class="vright"><div class="vdiff '+(pos?"plus":"minus")+'">'+(pos?"+":"")+eur(r.differenz)+'</div>'+act+'</div></div>';
 }
 function renderTariffCompact(g){
   var cat=activeCat;
@@ -1213,7 +1401,7 @@ async function saveReading(){
       if(ri.error)throw ri.error;
       STATE[cat].readings.push(rowToReading(ri.data));
     }
-    renderVerlauf();updateResult();if(swEl)swEl.value="";toast("Ablesung gespeichert ✅");
+    renderVerlauf();renderTarife();updateResult();if(swEl)swEl.value="";toast("Ablesung gespeichert ✅");
   }catch(err){toast("Speichern fehlgeschlagen: "+errMsg(err),true);}
 }
 async function delReading(id){
@@ -1222,7 +1410,7 @@ async function delReading(id){
   try{
     var d=await sb.from("readings").delete().eq("id",id);if(d.error)throw d.error;
     STATE[cat].readings=STATE[cat].readings.filter(function(x){return x.id!==id;});
-    renderVerlauf();updateResult();toast("Ablesung gelöscht.");
+    renderVerlauf();renderTarife();updateResult();toast("Ablesung gelöscht ✅");
   }catch(err){toast("Löschen fehlgeschlagen: "+errMsg(err),true);}
 }
 function editReading(id){
@@ -1348,12 +1536,14 @@ function exportCSV(){
   var lines=[head.map(csvEsc).join(sep)];
   rows.forEach(function(r){
     var iso=r.reading.datum,a=r.tariff?r.tariff.anbieter:"",arr;
+    var dateCell=r.synthetic?"berechnet":deDate(iso);
+    var statusTxt=r.synthetic?"berechnet (geschätzt)":(r.estimated?(r.differenz>=0?"Guthaben (verteilt)":"Nachzahlung (verteilt)"):(r.differenz>=0?"Guthaben":"Nachzahlung"));
     if(gas){
-      if(r.baseline)arr=["Startwert",deDate(iso),csvVal(cat,r.reading.zaehlerstand),csvNum(r.kwh/1000,4),"","","","","","",a,"Startwert"];
-      else arr=[billLabel(iso),deDate(iso),csvVal(cat,r.reading.zaehlerstand),csvNum(r.kwh/1000,4),csvNum(r.verbrauch,1),csvNum(r.grundkosten,2),csvNum(r.verbrauchskosten,2),csvNum(r.gesamtkosten,2),csvNum(r.abschlag,2),csvNum(r.differenz,2),a,(r.differenz>=0?"Guthaben":"Nachzahlung")];
+      if(r.baseline)arr=["Startwert",dateCell,csvVal(cat,r.reading.zaehlerstand),csvNum(r.kwh/1000,4),"","","","","","",a,"Startwert"];
+      else arr=[billLabel(iso),dateCell,csvVal(cat,r.reading.zaehlerstand),csvNum(r.kwh/1000,4),csvNum(r.verbrauch,1),csvNum(r.grundkosten,2),csvNum(r.verbrauchskosten,2),csvNum(r.gesamtkosten,2),csvNum(r.abschlag,2),csvNum(r.differenz,2),a,statusTxt];
     }else{
-      if(r.baseline)arr=["Startwert",deDate(iso),csvVal(cat,r.reading.zaehlerstand),"","","","","","",a,"Startwert"];
-      else arr=[billLabel(iso),deDate(iso),csvVal(cat,r.reading.zaehlerstand),csvVal(cat,r.verbrauch),csvNum(r.grundkosten,2),csvNum(r.verbrauchskosten,2),csvNum(r.gesamtkosten,2),csvNum(r.abschlag,2),csvNum(r.differenz,2),a,(r.differenz>=0?"Guthaben":"Nachzahlung")];
+      if(r.baseline)arr=["Startwert",dateCell,csvVal(cat,r.reading.zaehlerstand),"","","","","","",a,"Startwert"];
+      else arr=[billLabel(iso),dateCell,csvVal(cat,r.reading.zaehlerstand),csvVal(cat,r.verbrauch),csvNum(r.grundkosten,2),csvNum(r.verbrauchskosten,2),csvNum(r.gesamtkosten,2),csvNum(r.abschlag,2),csvNum(r.differenz,2),a,statusTxt];
     }
     lines.push(arr.map(csvEsc).join(sep));
   });
@@ -1445,12 +1635,15 @@ function toast(msg,err){
 }
 
 /* ---------- Init ---------- */
+var DESIGN_CLASSES={classic:"",modern:"design-modern",matlight:"design-matlight",matdark:"design-matdark"};
+var DESIGN_THEMECOLOR={classic:"#f59e0b",modern:"#0a0f1f",matlight:"#006a60",matdark:"#0f1513"};
 function applyDesign(d){
-  var modern=(d==="modern");
-  document.body.classList.toggle("design-modern",modern);
-  document.querySelectorAll(".dt-btn").forEach(function(b){b.classList.toggle("active",b.dataset.design===(modern?"modern":"classic"));});
-  var tc=document.querySelector('meta[name="theme-color"]');if(tc)tc.setAttribute("content",IS_TEST?"#7c3aed":(modern?"#0a0f1f":"#f59e0b"));
-  try{localStorage.setItem("verbrauchsTrackerDesign",modern?"modern":"classic");}catch(e){}
+  if(!DESIGN_CLASSES.hasOwnProperty(d))d="classic";
+  ["design-modern","design-matlight","design-matdark"].forEach(function(c){document.body.classList.remove(c);});
+  if(DESIGN_CLASSES[d])document.body.classList.add(DESIGN_CLASSES[d]);
+  document.querySelectorAll(".dt-btn").forEach(function(b){b.classList.toggle("active",b.dataset.design===d);});
+  var tc=document.querySelector('meta[name="theme-color"]');if(tc)tc.setAttribute("content",IS_TEST?"#7c3aed":DESIGN_THEMECOLOR[d]);
+  try{localStorage.setItem("verbrauchsTrackerDesign",d);}catch(e){}
 }
 /* ---------- Auth ---------- */
 function showAuth(show){document.body.classList.toggle("app-hidden",show);if(show)document.body.classList.remove("settings-open");var a=$("#authscreen");if(a)a.hidden=!show;var ab=$("#accountBtn");if(ab)ab.hidden=show;}
