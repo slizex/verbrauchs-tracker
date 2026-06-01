@@ -134,12 +134,91 @@ footer p{margin:14px 0 0}
 .foot>summary:hover{color:var(--accent)}
 .footbody{padding:0 16px 14px}
 .footbody p{margin:10px 0 0;text-align:left}
+.footbody ul.calclist{margin:6px 0 0;padding-left:20px;text-align:left}
+.footbody ul.calclist li{margin:0 0 7px;line-height:1.42}
+.cnote{color:var(--muted)}
+/* Mein Konto / Haushalte */
+.accemail{margin:0 0 12px;text-align:left}
+.acclabel{font-weight:700;font-size:.9rem;margin-bottom:7px;text-align:left}
+.hhlist{display:flex;flex-direction:column;gap:8px}
+.hhopt{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:12px;padding:11px 13px;background:#fff;cursor:pointer;text-align:left;font:inherit;color:var(--text)}
+.hhopt:hover{border-color:var(--accent)}
+.hhopt.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,#fff)}
+.hhname{font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.hhtag{font-size:.82rem;color:var(--muted);white-space:nowrap}
+.hhopt.active .hhtag{color:var(--accent);font-weight:700}
+.hhmeta{margin:9px 0 0;color:var(--muted);font-size:.86rem;text-align:left}
+.hhadd{display:flex;gap:8px;margin-top:12px}
+.hhadd input{flex:1;min-width:0;padding:11px 12px;border:1px solid var(--line);border-radius:11px;font:inherit;background:#fff;color:var(--text)}
+.hhaddbtn{border:1px solid var(--line);border-radius:11px;background:#fff;padding:0 14px;font-weight:700;cursor:pointer;white-space:nowrap;color:var(--accent)}
+.hhaddbtn:hover{background:color-mix(in srgb,var(--accent) 10%,#fff)}
 body.design-modern .foot{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.10)}
+body.design-modern .hhopt,body.design-modern .hhadd input,body.design-modern .hhaddbtn{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14);color:var(--text)}
+body.design-modern .hhaddbtn{color:var(--accent)}
+body.design-modern .hhopt.active{background:color-mix(in srgb,var(--accent) 16%,transparent);border-color:var(--accent)}
+/* Runder Konto-Button + Einstellungsseite */
+.accountbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;padding:0}
+.accountbtn svg{display:block}
+.accountbtn:hover{color:var(--text);border-color:var(--accent)}
+body.settings-open .accountbtn{background:var(--accent);border-color:var(--accent);color:#fff}
+body.design-modern .accountbtn{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:rgba(238,242,255,.8)}
+body.design-modern.settings-open .accountbtn{background:linear-gradient(135deg,var(--g1),var(--g2));color:#0b1020;border-color:transparent}
+#settingsView{display:none}
+body.settings-open #app{display:none}
+body.settings-open #settingsView{display:block}
+body.settings-open .tabs{display:none}
+.backbtn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;border:none;border-radius:999px;padding:13px 22px;font-weight:800;font-size:1.05rem;cursor:pointer;margin-bottom:16px;box-shadow:0 10px 24px -10px var(--accent)}
+.backbtn:hover{filter:brightness(1.07)}
+.backbtn:active{transform:translateY(1px)}
+.settitle{font-size:1.2rem;margin:0 0 14px}
+.accountcard{padding:18px}
+.logoutbtn-wide{display:block;width:100%;margin-top:16px;background:none;border:2px solid var(--line);border-radius:14px;padding:14px;font-weight:700;color:var(--muted);cursor:pointer;font-size:1rem}
+.logoutbtn-wide:hover{background:#f0f0f0;color:var(--text)}
+body.design-modern .logoutbtn-wide{border-color:rgba(255,255,255,.16);color:rgba(238,242,255,.8)}
+body.design-modern .logoutbtn-wide:hover{background:rgba(255,255,255,.06)}
+/* Person einladen / beitreten */
+.hhwide{display:block;width:100%;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px;font-weight:700;cursor:pointer;color:var(--accent)}
+.hhwide:hover{background:color-mix(in srgb,var(--accent) 10%,#fff)}
+.inviteout{margin-top:10px;border:1px dashed var(--accent);border-radius:12px;padding:13px;text-align:center}
+.invcode{font-size:1.45rem;letter-spacing:2px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.invcopy{margin-left:10px;border:1px solid var(--line);border-radius:9px;background:#fff;padding:7px 12px;font-weight:700;cursor:pointer;color:var(--accent)}
+.invcopy:hover{background:color-mix(in srgb,var(--accent) 10%,#fff)}
+.invhint{color:var(--muted);font-size:.85rem;margin:9px 0 0;text-align:left}
+body.design-modern .hhwide,body.design-modern .invcopy{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14);color:var(--accent)}
+/* Kategorie-Auswahl je Haushalt */
+.catcfg{display:flex;flex-direction:column;gap:8px;margin:4px 0 0}
+.catrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cattoggle{flex:1 1 150px;display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px 12px;cursor:pointer;font:inherit;color:var(--text)}
+.cattoggle .catname{font-weight:700}
+.catsw{width:42px;height:24px;border-radius:999px;background:#cbd5e1;position:relative;flex:none;transition:background .15s}
+.catsw::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .15s}
+.cattoggle.on{border-color:var(--accent)}
+.cattoggle.on .catsw{background:var(--accent)}
+.cattoggle.on .catsw::after{left:20px}
+.meterinp{flex:1 1 150px;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font:inherit;background:#fff;color:var(--text)}
+.catcheck{flex:1 1 150px;display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:11px 12px;font-weight:700;cursor:pointer}
+.catcheck input{width:18px;height:18px;accent-color:var(--accent)}
+.hhfull{display:block;width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;font:inherit;background:#fff;color:var(--text);margin-bottom:8px}
+.catnewlabel{font-size:.86rem;color:var(--muted);margin:2px 0 6px}
+.meterno{color:var(--muted);font-size:.9rem;margin:-4px 0 12px}
+body.design-modern .cattoggle,body.design-modern .meterinp,body.design-modern .catcheck,body.design-modern .hhfull{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14);color:var(--text)}
+body.design-modern .catsw{background:rgba(255,255,255,.22)}
+/* Einrichtungs-Assistent */
+.onb{border:1px solid var(--accent);box-shadow:0 12px 30px -16px var(--accent)}
+.onbsteps{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:12px}
+.onbsteps li{line-height:1.45}
+.onbsteps li.onbdone{color:var(--pos);font-weight:600;list-style:none;margin-left:-20px}
+.onbsteps li.onbwait{color:var(--muted)}
+.onbbtn{margin-top:8px;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
+.onbbtn:hover{filter:brightness(1.07)}
+body.design-modern .onbbtn{color:#0b1020}
 @media(max-width:480px){body{font-size:17px}.tgrid{grid-template-columns:1fr}}
 /* ===== Design-Umschalter (Segmented Control) ===== */
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.designtoggle{display:inline-flex;background:#eef1f6;border:1px solid var(--line);border-radius:999px;padding:3px}
-.dt-btn{border:none;background:none;padding:7px 14px;border-radius:999px;font-weight:700;font-size:.82rem;color:var(--muted);cursor:pointer}
+.designtoggle{display:inline-flex;background:#eef1f6;border:1px solid var(--line);border-radius:999px;padding:2px;gap:1px}
+.dt-btn{border:none;background:none;padding:6px 9px;border-radius:999px;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:color .15s,background-color .15s}
+.dt-btn svg{display:block}
+.dt-btn:not(.active):hover{color:var(--text)}
 .dt-btn.active{background:#fff;color:#111;box-shadow:0 1px 4px rgba(0,0,0,.14)}
 /* ===== MODERNES DESIGN (umschaltbar) ===== */
 body.design-modern{--card:rgba(255,255,255,.055);--text:#eef2ff;--muted:rgba(238,242,255,.62);--line:rgba(255,255,255,.12);--pos:#22c55e;--neg:#fb7185;color:var(--text);background:#0a0f1f;background-image:radial-gradient(900px 500px at 85% -5%,rgba(99,102,241,.28),transparent 60%),radial-gradient(800px 460px at -5% 15%,rgba(56,189,248,.16),transparent 55%),linear-gradient(160deg,#0a0f1f 0%,#0c1430 55%,#0a0f1f 100%);background-attachment:fixed}
@@ -207,8 +286,10 @@ input[type=email]:focus,input[type=password]:focus{outline:none;border-color:var
 .ghostbtn{background:none;border:2px solid var(--line);color:var(--text)}
 .authhint{color:var(--muted);font-size:.85rem;text-align:center;margin:14px 0 0}
 .topright{display:flex;align-items:center;gap:10px}
-.logoutbtn{background:none;border:2px solid var(--line);border-radius:999px;padding:9px 14px;font-weight:600;color:var(--muted);cursor:pointer;font-size:.85rem;white-space:nowrap}
+.logoutbtn{display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:600;color:var(--muted);cursor:pointer;font-size:.8rem;white-space:nowrap}
+.logoutbtn svg{display:block}
 .logoutbtn:hover{background:#f0f0f0}
+@media(max-width:480px){.logoutbtn span{display:none}.logoutbtn{padding:7px}}
 body.app-hidden header,body.app-hidden main,body.app-hidden footer{display:none}
 body.design-modern input[type=email],body.design-modern input[type=password]{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:var(--text)}
 body.design-modern input[type=email]:focus,body.design-modern input[type=password]:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}
@@ -317,6 +398,34 @@ body.test-env.design-modern h1{color:#e9d5ff}
 .ovhint{color:var(--muted);font-size:.85rem;text-align:center;margin-top:2px}
 body.design-modern .ovcard{background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.10)}
 body.design-modern .ovtotal{box-shadow:0 16px 40px -14px rgba(0,0,0,.6)}
+body[data-cat="overview"]{--accent:#6366f1}
+body.design-modern[data-cat="overview"]{--g1:#6366f1;--g2:#22d3ee;--accent:#818cf8}
+/* ---- Jahresverlauf (Balkendiagramm) ---- */
+.ovctrl{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;margin-bottom:14px}
+.ovseg{display:inline-flex;background:#eef1f6;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.ovsegbtn{border:none;background:none;padding:7px 12px;border-radius:999px;font-weight:700;font-size:.82rem;color:var(--muted);cursor:pointer}
+.ovsegbtn.active{background:#fff;color:#111;box-shadow:0 1px 4px rgba(0,0,0,.14)}
+.ovsegbtn:disabled{opacity:.38;cursor:not-allowed}
+.ovlegend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:0 0 10px;font-size:.82rem;color:var(--muted)}
+.ovlegend span{display:inline-flex;align-items:center;gap:6px}
+.ovlegend b{width:11px;height:11px;border-radius:3px;display:inline-block}
+.ychart{position:relative;display:flex;align-items:flex-end;gap:3px;height:170px;padding-top:6px}
+.ycol{position:relative;flex:1 1 0;height:100%;min-width:0}
+.ybar{position:absolute;left:11%;right:11%;border-radius:5px 5px 0 0;transition:height .3s ease,bottom .3s ease}
+.ystack{position:absolute;left:11%;right:11%;bottom:0;display:flex;flex-direction:column;border-radius:5px 5px 0 0;overflow:hidden;transition:height .3s ease}
+.ystack i{display:block;width:100%}
+.ycol.grp{display:flex;align-items:flex-end;justify-content:center;gap:9%}
+.ycol.grp>i{width:34%;display:block;border-radius:5px 5px 0 0;min-height:1px}
+.ycol.cur .ybar,.ycol.cur .ystack{box-shadow:0 0 0 2px rgba(0,0,0,.18)}
+.yzero{position:absolute;left:0;right:0;height:0;border-top:1px dashed var(--muted);opacity:.5;pointer-events:none}
+.ylabels{display:flex;gap:3px;margin-top:7px}
+.ylabels span{flex:1 1 0;text-align:center;font-size:.72rem;color:var(--muted);min-width:0;overflow:hidden}
+.ylabels span:last-child{font-weight:800;color:var(--text)}
+.ovcap{text-align:center;color:var(--muted);font-size:.85rem;margin:11px 0 0}
+body.design-modern .ovseg{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14)}
+body.design-modern .ovsegbtn{color:rgba(238,242,255,.62)}
+body.design-modern .ovsegbtn.active{background:linear-gradient(135deg,var(--g1),var(--g2));color:#0b1020;box-shadow:0 6px 16px -6px var(--g2)}
+body.design-modern .ycol.cur .ybar,body.design-modern .ycol.cur .ystack{box-shadow:0 0 0 2px rgba(255,255,255,.3)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -350,13 +459,13 @@ body.design-modern .ovtotal{box-shadow:0 16px 40px -14px rgba(0,0,0,.6)}
     <h1>📊 Verbrauchs-Tracker</h1>
     <div class="topright">
       <div class="designtoggle" role="group" aria-label="Design wählen">
-        <button class="dt-btn active" data-design="classic">Klassisch</button>
-        <button class="dt-btn" data-design="modern">Modern</button>
+        <button class="dt-btn active" data-design="classic" title="Helles Design (Tag)" aria-label="Helles Design (Tag)"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19"/></svg></button>
+        <button class="dt-btn" data-design="modern" title="Dunkles Design (Nacht)" aria-label="Dunkles Design (Nacht)"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.3A8.2 8.2 0 1 1 9.7 3.5a6.4 6.4 0 0 0 10.8 10.8Z"/></svg></button>
       </div>
-      <button id="logoutBtn" class="logoutbtn" hidden>Abmelden</button>
+      <button id="accountBtn" class="accountbtn" hidden title="Mein Konto &amp; Einstellungen" aria-label="Mein Konto und Einstellungen"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5a6.5 6.5 0 0 1 13 0"/></svg></button>
     </div>
   </div>
-  <nav class="tabs">
+  <nav class="tabs" id="tabs">
     <button class="tab active" data-cat="strom">⚡ Strom</button>
     <button class="tab" data-cat="wasser">💧 Wasser</button>
     <button class="tab" data-cat="gas">🔥 Gas</button>
@@ -364,42 +473,68 @@ body.design-modern .ovtotal{box-shadow:0 16px 40px -14px rgba(0,0,0,.6)}
   </nav>
 </div></header>
 
-<main><div class="wrap" id="app"></div></main>
+<main>
+  <div class="wrap" id="app"></div>
+  <div class="wrap" id="settingsView">
+    <button class="backbtn" id="settingsBack" type="button">← Zurück zur App</button>
+    <h2 class="settitle">👤 Mein Konto &amp; Einstellungen</h2>
 
-<footer><div class="wrap">
-  <p id="hhnote" class="ovhint" style="margin:0 0 10px"></p>
+    <section class="card accountcard"><div id="accountBody"></div></section>
 
-  <details class="foot">
-    <summary>📄 Daten &amp; Sicherung</summary>
-    <div class="footbody">
-      <div class="backup">
-        <button id="csvExportBtn">⬇️ Tabelle exportieren (Excel)</button>
-        <button id="csvImportBtn">⬆️ Tabelle importieren (CSV)</button>
+    <details class="foot">
+      <summary>📄 Daten &amp; Sicherung</summary>
+      <div class="footbody">
+        <div class="backup">
+          <button id="csvExportBtn">⬇️ Tabelle exportieren (Excel)</button>
+          <button id="csvImportBtn">⬆️ Tabelle importieren (CSV)</button>
+        </div>
+        <div class="backup">
+          <button id="exportBtn">💾 Komplett-Sicherung (JSON)</button>
+          <button id="importBtn">↩️ Sicherung laden (JSON)</button>
+        </div>
+        <input type="file" id="importFile" accept="application/json" hidden>
+        <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
+        <p>Tabelle exportieren/importieren bezieht sich auf den gerade gewählten Bereich. Die Komplett-Sicherung (JSON) enthält alle Bereiche. Deine Daten werden sicher in deiner Datenbank gespeichert und sind auf allen Geräten verfügbar.</p>
       </div>
-      <div class="backup">
-        <button id="exportBtn">💾 Komplett-Sicherung (JSON)</button>
-        <button id="importBtn">↩️ Sicherung laden (JSON)</button>
-      </div>
-      <input type="file" id="importFile" accept="application/json" hidden>
-      <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
-      <p>Tabelle exportieren/importieren bezieht sich auf den gerade gewählten Bereich. Die Komplett-Sicherung (JSON) enthält alle Bereiche. Deine Daten werden sicher in deiner Datenbank gespeichert und sind auf allen Geräten verfügbar.</p>
-    </div>
-  </details>
+    </details>
 
-  <details class="foot">
-    <summary>☁️ Automatische Cloud-Backups</summary>
-    <div class="footbody">
-      <div class="backup">
-        <button id="autoBackupBtn">☁️ Jetzt in der Cloud sichern</button>
+    <details class="foot">
+      <summary>☁️ Automatische Cloud-Backups</summary>
+      <div class="footbody">
+        <div class="backup">
+          <button id="autoBackupBtn">☁️ Jetzt in der Cloud sichern</button>
+        </div>
+        <div id="backupList" class="backuplist"></div>
+        <p>Die App legt ab Monatsmitte automatisch ein Backup an. Es werden die letzten <b>3</b> Backups behalten (das älteste fällt weg). Du kannst jederzeit ein Backup wiederherstellen.</p>
       </div>
-      <div id="backupList" class="backuplist"></div>
-      <p>Die App legt ab Monatsmitte automatisch ein Backup an. Es werden die letzten <b>3</b> Backups behalten (das älteste fällt weg). Du kannst jederzeit ein Backup wiederherstellen.</p>
-    </div>
-  </details>
+    </details>
 
-  <div class="envswitch" id="envswitch"></div>
-  <p id="envnote">Du bist in der <b>Live-Umgebung</b> mit deinen echten Daten.</p>
-</div></footer>
+    <details class="foot">
+      <summary>ℹ️ Wie wird gerechnet?</summary>
+      <div class="footbody">
+        <ul class="calclist">
+          <li><b>Verbrauch</b> = aktueller Zählerstand − letzter Zählerstand</li>
+          <li><b>Grundkosten</b> = Grundpreis pro Jahr ÷ 12 <span class="cnote">(bei Wasser inkl. Niederschlag)</span></li>
+          <li><b>Verbrauchskosten</b> = Verbrauch × Arbeitspreis <span class="cnote">(bei Wasser × Wasser-+-Kanal-Preis)</span></li>
+          <li><b>Gas in kWh</b> = m³ × Wandelfaktor × Zustandszahl × Brennwert</li>
+          <li><b>Gesamtkosten</b> = Grundkosten + Verbrauchskosten</li>
+          <li><b>Differenz</b> = Abschlag − Gesamtkosten · <span class="pos">Plus = Guthaben</span>, <span class="neg">Minus = Nachzahlung</span></li>
+          <li><b>Tarif-Saldo</b> je Tarif; nach je 12 Monaten eine <b>Jahresabrechnung</b>.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="foot">
+      <summary>🔁 Umgebung wechseln</summary>
+      <div class="footbody">
+        <div class="envswitch" id="envswitch"></div>
+        <p id="envnote">Du bist in der <b>Live-Umgebung</b> mit deinen echten Daten.</p>
+      </div>
+    </details>
+
+    <button id="logoutBtn" class="logoutbtn-wide" type="button">↩︎ Abmelden</button>
+  </div>
+</main>
 
 <script>
 (function(){
@@ -414,7 +549,10 @@ var LIVE_URL=location.origin+ENV_BASE+"/";
 var TEST_URL=location.origin+ENV_BASE+"/test/";
 var DB_SCHEMA=IS_TEST?"test":"public";
 var sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true},db:{schema:DB_SCHEMA}});
+/* Haushalte (Mitgliedschaft) liegen immer im public-Schema – auch in der Testumgebung. */
+var sbPub=sb.schema("public");
 var currentUser=null,enteredUserId=null;
+var HOUSEHOLDS=[],activeHousehold=null;
 var BACKUPS=[],BACKUP_MAX=3;
 var CATS={
   strom:{label:"Strom",icon:"⚡",unit:"kWh",billUnit:"kWh",valDec:0,verbrauchDec:0,
@@ -461,6 +599,7 @@ var STATE=defaults();
 var activeCat="strom";
 var tarifeOpen=false;
 var expandedGroups={};
+var ovMetric="kosten",ovScope="strom";
 
 /* ---------- Helpers ---------- */
 function $(s,r){return (r||document).querySelector(s);}
@@ -495,17 +634,14 @@ function nOrNull(x){return (x==null||x==="")?null:Number(x);}
 function rowToTariff(r){var t={id:r.id,anbieter:r.anbieter||"",grundpreisJahr:Number(r.grundpreis_jahr),abschlag:Number(r.abschlag),gueltigAb:r.gueltig_ab,erstelltAm:r.erstellt_am};if(r.arbeitspreis!=null)t.arbeitspreis=Number(r.arbeitspreis);if(r.wasser_kanal!=null)t.wasserKanal=Number(r.wasser_kanal);return t;}
 function rowToReading(r){var o={id:r.id,datum:r.datum,zaehlerstand:Number(r.zaehlerstand),erfasstAm:r.erfasst_am};if(r.startwert!=null)o.startwert=Number(r.startwert);if(r.zaehlerstand_kwh!=null)o.zaehlerstandKwh=Number(r.zaehlerstand_kwh);return o;}
 function rowToAbschlag(r){return {id:r.id,betrag:Number(r.betrag),gueltigAb:r.gueltig_ab,erstelltAm:r.erstellt_am};}
-function tariffToCols(cat,t){return {category:cat,anbieter:t.anbieter||null,grundpreis_jahr:nOrNull(t.grundpreisJahr),arbeitspreis:nOrNull(t.arbeitspreis),wasser_kanal:nOrNull(t.wasserKanal),abschlag:nOrNull(t.abschlag),gueltig_ab:t.gueltigAb,erstellt_am:t.erstelltAm||new Date().toISOString()};}
-function readingToCols(cat,r){return {category:cat,datum:r.datum,zaehlerstand:nOrNull(r.zaehlerstand),startwert:(r.startwert!=null?Number(r.startwert):null),zaehlerstand_kwh:(r.zaehlerstandKwh!=null?Number(r.zaehlerstandKwh):null),erfasst_am:r.erfasstAm||new Date().toISOString()};}
-function abschlagToCols(cat,a){return {category:cat,betrag:nOrNull(a.betrag),gueltig_ab:a.gueltigAb,erstellt_am:a.erstelltAm||new Date().toISOString()};}
+function tariffToCols(cat,t){return {category:cat,anbieter:t.anbieter||null,grundpreis_jahr:nOrNull(t.grundpreisJahr),arbeitspreis:nOrNull(t.arbeitspreis),wasser_kanal:nOrNull(t.wasserKanal),abschlag:nOrNull(t.abschlag),gueltig_ab:t.gueltigAb,erstellt_am:t.erstelltAm||new Date().toISOString(),household_id:activeHousehold};}
+function readingToCols(cat,r){return {category:cat,datum:r.datum,zaehlerstand:nOrNull(r.zaehlerstand),startwert:(r.startwert!=null?Number(r.startwert):null),zaehlerstand_kwh:(r.zaehlerstandKwh!=null?Number(r.zaehlerstandKwh):null),erfasst_am:r.erfasstAm||new Date().toISOString(),household_id:activeHousehold};}
+function abschlagToCols(cat,a){return {category:cat,betrag:nOrNull(a.betrag),gueltig_ab:a.gueltigAb,erstellt_am:a.erstelltAm||new Date().toISOString(),household_id:activeHousehold};}
 async function loadFromDB(){
   var st=defaults();
-  var res=await Promise.all([
-    sb.from("tariffs").select("*"),
-    sb.from("readings").select("*"),
-    sb.from("abschlag_changes").select("*"),
-    sb.from("gas_conversion").select("*").maybeSingle()
-  ]);
+  var tq=sb.from("tariffs").select("*"),rq=sb.from("readings").select("*"),aq=sb.from("abschlag_changes").select("*");
+  if(activeHousehold){tq=tq.eq("household_id",activeHousehold);rq=rq.eq("household_id",activeHousehold);aq=aq.eq("household_id",activeHousehold);}
+  var res=await Promise.all([tq,rq,aq,sb.from("gas_conversion").select("*").maybeSingle()]);
   var tRes=res[0],rRes=res[1],aRes=res[2],cRes=res[3];
   var err=tRes.error||rRes.error||aRes.error;if(err)throw err;
   (tRes.data||[]).forEach(function(r){if(st[r.category])st[r.category].tariffs.push(rowToTariff(r));});
@@ -516,10 +652,11 @@ async function loadFromDB(){
 }
 async function replaceAllInDB(data){
   if(!currentUser)throw new Error("Nicht angemeldet.");
+  if(!activeHousehold)throw new Error("Kein Haushalt ausgewählt.");
   var uidv=currentUser.id;
-  var d1=await sb.from("readings").delete().not("id","is",null);if(d1.error)throw d1.error;
-  var d2=await sb.from("tariffs").delete().not("id","is",null);if(d2.error)throw d2.error;
-  var d3=await sb.from("abschlag_changes").delete().not("id","is",null);if(d3.error)throw d3.error;
+  var d1=await sb.from("readings").delete().eq("household_id",activeHousehold);if(d1.error)throw d1.error;
+  var d2=await sb.from("tariffs").delete().eq("household_id",activeHousehold);if(d2.error)throw d2.error;
+  var d3=await sb.from("abschlag_changes").delete().eq("household_id",activeHousehold);if(d3.error)throw d3.error;
   var tRows=[],rRows=[],aRows=[];
   ["strom","wasser","gas"].forEach(function(cat){
     (data[cat].tariffs||[]).forEach(function(t){tRows.push(tariffToCols(cat,t));});
@@ -632,7 +769,7 @@ function tariffSaldoInfo(cat,tid){var g=tariffGroups(cat).find(function(x){retur
 
 /* ---------- Rendering ---------- */
 function renderOverview(){
-  var cats=["strom","wasser","gas"],totalSaldo=0,cards="";
+  var cats=householdCats(),totalSaldo=0,cards="";
   cats.forEach(function(cat){
     var c=CATS[cat];
     var rows=history(cat).filter(function(r){return !r.baseline;});
@@ -662,8 +799,78 @@ function renderOverview(){
       '<div class="ovtotlabel">Gesamt-Saldo (laufende Tarife)</div>'+
       '<div class="ovtotval">'+(tp?"+":"")+eur(totalSaldo)+'</div>'+
       '<div class="ovtotstate">'+(tp?"Guthaben über alle Bereiche 🙂":"Nachzahlung über alle Bereiche")+'</div>'+
-    '</div>';
+    '</div>'+ovChartCard();
 }
+function shortMon(key){var n=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];return n[Number(key.split("-")[1])-1];}
+function ovCurrentGroup(cat){
+  var cur=tariffForDate(cat,todayISO());
+  if(!cur)return null;
+  return tariffGroups(cat).find(function(x){return x.tid===cur.id;})||null;
+}
+function ovChartCard(){
+  return '<section class="card"><h2 class="sect">📅 Jahresverlauf</h2><div id="ovchartwrap">'+ovChartWrap()+'</div></section>';
+}
+function ovSeg(group,val,label,active,disabled){
+  return '<button class="ovsegbtn'+(active?" active":"")+'"'+(disabled?" disabled":"")+' data-action="'+group+'" data-val="'+val+'">'+label+'</button>';
+}
+function ovChartWrap(){
+  var cats=householdCats();
+  if(cats.indexOf(ovScope)<0)ovScope=cats[0];
+  var metric=ovMetric,scope=ovScope;
+  var scopeBtns=cats.map(function(c){return ovSeg("ovscope",c,CATS[c].icon,scope===c);}).join("");
+  var ctrl='<div class="ovctrl">'+
+    '<div class="ovseg" role="group" aria-label="Anzeige">'+
+      ovSeg("ovmetric","kosten","Kosten",metric==="kosten")+
+      ovSeg("ovmetric","differenz","Differenz",metric==="differenz")+
+      ovSeg("ovmetric","verbrauch","Verbrauch",metric==="verbrauch")+
+      ovSeg("ovmetric","alle","Alle",metric==="alle")+
+    '</div>'+
+    '<div class="ovseg" role="group" aria-label="Bereich">'+scopeBtns+'</div>'+
+  '</div>';
+  return ctrl+ovChartBody(metric,scope);
+}
+function ovChartBody(metric,cat){
+  var c=CATS[cat],colors={strom:"#f59e0b",wasser:"#38bdf8",gas:"#fb7185"},ABCOL="#94a3b8";
+  var g=ovCurrentGroup(cat);
+  var rows=g?g.rows.filter(function(r){return isFinite(r.gesamtkosten);}):[];
+  if(!rows.length)return '<p class="ovhint" style="padding:22px 6px">Für <b>'+c.icon+' '+c.label+'</b> gibt es im aktuellen Tarif noch keine abgerechneten Monate. Sobald die erste volle Abrechnung vorliegt, erscheint hier der Verlauf.</p>';
+  var col=colors[cat]||"var(--accent)";
+  var labels=rows.map(function(r){return shortMon(billKey(r.reading.datum));});
+  var firstFull=monthLabel(billKey(rows[0].reading.datum)+"-01"),lastFull=monthLabel(billKey(rows[rows.length-1].reading.datum)+"-01");
+  var bars="",caption="",legend="",zeroLine="";
+  if(metric==="alle"){
+    var maxV=1;rows.forEach(function(r){maxV=Math.max(maxV,r.gesamtkosten||0,r.abschlag||0);});
+    bars=rows.map(function(r,i){
+      var k=r.gesamtkosten||0,a=r.abschlag||0,base=Math.min(k,a),delta=Math.abs(k-a),over=k>a;
+      var totH=(Math.max(k,a)/maxV*100),dcol=over?"var(--neg)":"var(--pos)";
+      var tip=monthLabel(billKey(r.reading.datum)+"-01")+": Kosten "+eur(k)+" · Abschlag "+eur(a)+" · "+(over?"Nachzahlung ":"Guthaben ")+eur(delta);
+      return '<div class="ycol'+(i===rows.length-1?" cur":"")+'" title="'+tip+'"><div class="ystack" style="height:'+totH.toFixed(1)+'%"><i style="flex:'+delta.toFixed(2)+';background:'+dcol+'"></i><i style="flex:'+base.toFixed(2)+';background:'+col+'"></i></div></div>';
+    }).join("");
+    var sumK=rows.reduce(function(a,r){return a+(r.gesamtkosten||0);},0),sumA=rows.reduce(function(a,r){return a+(r.abschlag||0);},0),net=sumA-sumK;
+    caption=firstFull+" – "+lastFull+" · Kosten "+eur(sumK)+" · Abschlag "+eur(sumA)+" · "+(net>=0?"Guthaben ":"Nachzahlung ")+eur(Math.abs(net));
+    legend='<div class="ovlegend"><span><b style="background:'+col+'"></b>Kosten/Abschlag</span><span><b style="background:var(--pos)"></b>Guthaben</span><span><b style="background:var(--neg)"></b>Nachzahlung</span></div>';
+  }else{
+    var valOf=function(r){return metric==="kosten"?r.gesamtkosten:metric==="differenz"?r.differenz:r.verbrauch;};
+    var vals=rows.map(valOf);
+    var minV=Math.min.apply(null,vals),maxV2=Math.max.apply(null,vals);
+    if(minV>0)minV=0;if(maxV2<0)maxV2=0;
+    var range=(maxV2-minV)||1,zeroFrac=(0-minV)/range,isDiff=(metric==="differenz");
+    bars=rows.map(function(r,i){
+      var v=vals[i],valFrac=(v-minV)/range;
+      var bottom=Math.min(zeroFrac,valFrac)*100,height=Math.abs(valFrac-zeroFrac)*100;
+      var bc=isDiff?(v>=0?"var(--pos)":"var(--neg)"):col;
+      var tip=monthLabel(billKey(r.reading.datum)+"-01")+": "+(metric==="verbrauch"?(fmtVerb(cat,v)+" "+(c.billUnit||c.unit)):eur(v));
+      return '<div class="ycol'+(i===rows.length-1?" cur":"")+'" title="'+tip+'"><i class="ybar" style="bottom:'+bottom.toFixed(1)+'%;height:'+Math.max(height,0.8).toFixed(1)+'%;background:'+bc+'"></i></div>';
+    }).join("");
+    if(isDiff&&minV<0)zeroLine='<div class="yzero" style="bottom:'+(zeroFrac*100).toFixed(1)+'%"></div>';
+    var sv=vals.reduce(function(a,b){return a+b;},0);
+    if(metric==="verbrauch"){var u=(c.billUnit||c.unit);caption=firstFull+" – "+lastFull+" · ⌀ "+fmtVerb(cat,sv/rows.length)+" "+u+" / Monat · Summe "+fmtVerb(cat,sv)+" "+u;}
+    else if(isDiff){caption=firstFull+" – "+lastFull+" · Netto "+(sv>=0?"+":"")+eur(sv)+" ("+(sv>=0?"Guthaben":"Nachzahlung")+")";}
+    else{caption=firstFull+" – "+lastFull+" · ⌀ "+eur(sv/rows.length)+" / Monat · Summe "+eur(sv);}
+  }
+  return legend+'<div class="ychart">'+zeroLine+bars+'</div><div class="ylabels">'+labels.map(function(l){return '<span>'+l+'</span>';}).join("")+'</div><p class="ovcap">'+caption+'</p>';
+}
+function refreshOvChart(){var w=$("#ovchartwrap");if(w)w.innerHTML=ovChartWrap();}
 function renderApp(){
   document.body.setAttribute("data-cat",activeCat);
   document.querySelectorAll(".tab").forEach(function(b){b.classList.toggle("active",b.dataset.cat===activeCat);});
@@ -675,9 +882,10 @@ function renderApp(){
 function placeholder(cat){var c=CATS[cat];return '<div class="placeholder"><div class="phicon">'+c.icon+'</div><h2>'+c.label+' folgt in Kürze</h2><p>Dieser Bereich wird als Nächstes ergänzt – mit derselben einfachen Bedienung wie Strom und Wasser.</p></div>';}
 function categoryShell(cat){
   var c=CATS[cat],u=c.unit;
-  return ''+
+  var meter=householdMeter(cat),meterLine=meter?'<p class="meterno">🔢 Zähler-Nr.: <b>'+escapeHtml(meter)+'</b></p>':"";
+  return onboardingHtml(cat)+
   '<section class="card">'+
-    '<h2 class="sect">'+c.icon+' Neue Ablesung</h2>'+
+    '<h2 class="sect">'+c.icon+' Neue Ablesung</h2>'+meterLine+
     '<div class="field"><label for="ablesedatum">Ablesedatum</label><input type="date" id="ablesedatum" value="'+todayISO()+'"></div>'+
     '<div class="field"><label for="zaehlerstand">Zählerstand ('+u+')</label><input type="text" inputmode="decimal" id="zaehlerstand" placeholder="z. B. '+(cat==="wasser"?"204,45":"12345")+'"></div>'+
     '<details class="metchange"><summary>🔧 Neuer Zähler eingebaut?</summary><div class="field"><label for="startwert">Anfangsstand des neuen Zählers ('+u+')</label><input type="text" inputmode="decimal" id="startwert" placeholder="z. B. 0"></div><p class="hint">Nur ausfüllen, wenn seit der letzten Ablesung ein neuer Zähler eingebaut wurde – der Verbrauch wird dann ab diesem Anfangsstand gerechnet.</p></details>'+
@@ -685,14 +893,6 @@ function categoryShell(cat){
     '<button class="btn big" data-action="save-reading">Ablesung speichern</button>'+
   '</section>'+
   '<section class="card" id="verlauf"></section>'+
-  '<details class="card info"><summary>ℹ️ Wie wird gerechnet?</summary><ul>'+
-    '<li><b>Verbrauch</b> = aktueller Zählerstand − letzter Zählerstand</li>'+
-    '<li><b>'+c.grundkostenLabel+'</b> = Grundpreis pro Jahr ÷ 12</li>'+
-    '<li><b>'+c.verbrauchskostenLabel+'</b> = '+c.verbrauchsHinweis+'</li>'+
-    '<li><b>Gesamtkosten</b> = Grundkosten + Verbrauchskosten</li>'+
-    '<li><b>Differenz</b> = Abschlag − Gesamtkosten · <span class="pos">Plus = Guthaben</span>, <span class="neg">Minus = Nachzahlung</span></li>'+
-    '<li><b>Tarif-Saldo</b> je Tarif; nach je 12 Monaten eine <b>Jahresabrechnung</b>. Der Verlauf zeigt den aktuellen Tarif (max. 12 Monate); ältere Tarife lassen sich aufklappen.</li>'+
-  '</ul></details>'+
   '<section class="card" id="tarife"></section>';
 }
 function row(label,val,cls){return '<div class="rrow '+(cls||"")+'"><span>'+label+'</span><b>'+val+'</b></div>';}
@@ -931,6 +1131,10 @@ function onAppClick(e){
   else if(act==="del-abschlag")delAbschlag(id);
   else if(act==="open-abschlag")openAbschlag();
   else if(act==="goto-cat"){activeCat=btn.dataset.cat;tarifeOpen=false;expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});}
+  else if(act==="ovmetric"){ovMetric=btn.dataset.val;refreshOvChart();}
+  else if(act==="ovscope"){ovScope=btn.dataset.val;refreshOvChart();}
+  else if(act==="onb-tariff"){tarifeOpen=true;renderTarife();var tf=$("#tarifForm");if(tf){tf.scrollIntoView({behavior:"smooth",block:"center"});var fa=$("#tf_anbieter");if(fa)setTimeout(function(){try{fa.focus({preventScroll:true});}catch(e){}},220);}}
+  else if(act==="onb-reading"){var zi=$("#zaehlerstand");if(zi){zi.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zi.focus({preventScroll:true});}catch(e){}},220);}}
 }
 function openAbschlag(){
   tarifeOpen=true;renderTarife();
@@ -1033,7 +1237,7 @@ async function delAbschlag(id){
 function backupPeriod(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
 function deDateTime(iso){try{var d=new Date(iso);return d.toLocaleDateString("de-DE")+", "+d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+" Uhr";}catch(e){return iso;}}
 async function loadBackups(){
-  try{var r=await sb.from("backups").select("id,kind,period,created_at").order("created_at",{ascending:false});BACKUPS=(r&&!r.error&&r.data)?r.data:[];}
+  try{var bq=sb.from("backups").select("id,kind,period,created_at");if(activeHousehold)bq=bq.eq("household_id",activeHousehold);var r=await bq.order("created_at",{ascending:false});BACKUPS=(r&&!r.error&&r.data)?r.data:[];}
   catch(e){BACKUPS=[];}
 }
 async function pruneBackups(){
@@ -1043,7 +1247,7 @@ async function pruneBackups(){
   if(!r.error)BACKUPS=BACKUPS.slice(0,BACKUP_MAX);
 }
 async function createBackup(kind,period){
-  var r=await sb.from("backups").insert({kind:kind||"manual",period:period||null,data:STATE}).select("id,kind,period,created_at").single();
+  var r=await sb.from("backups").insert({kind:kind||"manual",period:period||null,data:STATE,household_id:activeHousehold}).select("id,kind,period,created_at").single();
   if(r.error)throw r.error;
   BACKUPS.unshift(r.data);
   await pruneBackups();
@@ -1199,7 +1403,10 @@ function applyDesign(d){
   try{localStorage.setItem("verbrauchsTrackerDesign",modern?"modern":"classic");}catch(e){}
 }
 /* ---------- Auth ---------- */
-function showAuth(show){document.body.classList.toggle("app-hidden",show);var a=$("#authscreen");if(a)a.hidden=!show;var lo=$("#logoutBtn");if(lo)lo.hidden=show;}
+function showAuth(show){document.body.classList.toggle("app-hidden",show);if(show)document.body.classList.remove("settings-open");var a=$("#authscreen");if(a)a.hidden=!show;var ab=$("#accountBtn");if(ab)ab.hidden=show;}
+function openSettings(){if(!currentUser)return;renderAccount();document.body.classList.add("settings-open");window.scrollTo({top:0,behavior:"smooth"});}
+function closeSettings(){document.body.classList.remove("settings-open");window.scrollTo({top:0,behavior:"smooth"});}
+function toggleSettings(){if(document.body.classList.contains("settings-open"))closeSettings();else openSettings();}
 function authMsg(text,kind){var m=$("#auth_msg");if(!m)return;if(!text){m.hidden=true;m.textContent="";return;}m.hidden=false;m.textContent=text;m.className="authmsg "+(kind||"");}
 function loginErrorText(e){var m=errMsg(e);if(/invalid login/i.test(m))return "E-Mail oder Passwort ist falsch.";if(/email not confirmed/i.test(m))return "Bitte bestätige zuerst deine E-Mail-Adresse (Link in der Bestätigungs-Mail).";if(/already registered|already been registered/i.test(m))return "Für diese E-Mail gibt es bereits ein Konto. Bitte melde dich an.";if(/rate limit|too many/i.test(m))return "Zu viele Versuche. Bitte kurz warten und erneut probieren.";return m;}
 async function doLogin(){
@@ -1257,18 +1464,186 @@ function enterRecovery(session){
   var p=$("#auth_newpass");if(p)p.value="";
   authMsg("Du kannst jetzt ein neues Passwort vergeben.","ok");
 }
+/* ---------- Haushalte / Mein Konto ---------- */
+function hhKey(){return "vt_active_hh_"+(currentUser?currentUser.id:"anon");}
+function loadActiveHousehold(){try{return localStorage.getItem(hhKey());}catch(e){return null;}}
+function saveActiveHousehold(){try{if(activeHousehold)localStorage.setItem(hhKey(),activeHousehold);}catch(e){}}
+function activeHouseholdName(){var h=HOUSEHOLDS.find(function(x){return x.id===activeHousehold;});return h?h.name:"";}
+async function fetchHouseholds(){var r=await sbPub.from("households").select("id,name,created_at,category_config").order("created_at",{ascending:true});HOUSEHOLDS=(r&&!r.error&&r.data)?r.data:[];}
+async function loadHouseholds(){
+  await fetchHouseholds();
+  var saved=loadActiveHousehold();
+  if(saved&&HOUSEHOLDS.some(function(h){return h.id===saved;}))activeHousehold=saved;
+  else activeHousehold=HOUSEHOLDS.length?HOUSEHOLDS[0].id:null;
+  if(!activeHousehold){
+    try{var c=await sbPub.rpc("create_household",{p_name:"Mein Haushalt"});if(c&&!c.error&&c.data){activeHousehold=c.data;await fetchHouseholds();}}catch(e){}
+  }
+  saveActiveHousehold();
+}
+function householdConfig(){var h=HOUSEHOLDS.find(function(x){return x.id===activeHousehold;});return (h&&h.category_config)?h.category_config:null;}
+function householdCats(){var cfg=householdConfig();if(!cfg)return ["strom","wasser","gas"];var out=["strom","wasser","gas"].filter(function(c){return cfg[c]&&cfg[c].enabled===true;});return out.length?out:["strom","wasser","gas"];}
+function householdMeter(cat){var cfg=householdConfig();return (cfg&&cfg[cat]&&cfg[cat].meter)?cfg[cat].meter:"";}
+function renderTabs(){
+  var nav=$("#tabs");if(!nav)return;
+  var cats=householdCats();
+  if(activeCat!=="overview"&&cats.indexOf(activeCat)<0)activeCat=cats[0]||"overview";
+  var html=cats.map(function(c){return '<button class="tab'+(c===activeCat?" active":"")+'" data-cat="'+c+'">'+CATS[c].icon+' '+CATS[c].label+'</button>';}).join("");
+  html+='<button class="tab'+(activeCat==="overview"?" active":"")+'" data-cat="overview">📊 Gesamt</button>';
+  nav.innerHTML=html;
+}
+async function setHouseholdConfig(cfg){
+  if(!activeHousehold)return;
+  var h=HOUSEHOLDS.find(function(x){return x.id===activeHousehold;}),prev=h?h.category_config:null;
+  if(h)h.category_config=cfg;
+  renderTabs();if(activeCat==="overview")renderApp();
+  try{var r=await sbPub.from("households").update({category_config:cfg}).eq("id",activeHousehold);if(r.error)throw r.error;}
+  catch(e){if(h)h.category_config=prev;renderTabs();toast("Konnte Einstellung nicht speichern: "+errMsg(e),true);}
+}
+function toggleCat(cat){
+  var cfg=householdConfig()||{},ncfg=JSON.parse(JSON.stringify(cfg));
+  if(!ncfg[cat])ncfg[cat]={enabled:false};
+  var willEnable=!(ncfg[cat].enabled===true);
+  if(!willEnable&&["strom","wasser","gas"].filter(function(c){return ncfg[c]&&ncfg[c].enabled===true;}).length<=1){toast("Mindestens eine Kategorie muss aktiv bleiben.",true);return;}
+  ncfg[cat].enabled=willEnable;
+  setHouseholdConfig(ncfg).then(function(){renderAccount();});
+}
+function saveMeter(cat,value){
+  var cfg=householdConfig()||{},ncfg=JSON.parse(JSON.stringify(cfg));
+  if(!ncfg[cat])ncfg[cat]={enabled:true};
+  var v=(value||"").trim();if(v)ncfg[cat].meter=v;else delete ncfg[cat].meter;
+  setHouseholdConfig(ncfg);
+}
+function catCfgEditorActive(){
+  var cfg=householdConfig()||{};
+  return ["strom","wasser","gas"].map(function(c){
+    var en=cfg[c]&&cfg[c].enabled===true,meter=(cfg[c]&&cfg[c].meter)?escapeHtml(cfg[c].meter):"";
+    return '<div class="catrow"><button class="cattoggle'+(en?" on":"")+'" role="switch" aria-checked="'+(en?"true":"false")+'" data-action="cat-toggle" data-cat="'+c+'"><span class="catname">'+CATS[c].icon+' '+CATS[c].label+'</span><span class="catsw"></span></button>'+(en?'<input class="meterinp" id="meter_'+c+'" data-cat="'+c+'" placeholder="Zähler-Nr. (optional)" value="'+meter+'">':"")+'</div>';
+  }).join("");
+}
+function catCfgEditorNew(){
+  return ["strom","wasser","gas"].map(function(c){
+    return '<div class="catrow"><label class="catcheck"><input type="checkbox" id="new_en_'+c+'" checked><span>'+CATS[c].icon+' '+CATS[c].label+'</span></label><input class="meterinp" id="new_meter_'+c+'" placeholder="Zähler-Nr. (optional)"></div>';
+  }).join("");
+}
+function onboardingHtml(cat){
+  var c=CATS[cat],hasT=STATE[cat].tariffs.length>0,hasR=STATE[cat].readings.length>0;
+  if(hasT&&hasR)return "";
+  var s1=hasT?'<li class="onbdone">✓ Tarif ist eingetragen</li>':'<li><b>Schritt 1:</b> Tarif eintragen – Anbieter, Preise und monatlicher Abschlag.<div><button class="onbbtn" data-action="onb-tariff">Tarif eintragen</button></div></li>';
+  var s2=hasR?'<li class="onbdone">✓ Erste Ablesung ist erfasst</li>':(hasT?'<li><b>Schritt 2:</b> Aktuellen Zählerstand als Startwert eintragen.<div><button class="onbbtn" data-action="onb-reading">Zählerstand eintragen</button></div></li>':'<li class="onbwait"><b>Schritt 2:</b> Aktuellen Zählerstand eintragen <span>(nach Schritt 1)</span></li>');
+  return '<section class="card onb"><h2 class="sect">🚀 '+c.icon+' '+c.label+' einrichten</h2><p>Nur noch wenige Angaben, dann rechnet die App automatisch:</p><ol class="onbsteps">'+s1+s2+'</ol></section>';
+}
+function renderAccount(){
+  var body=$("#accountBody");if(!body)return;
+  if(!currentUser){body.innerHTML="";return;}
+  var email=escapeHtml(currentUser.email||"");
+  var opts=HOUSEHOLDS.map(function(h){
+    var active=(h.id===activeHousehold);
+    return '<button class="hhopt'+(active?" active":"")+'" data-action="hh-switch" data-id="'+h.id+'"><span class="hhname">'+escapeHtml(h.name||"Haushalt")+'</span><span class="hhtag">'+(active?"✓ aktiv":"wechseln")+'</span></button>';
+  }).join("");
+  body.innerHTML=
+    '<p class="accemail">Angemeldet als <b>'+email+'</b></p>'+
+    '<div class="acclabel">'+(HOUSEHOLDS.length>1?"Deine Haushalte":"Dein Haushalt")+'</div>'+
+    '<div class="hhlist">'+opts+'</div>'+
+    '<p class="hhmeta" id="hhMeta"></p>'+
+    '<div class="acclabel" style="margin-top:16px">Was wird in „'+escapeHtml(activeHouseholdName())+'" erfasst?</div>'+
+    '<div class="catcfg">'+catCfgEditorActive()+'</div>'+
+    '<p class="ovhint" style="text-align:left;margin:2px 0 0">Tippe an/aus, was du in diesem Haushalt verfolgen möchtest. Die Zähler-Nummer ist optional (nur zur Info).</p>'+
+    '<button class="linkbtn" data-action="hh-rename" style="margin-top:10px">✏️ Aktuellen Haushalt umbenennen</button>'+
+    '<div class="acclabel" style="margin-top:20px">➕ Neuen Haushalt anlegen</div>'+
+    '<input id="hhNewName" class="hhfull" type="text" maxlength="60" placeholder="Name (z. B. Ferienwohnung)">'+
+    '<div class="catnewlabel">Was möchtest du dort erfassen?</div>'+
+    '<div class="catcfg">'+catCfgEditorNew()+'</div>'+
+    '<button class="hhwide" data-action="hh-create">Haushalt anlegen</button>'+
+    '<div class="acclabel" style="margin-top:20px">👥 Person zu „'+escapeHtml(activeHouseholdName())+'" einladen</div>'+
+    '<button class="hhwide" data-action="hh-invite">Einladungs-Code erstellen</button>'+
+    '<div id="inviteOut" class="inviteout" hidden></div>'+
+    '<div class="acclabel" style="margin-top:16px">Einer Einladung beitreten</div>'+
+    '<div class="hhadd"><input id="hhJoinCode" type="text" maxlength="12" placeholder="Code eingeben (z. B. 197C1111)"><button class="hhaddbtn" data-action="hh-join">Beitreten</button></div>'+
+    '<p class="ovhint" style="text-align:left;margin-top:12px">Mehrere Haushalte sind praktisch, z. B. für Haupt- und Ferienwohnung – jeder hat eigene Zähler und Daten. Wen du einlädst, sieht dieselben Werte und kann mitpflegen.</p>';
+  refreshHhMeta();
+}
+async function refreshHhMeta(){
+  var el=$("#hhMeta");if(!el)return;if(!activeHousehold){el.textContent="";return;}
+  try{var r=await sbPub.from("household_members").select("user_id").eq("household_id",activeHousehold);
+    var n=(r&&r.data)?r.data.length:1;
+    el.textContent=(n>1)?("👨‍👩‍👧 Gemeinsamer Haushalt · "+n+" Mitglieder teilen diese Daten"):"Nur du nutzt diesen Haushalt.";
+  }catch(e){el.textContent="";}
+}
+async function switchHousehold(hid){
+  if(!hid||hid===activeHousehold)return;
+  activeHousehold=hid;saveActiveHousehold();renderAccount();
+  try{await loadFromDB();}catch(e){toast("Daten konnten nicht geladen werden: "+errMsg(e),true);}
+  renderTabs();renderApp();
+  try{await loadBackups();renderBackups();}catch(e){}
+  toast("Haushalt gewechselt: "+activeHouseholdName()+" ✅");
+}
+async function createHouseholdUI(){
+  var inp=$("#hhNewName"),name=inp?(inp.value||"").trim():"";
+  if(!name){toast("Bitte einen Namen für den neuen Haushalt eingeben.",true);if(inp)inp.focus();return;}
+  var cfg={},any=false;
+  ["strom","wasser","gas"].forEach(function(c){
+    var en=$("#new_en_"+c),mt=$("#new_meter_"+c),enabled=en?en.checked:true;
+    if(enabled)any=true;
+    cfg[c]={enabled:enabled};
+    var m=mt?(mt.value||"").trim():"";if(enabled&&m)cfg[c].meter=m;
+  });
+  if(!any){toast("Bitte mindestens eine Kategorie auswählen.",true);return;}
+  try{
+    var r=await sbPub.rpc("create_household",{p_name:name});
+    if(r.error)throw r.error;
+    var up=await sbPub.from("households").update({category_config:cfg}).eq("id",r.data);
+    if(up.error)throw up.error;
+    await loadHouseholds();
+    await switchHousehold(r.data);
+    renderAccount();
+    toast('Haushalt „'+name+'" angelegt ✅');
+  }catch(e){toast("Konnte Haushalt nicht anlegen: "+errMsg(e),true);}
+}
+async function renameHouseholdUI(){
+  var cur=HOUSEHOLDS.find(function(h){return h.id===activeHousehold;});
+  var name=prompt("Neuer Name für den Haushalt:",cur?cur.name:"");
+  if(name==null)return;name=name.trim();if(!name)return;
+  try{
+    var r=await sbPub.from("households").update({name:name}).eq("id",activeHousehold);
+    if(r.error)throw r.error;
+    await loadHouseholds();renderAccount();toast("Haushalt umbenannt ✅");
+  }catch(e){toast("Umbenennen fehlgeschlagen: "+errMsg(e),true);}
+}
+async function inviteUI(){
+  if(!activeHousehold)return;
+  try{
+    var r=await sbPub.rpc("create_invite",{p_household_id:activeHousehold});
+    if(r.error)throw r.error;
+    var code=r.data,out=$("#inviteOut");
+    if(out){out.hidden=false;out.innerHTML='<div>Code: <b class="invcode">'+code+'</b><button class="invcopy" data-action="hh-copy" data-code="'+code+'">Kopieren</button></div>'+
+      '<p class="invhint">Gib diesen Code an die Person weiter. Sie meldet sich an (oder registriert sich) und trägt ihn unten unter „Einer Einladung beitreten" ein. Gültig 14 Tage, einmalig nutzbar.</p>';}
+  }catch(e){toast("Konnte Einladung nicht erstellen: "+errMsg(e),true);}
+}
+function copyInvite(code){if(!code)return;try{navigator.clipboard.writeText(code).then(function(){toast("Code kopiert ✅");},function(){toast("Code: "+code);});}catch(e){toast("Code: "+code);}}
+async function joinUI(){
+  var inp=$("#hhJoinCode"),code=inp?(inp.value||"").trim():"";
+  if(!code){toast("Bitte den Einladungs-Code eingeben.",true);if(inp)inp.focus();return;}
+  try{
+    var r=await sbPub.rpc("redeem_invite",{p_code:code});
+    if(r.error)throw r.error;
+    await loadHouseholds();
+    await switchHousehold(r.data);
+    renderAccount();
+    toast("Haushalt beigetreten ✅ – ihr teilt euch jetzt die Daten.");
+  }catch(e){var m=errMsg(e);if(/invalid_or_expired/i.test(m))m="Code ungültig oder abgelaufen.";toast(m,true);}
+}
 async function enterApp(session){
   currentUser=session.user;showAuth(false);
+  try{await loadHouseholds();}catch(e){}
   try{await loadFromDB();}catch(e){toast("Daten konnten nicht geladen werden: "+errMsg(e),true);}
-  renderApp();
+  renderTabs();renderApp();renderAccount();
   try{await loadBackups();renderBackups();await maybeAutoBackup();}catch(e){}
-  try{var hm=await sb.from("household_members").select("user_id");var n=(hm&&hm.data&&hm.data.length)?hm.data.length:1;var he=$("#hhnote");if(he)he.textContent=(n>1)?("👨‍👩‍👧 Gemeinsamer Haushalt · "+n+" Mitglieder teilen diese Daten"):"";}catch(e){}
 }
 function handleSession(session){
   if(session&&session.user){
     if(enteredUserId===session.user.id){currentUser=session.user;return;}
     enteredUserId=session.user.id;enterApp(session);
-  }else{enteredUserId=null;currentUser=null;BACKUPS=[];var app=$("#app");if(app)app.innerHTML="";var bl=$("#backupList");if(bl)bl.innerHTML="";showAuth(true);}
+  }else{enteredUserId=null;currentUser=null;BACKUPS=[];HOUSEHOLDS=[];activeHousehold=null;var app=$("#app");if(app)app.innerHTML="";var bl=$("#backupList");if(bl)bl.innerHTML="";var ab=$("#accountBody");if(ab)ab.innerHTML="";showAuth(true);}
 }
 function renderEnvSwitch(){
   var el=$("#envswitch"),note=$("#envnote");
@@ -1283,7 +1658,7 @@ function init(){
   var savedDesign="classic";try{savedDesign=localStorage.getItem("verbrauchsTrackerDesign")||"classic";}catch(e){}
   applyDesign(savedDesign);
   document.querySelectorAll(".dt-btn").forEach(function(b){b.addEventListener("click",function(){applyDesign(b.dataset.design);});});
-  document.querySelectorAll(".tab").forEach(function(b){b.addEventListener("click",function(){activeCat=b.dataset.cat;tarifeOpen=false;expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});});});
+  $("#tabs").addEventListener("click",function(e){var b=e.target.closest(".tab");if(!b)return;activeCat=b.dataset.cat;tarifeOpen=false;expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});});
   $("#app").addEventListener("click",onAppClick);
   $("#exportBtn").addEventListener("click",exportData);
   $("#importBtn").addEventListener("click",function(){$("#importFile").click();});
@@ -1293,6 +1668,11 @@ function init(){
   $("#csvFile").addEventListener("change",onCSVImport);
   $("#autoBackupBtn").addEventListener("click",manualBackup);
   $("#backupList").addEventListener("click",function(e){var b=e.target.closest("[data-action='restore-backup']");if(b)restoreBackup(b.dataset.id);});
+  $("#accountBody").addEventListener("click",function(e){var b=e.target.closest("[data-action]");if(!b)return;var a=b.dataset.action;if(a==="hh-switch")switchHousehold(b.dataset.id);else if(a==="hh-create")createHouseholdUI();else if(a==="hh-rename")renameHouseholdUI();else if(a==="hh-invite")inviteUI();else if(a==="hh-join")joinUI();else if(a==="hh-copy")copyInvite(b.dataset.code);else if(a==="cat-toggle")toggleCat(b.dataset.cat);});
+  $("#accountBody").addEventListener("change",function(e){var t=e.target;if(!t||!t.id)return;if(t.id.indexOf("meter_")===0&&t.dataset.cat){saveMeter(t.dataset.cat,t.value);}else if(t.id.indexOf("new_en_")===0){var c=t.id.slice(7),mi=$("#new_meter_"+c);if(mi)mi.style.display=t.checked?"":"none";}});
+  $("#accountBody").addEventListener("keydown",function(e){if(!e.target)return;if(e.key==="Enter"&&e.target.id==="hhNewName"){e.preventDefault();createHouseholdUI();}else if(e.key==="Enter"&&e.target.id==="hhJoinCode"){e.preventDefault();joinUI();}});
+  $("#accountBtn").addEventListener("click",toggleSettings);
+  $("#settingsBack").addEventListener("click",closeSettings);
   $("#auth_login").addEventListener("click",doLogin);
   $("#auth_signup").addEventListener("click",doSignup);
   $("#auth_pass").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
