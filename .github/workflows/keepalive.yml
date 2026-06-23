@@ -1,0 +1,36 @@
+name: Supabase Keep-Alive
+
+# Haelt das kostenlose Supabase-Projekt "wach": Free-Tier-Projekte werden
+# nach 7 Tagen ohne Aktivitaet automatisch pausiert. Dieser Job schickt
+# alle 3 Tage einen winzigen Aufruf an die Datenbank -> das zaehlt als
+# Aktivitaet, also pausiert das Projekt nicht mehr.
+#
+# Genutzt wird nur der oeffentliche "publishable key" (steht ohnehin in
+# index.html, durch RLS geschuetzt) -> kein Secret noetig.
+
+on:
+  schedule:
+    - cron: '23 5 */3 * *'   # alle 3 Tage, 05:23 UTC
+  workflow_dispatch: {}        # zusaetzlich manuell startbar (Actions-Tab)
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Datenbank anpingen
+        env:
+          SUPABASE_URL: https://xiwibfscbfrglgfjadza.supabase.co
+          SUPABASE_KEY: sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm
+        run: |
+          set -e
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+            "$SUPABASE_URL/rest/v1/households?select=id&limit=1" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY")
+          echo "Supabase REST antwortete mit HTTP $code"
+          if [ "$code" -ge 200 ] && [ "$code" -lt 500 ]; then
+            echo "OK - Projekt ist erreichbar und bleibt aktiv."
+          else
+            echo "Unerwarteter Status ($code) - bitte pruefen."
+            exit 1
+          fi
