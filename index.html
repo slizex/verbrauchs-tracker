@@ -353,6 +353,16 @@ body.app-hidden .shell,body.app-hidden .bottomnav{display:none}
 #settingsView{display:none}
 body.settings-open #settingsView{display:block}
 body.settings-open #app{display:none}
+#docsView{max-width:760px;margin:0 auto;width:100%;display:none}
+body.docs-open #docsView{display:block}
+body.docs-open #app,body.docs-open #settingsView{display:none}
+body.settings-open #docsView{display:none}
+.docgroup{margin:18px 0}
+.docgroup h3{margin:0 0 8px;font-size:1.02rem}
+.docrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;margin:8px 0}
+.docrow .dmeta{flex:1;min-width:0}
+.docrow .dname{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.docrow .dsub{font-size:.82rem;color:var(--muted);margin-top:2px}
 .designtoggle,.dt-btn{display:none}
 
 /* responsive */
@@ -416,6 +426,7 @@ body.settings-open #app{display:none}
     <div class="topbar2">
       <div class="pagetitle" id="pageTitle">Strom</div>
       <div class="topactions">
+        <button class="iconchip" id="docsBtn" title="Dokumente" aria-label="Dokumente" hidden>📁</button>
         <button class="iconchip" id="v2theme" title="Hell/Dunkel umschalten" aria-label="Hell oder Dunkel umschalten">🌙</button>
       </div>
     </div>
@@ -486,6 +497,12 @@ body.settings-open #app{display:none}
     </details>
 
     <button id="logoutBtn" class="logoutbtn-wide" type="button">↩︎ Abmelden</button>
+  </div>
+  <div class="wrap" id="docsView">
+    <button class="backbtn" id="docsBack" type="button">← Zurück zur App</button>
+    <h2 class="settitle">📁 Dokumente</h2>
+    <p class="muted" style="margin:-6px 0 14px">Alle hochgeladenen Vertrags-, Tarif- und Beleg-Dokumente – getrennt nach Strom, Wasser und Gas. „✅ Gültig" = gehört zum aktuell laufenden Tarif.</p>
+    <div id="docsBody"></div>
   </div>
 </main>
   </div>
@@ -1303,9 +1320,119 @@ async function onTarifSubmit(e){
     var r=await sb.from("tariffs").insert(tariffToCols(cat,obj)).select().single();
     if(r.error)throw r.error;
     STATE[cat].tariffs.push(rowToTariff(r.data));
+    if(lastAiDoc&&lastAiDoc.cat===cat){var _did=lastAiDoc.id;lastAiDoc=null;sb.from("documents").update({tariff_id:r.data.id}).eq("id",_did).then(function(){},function(){});}
     tarifeOpen=true;renderTarife();renderVerlauf();updateResult();
     toast(hadCurrent?"Tarif gespeichert. Vorheriger Tarif archiviert ✅":"Tarif gespeichert ✅");
   }catch(err){toast("Speichern fehlgeschlagen: "+errMsg(err),true);}
+}
+var lastAiDoc=null,documentsCache=[];
+async function uploadDocFile(cat,file){
+  var ts=Date.now(),safe=(file.name||"datei").replace(/[^A-Za-z0-9._-]+/g,"_");
+  var path=activeHousehold+"/"+cat+"/"+ts+"_"+safe;
+  var up=await sb.storage.from("documents").upload(path,file,{contentType:file.type||"application/octet-stream",upsert:false});
+  if(up.error)throw up.error;
+  return path;
+}
+async function addDocRecord(cat,file,path,kind,extracted,tariffId){
+  var rec={household_id:activeHousehold,category:cat,kind:kind,filename:file.name||"Dokument",storage_path:path,mime_type:file.type||null,size_bytes:file.size||null,extracted:extracted||null,tariff_id:tariffId||null};
+  var r=await sb.from("documents").insert(rec).select().single();
+  if(r.error)throw r.error;
+  return r.data;
+}
+async function loadDocs(){
+  if(!activeHousehold){documentsCache=[];return;}
+  var r=await sb.from("documents").select("*").eq("household_id",activeHousehold).order("created_at",{ascending:false});
+  documentsCache=(r&&!r.error&&r.data)?r.data:[];
+  if(r&&r.error)console.warn("Dokumente laden:",r.error);
+}
+async function openDocs(){
+  if(!currentUser)return;
+  document.body.classList.remove("settings-open");
+  document.body.classList.add("docs-open");
+  updatePageTitle();
+  var b=$("#docsBody");if(b)b.innerHTML='<p class="muted">Lädt …</p>';
+  window.scrollTo({top:0,behavior:"smooth"});
+  await loadDocs();renderDocs();
+}
+function closeDocs(){document.body.classList.remove("docs-open");updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
+function toggleDocs(){if(document.body.classList.contains("docs-open"))closeDocs();else openDocs();}
+function renderDocs(){
+  var body=$("#docsBody");if(!body)return;
+  body.innerHTML=householdCats().map(function(cat){return docGroupHtml(cat);}).join("");
+}
+function docGroupHtml(cat){
+  var c=CATS[cat];
+  var docs=documentsCache.filter(function(d){return d.category===cat;});
+  var rows=docs.length?docs.map(function(d){return docRowHtml(d);}).join(""):'<div class="muted" style="padding:4px 2px">Noch keine Dokumente.</div>';
+  return '<div class="docgroup">'+
+    '<h3>'+c.icon+' '+c.label+'</h3>'+
+    '<button type="button" class="btn" data-action="doc-upload" data-cat="'+cat+'" style="width:100%;margin-bottom:8px">⬆️ Dokument hochladen</button>'+
+    '<input type="file" id="docUp_'+cat+'" accept="application/pdf,image/*" hidden>'+
+    rows+
+  '</div>';
+}
+function docStatus(d){
+  if(d.kind==="beleg")return {t:"📄 Beleg",col:"#64748b"};
+  if(!d.tariff_id)return {t:"⚠️ kein Tarif gespeichert",col:"#b45309"};
+  var t=(STATE[d.category]&&STATE[d.category].tariffs)?STATE[d.category].tariffs.find(function(x){return x.id===d.tariff_id;}):null;
+  if(!t)return {t:"⏳ Tarif gelöscht",col:"#64748b"};
+  var cur=tariffForDate(d.category,todayISO());
+  if(cur&&cur.id===d.tariff_id)return {t:"✅ Gültig",col:"#15803d"};
+  return {t:"⏳ Ersetzt",col:"#b45309"};
+}
+function docRowHtml(d){
+  var s=docStatus(d);
+  var dt=(d.created_at||"").slice(0,10).split("-").reverse().join(".");
+  var size=d.size_bytes?Math.round(d.size_bytes/1024)+" KB":"";
+  var icon=d.mime_type==="application/pdf"?"📕":"🖼️";
+  return '<div class="docrow">'+
+    '<span style="font-size:1.3rem">'+icon+'</span>'+
+    '<div class="dmeta"><div class="dname">'+escapeHtml(d.filename||"Dokument")+'</div>'+
+    '<div class="dsub">'+dt+(size?" · "+size:"")+' · <span style="color:'+s.col+'">'+s.t+'</span></div></div>'+
+    '<button class="linkbtn" data-action="doc-view" data-id="'+d.id+'">Ansehen</button>'+
+    '<button class="linkbtn" data-action="doc-del" data-id="'+d.id+'">🗑️</button>'+
+  '</div>';
+}
+function onDocsClick(e){
+  var btn=e.target.closest("[data-action]");if(!btn)return;
+  var act=btn.dataset.action;
+  if(act==="doc-upload"){var inp=$("#docUp_"+btn.dataset.cat);if(inp)inp.click();}
+  else if(act==="doc-view")docView(btn.dataset.id);
+  else if(act==="doc-del")docDelete(btn.dataset.id);
+}
+function onDocsChange(e){
+  var inp=e.target;if(!inp||!inp.id||inp.id.indexOf("docUp_")!==0)return;
+  var cat=inp.id.slice(6),f=inp.files&&inp.files[0];inp.value="";
+  if(f)uploadStandaloneDoc(cat,f);
+}
+async function uploadStandaloneDoc(cat,file){
+  if(file.size>20*1024*1024){toast("Datei ist zu groß (max. 20 MB).",true);return;}
+  toast("Wird hochgeladen …");
+  try{
+    var path=await uploadDocFile(cat,file);
+    await addDocRecord(cat,file,path,"beleg",null,null);
+    await loadDocs();renderDocs();
+    toast("Dokument gespeichert ✅");
+  }catch(err){toast("Upload fehlgeschlagen: "+errMsg(err),true);}
+}
+async function docView(id){
+  var d=documentsCache.find(function(x){return x.id===id;});if(!d)return;
+  try{
+    var r=await sb.storage.from("documents").createSignedUrl(d.storage_path,120);
+    if(r.error)throw r.error;
+    window.open(r.data.signedUrl,"_blank","noopener");
+  }catch(err){toast("Konnte Dokument nicht öffnen: "+errMsg(err),true);}
+}
+async function docDelete(id){
+  var d=documentsCache.find(function(x){return x.id===id;});if(!d)return;
+  if(!confirm('Dokument „'+(d.filename||"")+'" wirklich löschen?'))return;
+  try{
+    await sb.storage.from("documents").remove([d.storage_path]);
+    var del=await sb.from("documents").delete().eq("id",id);
+    if(del.error)throw del.error;
+    documentsCache=documentsCache.filter(function(x){return x.id!==id;});
+    renderDocs();toast("Dokument gelöscht.");
+  }catch(err){toast("Löschen fehlgeschlagen: "+errMsg(err),true);}
 }
 function fileToBase64(file){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){var s=String(r.result||"");var i=s.indexOf(",");res(i>=0?s.slice(i+1):s);};r.onerror=function(){rej(new Error("Datei konnte nicht gelesen werden."));};r.readAsDataURL(file);});}
 async function onAiTarifFile(e){
@@ -1316,6 +1443,8 @@ async function onAiTarifFile(e){
   var btn=$(".aiimportbtn"),oldTxt=btn?btn.textContent:"";
   if(btn){btn.disabled=true;btn.textContent="📄 Wird analysiert …";}
   toast("Dokument wird analysiert – einen Moment bitte …");
+  lastAiDoc=null;
+  try{var ap=await uploadDocFile(cat,file);var adoc=await addDocRecord(cat,file,ap,"tarif",null,null);lastAiDoc={id:adoc.id,cat:cat};}catch(arErr){console.warn("Archivierung fehlgeschlagen",arErr);}
   try{
     var b64=await fileToBase64(file);
     var resp=await sb.functions.invoke("tarif-extract",{body:{fileBase64:b64,mimeType:file.type||"application/pdf",category:cat}});
@@ -1323,6 +1452,7 @@ async function onAiTarifFile(e){
     var data=resp.data||{};
     if(data.error)throw new Error(data.error);
     fillTarifForm(cat,data.tarif||{});
+    if(lastAiDoc&&data.tarif){try{await sb.from("documents").update({extracted:data.tarif}).eq("id",lastAiDoc.id);}catch(_e){}}
     toast("KI hat das Formular ausgefüllt – bitte prüfen und speichern ✅");
   }catch(err){
     toast("Analyse fehlgeschlagen: "+errMsg(err),true);
@@ -1553,7 +1683,7 @@ function applyV2Theme(dark){
   try{localStorage.setItem("vtV2Theme",dark?"dark":"light");}catch(e){}
 }
 /* ---------- Auth ---------- */
-function showAuth(show){document.body.classList.toggle("app-hidden",show);if(show)document.body.classList.remove("settings-open");var a=$("#authscreen");if(a)a.hidden=!show;var ab=$("#accountBtn");if(ab)ab.hidden=show;}
+function showAuth(show){document.body.classList.toggle("app-hidden",show);if(show){document.body.classList.remove("settings-open");document.body.classList.remove("docs-open");}var a=$("#authscreen");if(a)a.hidden=!show;var ab=$("#accountBtn");if(ab)ab.hidden=show;var db=$("#docsBtn");if(db)db.hidden=show;}
 function openSettings(){if(!currentUser)return;renderAccount();document.body.classList.add("settings-open");updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
 function closeSettings(){document.body.classList.remove("settings-open");updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
 function toggleSettings(){if(document.body.classList.contains("settings-open"))closeSettings();else openSettings();}
@@ -1644,7 +1774,8 @@ function renderTabs(){
 }
 function updatePageTitle(){
   var el=$("#pageTitle");if(!el)return;
-  if(document.body.classList.contains("settings-open"))el.textContent="Konto & Einstellungen";
+  if(document.body.classList.contains("docs-open"))el.textContent="Dokumente";
+  else if(document.body.classList.contains("settings-open"))el.textContent="Konto & Einstellungen";
   else if(activeCat==="overview")el.textContent="Übersicht";
   else el.textContent=(CATS[activeCat]?CATS[activeCat].label:"");
 }
@@ -1837,7 +1968,7 @@ function init(){
   if(!savedTheme)savedTheme=(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";
   applyV2Theme(savedTheme==="dark");
   var tgl=$("#v2theme");if(tgl)tgl.addEventListener("click",function(){applyV2Theme(!document.body.classList.contains("v2dark"));});
-  function onNavClick(e){var b=e.target.closest(".tab");if(!b)return;if(b.dataset.cat){activeCat=b.dataset.cat;tarifeOpen=false;expandedGroups={};if(document.body.classList.contains("settings-open"))closeSettings();renderApp();window.scrollTo({top:0,behavior:"smooth"});}else if(b.id==="accountBtnM"){toggleSettings();}}
+  function onNavClick(e){var b=e.target.closest(".tab");if(!b)return;if(b.dataset.cat){activeCat=b.dataset.cat;tarifeOpen=false;expandedGroups={};if(document.body.classList.contains("settings-open"))closeSettings();if(document.body.classList.contains("docs-open"))closeDocs();renderApp();window.scrollTo({top:0,behavior:"smooth"});}else if(b.id==="accountBtnM"){toggleSettings();}}
   var navS=$("#tabs");if(navS)navS.addEventListener("click",onNavClick);
   var navM=$("#tabsMobile");if(navM)navM.addEventListener("click",onNavClick);
   $("#app").addEventListener("click",onAppClick);
@@ -1854,6 +1985,9 @@ function init(){
   $("#accountBody").addEventListener("keydown",function(e){if(!e.target)return;if(e.key==="Enter"&&e.target.id==="hhNewName"){e.preventDefault();createHouseholdUI();}else if(e.key==="Enter"&&e.target.id==="hhJoinCode"){e.preventDefault();joinUI();}});
   $("#accountBtn").addEventListener("click",toggleSettings);
   $("#settingsBack").addEventListener("click",closeSettings);
+  var docsBtnEl=$("#docsBtn");if(docsBtnEl)docsBtnEl.addEventListener("click",toggleDocs);
+  var docsBackEl=$("#docsBack");if(docsBackEl)docsBackEl.addEventListener("click",closeDocs);
+  var docsViewEl=$("#docsView");if(docsViewEl){docsViewEl.addEventListener("click",onDocsClick);docsViewEl.addEventListener("change",onDocsChange);}
   $("#auth_login").addEventListener("click",doLogin);
   $("#auth_signup").addEventListener("click",doSignup);
   $("#auth_pass").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
