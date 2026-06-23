@@ -1176,6 +1176,12 @@ function renderTarife(){
       '</form>'+
       abschlagListHtml()+
       '<h3>Neuen Tarif eintragen</h3>'+
+      '<div class="aiimport">'+
+        '<button type="button" class="btn aiimportbtn" data-action="ai-tarif" style="width:100%">📄 Tarif aus Dokument einlesen (KI)</button>'+
+        '<input type="file" id="aiTarifFile" accept="application/pdf,image/*" hidden>'+
+        '<p class="hint">Lade dein Vertrags-/Tarifdokument (PDF oder Foto) hoch – die KI liest die Konditionen aus und füllt das Formular. Prüfe die Werte und speichere dann selbst.</p>'+
+      '</div>'+
+      '<div id="aiTarifNote" class="notice" style="display:none;margin-top:8px"></div>'+
       '<form id="tarifForm" class="tarifform">'+formFields+
         '<label>Gültig ab<input type="date" id="tf_gueltig" value="'+todayISO()+'"></label>'+
         '<div class="optsep">Optionale Vertragsdetails</div>'+
@@ -1188,6 +1194,7 @@ function renderTarife(){
       '<h3>Archivierte Tarife</h3>'+archHtml+
     '</div>';
   var form=$("#tarifForm");if(form)form.addEventListener("submit",onTarifSubmit);
+  var aif=$("#aiTarifFile");if(aif)aif.addEventListener("change",onAiTarifFile);
   var abf=$("#abForm");if(abf)abf.addEventListener("submit",onAbSubmit);
   var cvf=$("#convForm");if(cvf)cvf.addEventListener("submit",onConvSubmit);
 }
@@ -1220,6 +1227,7 @@ function onAppClick(e){
   else if(act==="del-tariff")delTariff(id);
   else if(act==="del-abschlag")delAbschlag(id);
   else if(act==="open-abschlag")openAbschlag();
+  else if(act==="ai-tarif"){var aif=$("#aiTarifFile");if(aif)aif.click();}
   else if(act==="goto-cat"){activeCat=btn.dataset.cat;tarifeOpen=false;expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});}
   else if(act==="ovmetric"){ovMetric=btn.dataset.val;refreshOvChart();}
   else if(act==="ovscope"){ovScope=btn.dataset.val;refreshOvChart();}
@@ -1298,6 +1306,49 @@ async function onTarifSubmit(e){
     tarifeOpen=true;renderTarife();renderVerlauf();updateResult();
     toast(hadCurrent?"Tarif gespeichert. Vorheriger Tarif archiviert ✅":"Tarif gespeichert ✅");
   }catch(err){toast("Speichern fehlgeschlagen: "+errMsg(err),true);}
+}
+function fileToBase64(file){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){var s=String(r.result||"");var i=s.indexOf(",");res(i>=0?s.slice(i+1):s);};r.onerror=function(){rej(new Error("Datei konnte nicht gelesen werden."));};r.readAsDataURL(file);});}
+async function onAiTarifFile(e){
+  var file=e.target.files&&e.target.files[0];if(!file)return;
+  e.target.value="";
+  var cat=activeCat;
+  if(file.size>14*1024*1024){toast("Datei ist zu groß (max. ca. 14 MB).",true);return;}
+  var btn=$(".aiimportbtn"),oldTxt=btn?btn.textContent:"";
+  if(btn){btn.disabled=true;btn.textContent="📄 Wird analysiert …";}
+  toast("Dokument wird analysiert – einen Moment bitte …");
+  try{
+    var b64=await fileToBase64(file);
+    var resp=await sb.functions.invoke("tarif-extract",{body:{fileBase64:b64,mimeType:file.type||"application/pdf",category:cat}});
+    if(resp.error)throw resp.error;
+    var data=resp.data||{};
+    if(data.error)throw new Error(data.error);
+    fillTarifForm(cat,data.tarif||{});
+    toast("KI hat das Formular ausgefüllt – bitte prüfen und speichern ✅");
+  }catch(err){
+    toast("Analyse fehlgeschlagen: "+errMsg(err),true);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=oldTxt||"📄 Tarif aus Dokument einlesen (KI)";}
+  }
+}
+function fillTarifForm(cat,t){
+  var c=CATS[cat];
+  function setVal(id,v){var el=$(id);if(el&&v!=null&&v!=="")el.value=v;}
+  function numStr(v){return (v==null||v==="")?"":String(v).replace(".",",");}
+  c.tariffFields.forEach(function(f){var v=t[f.key];if(v==null||v==="")return;setVal("#tf_"+f.key,f.num?numStr(v):String(v));});
+  if(t.gueltigAb)setVal("#tf_gueltig",String(t.gueltigAb));
+  var lz=$("#tf_laufzeit");if(lz&&t.laufzeit!=null){var lv=String(t.laufzeit);lz.value=(["","flex","12","24"].indexOf(lv)>=0?lv:"");}
+  if(t.vertragsstart)setVal("#tf_vertragsstart",String(t.vertragsstart));
+  if(t.kundennummer)setVal("#tf_kundennummer",String(t.kundennummer));
+  var n=$("#aiTarifNote");
+  if(n){
+    n.style.display="";n.textContent="";
+    var head=document.createElement("div");head.innerHTML='🤖 <b>Von der KI vorausgefüllt.</b> Bitte alle Werte prüfen, dann „Tarif speichern".';n.appendChild(head);
+    var hint=(t.hinweise||"").trim();
+    if(hint){var s=document.createElement("div");s.className="muted";s.style.marginTop="4px";s.textContent="Hinweis der KI: "+hint;n.appendChild(s);}
+    var kk=(t.kategorie||"").toLowerCase();
+    if(kk&&["strom","gas","wasser"].indexOf(kk)>=0&&kk!==cat){var w=document.createElement("div");w.style.marginTop="4px";w.style.color="#b3261e";w.textContent="⚠️ Das Dokument sieht eher nach „"+kk+"\" aus, du bist aber im Bereich „"+cat+"\".";n.appendChild(w);}
+  }
+  var form=$("#tarifForm");if(form)form.scrollIntoView({behavior:"smooth",block:"center"});
 }
 async function delTariff(id){
   var cat=activeCat;var t=STATE[cat].tariffs.find(function(x){return x.id===id;});if(!t)return;
