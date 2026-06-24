@@ -1192,6 +1192,13 @@ function renderTarife(){
         '<p class="hint">Für den <b>aktuellen Tarif</b>: ändert nur den monatlichen Abschlag ab diesem Datum – Anbieter und Preise bleiben gleich. Alle <b>früheren Monate behalten ihren bisherigen Abschlag</b>.</p>'+
       '</form>'+
       abschlagListHtml()+
+      '<h3>📋 Jahresabrechnung prüfen (KI)</h3>'+
+      '<div class="aiimport">'+
+        '<button type="button" class="btn" data-action="ai-abr" style="width:100%">📋 Jahresabrechnung hochladen &amp; prüfen</button>'+
+        '<input type="file" id="abrFile" accept="application/pdf,image/*" hidden>'+
+        '<p class="hint">Lade deine Jahres-/Schlussabrechnung hoch – die KI liest sie aus und vergleicht Verbrauch, Kosten, Abschläge und Ergebnis mit deinen erfassten Werten. Das Dokument wird zugleich im Archiv gespeichert.</p>'+
+      '</div>'+
+      '<div id="abrResult" class="notice" style="display:none;margin-top:8px"></div>'+
       '<h3>Neuen Tarif eintragen</h3>'+
       '<div class="aiimport">'+
         '<button type="button" class="btn aiimportbtn" data-action="ai-tarif" style="width:100%">📄 Tarif aus Dokument einlesen (KI)</button>'+
@@ -1212,6 +1219,7 @@ function renderTarife(){
     '</div>';
   var form=$("#tarifForm");if(form)form.addEventListener("submit",onTarifSubmit);
   var aif=$("#aiTarifFile");if(aif)aif.addEventListener("change",onAiTarifFile);
+  var abrf=$("#abrFile");if(abrf)abrf.addEventListener("change",onAbrFile);
   var abf=$("#abForm");if(abf)abf.addEventListener("submit",onAbSubmit);
   var cvf=$("#convForm");if(cvf)cvf.addEventListener("submit",onConvSubmit);
 }
@@ -1245,6 +1253,8 @@ function onAppClick(e){
   else if(act==="del-abschlag")delAbschlag(id);
   else if(act==="open-abschlag")openAbschlag();
   else if(act==="ai-tarif"){var aif=$("#aiTarifFile");if(aif)aif.click();}
+  else if(act==="ai-abr"){var elAbr=$("#abrFile");if(elAbr)elAbr.click();}
+  else if(act==="abr-setab"){var elAb=$("#ab_betrag");if(elAb){elAb.value=String(btn.dataset.val).replace(".",",");var elHead=$("#abschlagHead");if(elHead)elHead.scrollIntoView({behavior:"smooth",block:"start"});try{elAb.focus({preventScroll:true});}catch(e){elAb.focus();}}}
   else if(act==="goto-cat"){activeCat=btn.dataset.cat;tarifeOpen=false;expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});}
   else if(act==="ovmetric"){ovMetric=btn.dataset.val;refreshOvChart();}
   else if(act==="ovscope"){ovScope=btn.dataset.val;refreshOvChart();}
@@ -1373,6 +1383,7 @@ function docGroupHtml(cat){
 }
 function docStatus(d){
   if(d.kind==="beleg")return {t:"📄 Beleg",col:"#64748b"};
+  if(d.kind==="abrechnung")return {t:"📋 Abrechnung",col:"#4f46e5"};
   if(!d.tariff_id)return {t:"⚠️ kein Tarif gespeichert",col:"#b45309"};
   var t=(STATE[d.category]&&STATE[d.category].tariffs)?STATE[d.category].tariffs.find(function(x){return x.id===d.tariff_id;}):null;
   if(!t)return {t:"⏳ Tarif gelöscht",col:"#64748b"};
@@ -1479,6 +1490,93 @@ function fillTarifForm(cat,t){
     if(kk&&["strom","gas","wasser"].indexOf(kk)>=0&&kk!==cat){var w=document.createElement("div");w.style.marginTop="4px";w.style.color="#b3261e";w.textContent="⚠️ Das Dokument sieht eher nach „"+kk+"\" aus, du bist aber im Bereich „"+cat+"\".";n.appendChild(w);}
   }
   var form=$("#tarifForm");if(form)form.scrollIntoView({behavior:"smooth",block:"center"});
+}
+async function onAbrFile(e){
+  var file=e.target.files&&e.target.files[0];if(!file)return;
+  e.target.value="";
+  var cat=activeCat;
+  if(file.size>14*1024*1024){toast("Datei ist zu groß (max. ca. 14 MB).",true);return;}
+  var box=$("#abrResult");if(box){box.style.display="";box.textContent="⏳ Abrechnung wird analysiert …";}
+  var btn=document.querySelector('[data-action="ai-abr"]'),oldTxt=btn?btn.textContent:"";
+  if(btn){btn.disabled=true;btn.textContent="📋 Wird geprüft …";}
+  toast("Abrechnung wird geprüft – einen Moment …");
+  try{
+    try{var ap=await uploadDocFile(cat,file);await addDocRecord(cat,file,ap,"abrechnung",null,null);}catch(arErr){console.warn("Archivierung fehlgeschlagen",arErr);}
+    var b64=await fileToBase64(file);
+    var resp=await sb.functions.invoke("tarif-extract",{body:{fileBase64:b64,mimeType:file.type||"application/pdf",category:cat,mode:"abrechnung"}});
+    if(resp.error)throw resp.error;
+    var data=resp.data||{};
+    if(data.error)throw new Error(data.error);
+    showAbrResult(cat,data.abrechnung||{});
+    toast("Abrechnung geprüft ✅ – im Archiv gespeichert.");
+  }catch(err){
+    if(box){box.style.display="";box.textContent="Prüfung fehlgeschlagen: "+errMsg(err);}
+    toast("Prüfung fehlgeschlagen: "+errMsg(err),true);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=oldTxt||"📋 Jahresabrechnung hochladen & prüfen";}
+  }
+}
+function abrNum(v){return (v==null||v===""||!isFinite(Number(v)))?null:Number(v);}
+function periodAppSums(cat,von,bis){
+  var rows=history(cat)||[],v=0,k=0,ab=0,d=0,n=0;
+  rows.forEach(function(r){
+    var dt=r.reading&&r.reading.datum;if(!dt)return;
+    if(von&&dt<=von)return;
+    if(bis&&dt>bis)return;
+    if(isFinite(r.verbrauch))v+=r.verbrauch;
+    if(isFinite(r.gesamtkosten))k+=r.gesamtkosten;
+    if(isFinite(r.abschlag))ab+=r.abschlag;
+    if(isFinite(r.differenz))d+=r.differenz;
+    n++;
+  });
+  return {verbrauch:v,kosten:k,abschlaege:ab,ergebnis:d,months:n};
+}
+function showAbrResult(cat,a){
+  var box=$("#abrResult");if(!box)return;
+  box.style.display="";box.innerHTML="";
+  function dDe(iso){return iso?String(iso).slice(0,10).split("-").reverse().join("."):"?";}
+  var von=a.zeitraumVon||null,bis=a.zeitraumBis||null;
+  var billErg=abrNum(a.ergebnisBetrag);
+  if(billErg!=null)billErg=(a.ergebnisArt==="nachzahlung")?-Math.abs(billErg):Math.abs(billErg);
+  var unit=CATS[cat].billUnit||CATS[cat].unit;
+  var head=document.createElement("div");
+  head.innerHTML='📋 <b>Jahresabrechnung geprüft</b> · '+escapeHtml(a.anbieter||CATS[cat].label)+
+    '<br><span class="muted">Zeitraum: '+dDe(von)+' – '+dDe(bis)+(a.rechnungsnummer?' · Nr. '+escapeHtml(String(a.rechnungsnummer)):'')+'</span>';
+  box.appendChild(head);
+  var app=periodAppSums(cat,von,bis);
+  function fmtV(val,kind){if(val==null)return "—";return kind==="verb"?fmtVerb(cat,val)+" "+unit:eur(val);}
+  function cmp(label,billV,appV,kind){
+    var badge='<span class="muted">—</span>',warn=0;
+    if(billV!=null&&appV!=null){
+      var diff=billV-appV,adf=Math.abs(diff),base=Math.max(Math.abs(billV),Math.abs(appV),1);
+      var tol=kind==="verb"?Math.max(base*0.02,5):Math.max(base*0.03,3);
+      if(adf<=tol)badge='<span style="color:#15803d">✅ stimmt</span>';
+      else{badge='<span style="color:#b45309">⚠️ Δ '+(kind==="verb"?fmtVerb(cat,diff)+" "+unit:eur(diff))+'</span>';warn=1;}
+    }
+    return {warn:warn,html:'<div style="display:flex;flex-wrap:wrap;gap:2px 12px;border-top:1px solid var(--border);padding:7px 0;font-size:.9rem">'+
+      '<span style="flex-basis:100%;font-weight:600">'+label+'</span>'+
+      '<span>Beleg: <b>'+fmtV(billV,kind)+'</b></span>'+
+      '<span style="color:var(--muted)">App: '+fmtV(appV,kind)+'</span>'+
+      '<span style="margin-left:auto">'+badge+'</span></div>'};
+  }
+  var rows=[
+    cmp("Verbrauch",abrNum(a.verbrauch),(app.months?app.verbrauch:null),"verb"),
+    cmp("Gesamtkosten",abrNum(a.gesamtkosten),(app.months?app.kosten:null),"eur"),
+    cmp("Gezahlte Abschläge",abrNum(a.summeAbschlaege),(app.months?app.abschlaege:null),"eur"),
+    cmp("Ergebnis (Guthaben +/Nachzahlung −)",billErg,(app.months?app.ergebnis:null),"eur")
+  ];
+  var warns=rows.reduce(function(s,r){return s+r.warn;},0);
+  var verdict=document.createElement("div");verdict.style.margin="8px 0 2px";
+  if(app.months===0)verdict.innerHTML='<span class="muted">Für diesen Zeitraum hast du keine erfassten Monatswerte – es werden nur die Belegdaten gezeigt.</span>';
+  else if(warns===0)verdict.innerHTML='<b style="color:#15803d">✅ Alles stimmt mit deinen erfassten Daten überein</b> ('+app.months+' Monate).';
+  else verdict.innerHTML='<b style="color:#b45309">⚠️ '+warns+' Abweichung(en)</b> zu deinen erfassten Daten ('+app.months+' Monate) – siehe unten.';
+  box.appendChild(verdict);
+  var tbl=document.createElement("div");tbl.innerHTML=rows.map(function(r){return r.html;}).join("");box.appendChild(tbl);
+  var note=document.createElement("div");note.className="muted";note.style.cssText="font-size:.8rem;margin-top:6px";note.textContent="Vergleich näherungsweise: App-Werte = Summe deiner Monatswerte mit Ablesedatum im Zeitraum. Kleine Differenzen sind normal (Rundung, Ablese-Termine).";box.appendChild(note);
+  var hint=(a.hinweise||"").trim();
+  if(hint){var hd=document.createElement("div");hd.className="muted";hd.style.marginTop="6px";hd.textContent="Hinweis der KI: "+hint;box.appendChild(hd);}
+  var na=abrNum(a.neuerAbschlag);
+  if(na!=null){var nb=document.createElement("div");nb.style.marginTop="8px";nb.innerHTML='Neuer Abschlag laut Beleg: <b>'+eur(na)+'</b>/Monat. <button class="linkbtn" data-action="abr-setab" data-val="'+na+'">→ Im Abschlag-Feld übernehmen</button>';box.appendChild(nb);}
 }
 async function delTariff(id){
   var cat=activeCat;var t=STATE[cat].tariffs.find(function(x){return x.id===id;});if(!t)return;
