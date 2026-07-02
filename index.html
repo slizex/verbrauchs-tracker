@@ -579,14 +579,15 @@ var activeCat="strom";
 var tarifeOpen=false;
 var expandedGroups={};
 var ovMetric="kosten",ovScope="strom";
+var editingId=null; /* Ablesung, die gerade über das Stift-Symbol bearbeitet wird */
 
 /* ---------- Helpers ---------- */
 function $(s,r){return (r||document).querySelector(s);}
-function uid(){return "id"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function todayISO(){var t=new Date();return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");}
 function deDate(iso){if(!iso)return"";var p=iso.split("-");return p[2]+"."+p[1]+"."+p[0];}
 function monthLabel(iso){var n=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];var p=iso.split("-");return n[Number(p[1])-1]+" "+p[0];}
 function addDays(iso,d){var p=iso.split("-").map(Number);var dt=new Date(p[0],p[1]-1,p[2]);dt.setDate(dt.getDate()+d);return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
+function addMonthsISO(iso,m){var p=iso.split("-").map(Number);var dt=new Date(p[0],p[1]-1+m,p[2]);return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
 /* Abrechnungsmonat: Ablesung am Monatsanfang zählt für den Vormonat (Ablesedatum minus 1 Tag) */
 function billISO(iso){return addDays(iso,-1);}
 function billKey(iso){return billISO(iso).slice(0,7);}
@@ -602,6 +603,8 @@ function fmtVerb(cat,n){return new Intl.NumberFormat("de-DE",{minimumFractionDig
 function fmtMwh(n){return new Intl.NumberFormat("de-DE",{minimumFractionDigits:3,maximumFractionDigits:4}).format(n);}
 function numOr(v,d){var n=Number(v);return isFinite(n)?n:d;}
 function parseNum(v){if(v==null)return NaN;var s=String(v).trim();if(!s)return NaN;s=s.replace(/[^0-9.,-]/g,"");if(s.indexOf(",")>=0){s=s.replace(/\./g,"").replace(",",".");}return parseFloat(s);}
+/* Zählerstände: bei ganzzahligen Zählern (Strom/Gas) "90.366" als Tausender-Punkt lesen (= 90366), nicht als 90,366 */
+function parseMeterVal(cat,v){var s=String(v==null?"":v).trim();if(CATS[cat]&&CATS[cat].valDec===0&&/^\d{1,3}(\.\d{3})+$/.test(s))return parseFloat(s.replace(/\./g,""));return parseNum(v);}
 function csvNum(n,dec){return Number(n).toFixed(dec).replace(".",",");}
 function csvVal(cat,n){var s=Number(n).toFixed(CATS[cat].valDec);if(s.indexOf(".")>=0)s=s.replace(/\.?0+$/,"");return s.replace(".",",");}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
@@ -696,7 +699,7 @@ function abschlagForDate(cat,iso){
   return ev[0].betrag;
 }
 function compute(cat,iso,z,sw){
-  if(CATS[cat].gas)return computeGas(cat,iso,z);
+  if(CATS[cat].gas)return computeGas(cat,iso,z,sw);
   var tariff=tariffForDate(cat,iso),prev=prevReading(cat,iso);
   var hasStart=(sw!=null&&isFinite(sw));
   var basis=hasStart?sw:(prev?prev.zaehlerstand:null);
@@ -717,9 +720,19 @@ function calcRow(cat,datum,meter,verbrauch,prevRef,opts){
   return row;
 }
 /* Liegen zwischen zwei Ablesungen mehrere Abrechnungsmonate, wird der Verbrauch gleichmäßig auf die fehlenden Monate verteilt und diese als „berechnet" markiert. */
+/* Mini-Cache: history() wird pro Anzeige mehrfach gebraucht (Übersicht, Verlauf, Tarif-Salden, Prognose).
+   Der Cache lebt nur bis zum Ende des aktuellen Durchlaufs (Microtask räumt auf) – Datenänderungen
+   passieren immer erst nach einem await und treffen damit garantiert einen frischen Cache. */
+var _histMemo=null;
 function history(cat){
+  if(_histMemo&&_histMemo[cat])return _histMemo[cat];
   var rs=readingsAsc(cat);
-  if(CATS[cat].gas)return historyGas(rs);
+  var out=CATS[cat].gas?historyGas(rs):historyStd(cat,rs);
+  if(!_histMemo){_histMemo={};Promise.resolve().then(function(){_histMemo=null;});}
+  _histMemo[cat]=out;
+  return out;
+}
+function historyStd(cat,rs){
   var out=[];
   for(var i=0;i<rs.length;i++){
     var r=rs[i],prev=i>0?rs[i-1]:null;
@@ -742,7 +755,7 @@ function history(cat){
 function calcGasRow(datum,z,kwh,verbrauch,opts){
   opts=opts||{};
   var tariff=tariffForDate("gas",datum);
-  var row={reading:opts.reading||{datum:datum,zaehlerstand:z,_synthetic:true},prev:null,tariff:tariff,baseline:false,kwh:kwh,verbrauch:verbrauch,estimated:!!opts.estimated,synthetic:!!opts.synthetic,gapMonths:opts.gapMonths||0};
+  var row={reading:opts.reading||{datum:datum,zaehlerstand:z,_synthetic:true},prev:null,tariff:tariff,baseline:false,kwh:kwh,verbrauch:verbrauch,meterChange:!!opts.meterChange,estimated:!!opts.estimated,synthetic:!!opts.synthetic,gapMonths:opts.gapMonths||0};
   if(tariff){row.grundkosten=tariff.grundpreisJahr/12;row.verbrauchskosten=verbrauch*tariff.arbeitspreis;row.gesamtkosten=row.grundkosten+row.verbrauchskosten;row.abschlag=abschlagForDate("gas",datum);row.differenz=row.abschlag-row.gesamtkosten;}
   return row;
 }
@@ -750,32 +763,35 @@ function historyGas(rs){
   var F=gasFactor(),out=[],prevKwh=null,prevZ=null;
   for(var i=0;i<rs.length;i++){
     var r=rs[i],prev=i>0?rs[i-1]:null,kwh;
+    /* Zählerwechsel: mit startwert wird ab dem Anfangsstand des neuen Zählers gerechnet */
+    var hasStart=(r.startwert!=null&&isFinite(r.startwert));
     if(r.zaehlerstandKwh!=null&&isFinite(r.zaehlerstandKwh))kwh=r.zaehlerstandKwh;
     else if(prev==null)kwh=r.zaehlerstand*F;
-    else kwh=prevKwh+(r.zaehlerstand-prevZ)*F;
-    if(prev==null){out.push({reading:r,prev:null,tariff:tariffForDate("gas",r.datum),baseline:true,kwh:kwh});prevKwh=kwh;prevZ=r.zaehlerstand;continue;}
+    else kwh=prevKwh+(r.zaehlerstand-(hasStart?r.startwert:prevZ))*F;
+    if(prev==null){out.push({reading:r,prev:null,tariff:tariffForDate("gas",r.datum),baseline:true,kwh:kwh,meterChange:hasStart});prevKwh=kwh;prevZ=r.zaehlerstand;continue;}
     var n=billIndex(r.datum)-billIndex(prev.datum);
     if(n>=2){
       var totalK=kwh-prevKwh,totalZ=r.zaehlerstand-prevZ,baseIdx=billIndex(prev.datum),baseKwh=prevKwh,baseZ=prevZ;
       for(var j=1;j<=n;j++){
         var ck=baseKwh+totalK*(j/n),cz=baseZ+totalZ*(j/n),perK=totalK/n;
         if(j<n)out.push(calcGasRow(billIndexToReadDatum(baseIdx+j),cz,ck,perK,{estimated:true,synthetic:true,gapMonths:n}));
-        else out.push(calcGasRow(r.datum,r.zaehlerstand,kwh,perK,{reading:r,estimated:true,gapMonths:n}));
+        else out.push(calcGasRow(r.datum,r.zaehlerstand,kwh,perK,{reading:r,estimated:true,gapMonths:n,meterChange:hasStart}));
       }
-    }else out.push(calcGasRow(r.datum,r.zaehlerstand,kwh,kwh-prevKwh,{reading:r}));
+    }else out.push(calcGasRow(r.datum,r.zaehlerstand,kwh,kwh-prevKwh,{reading:r,meterChange:hasStart}));
     prevKwh=kwh;prevZ=r.zaehlerstand;
   }
   return out;
 }
-function computeGas(cat,iso,z){
+function computeGas(cat,iso,z,sw){
   var tariff=tariffForDate(cat,iso),prev=prevReading(cat,iso),F=gasFactor();
+  var hasStart=(sw!=null&&isFinite(sw));
   var r={tariff:tariff,prev:prev,baseline:(prev==null),verbrauch:null,grundkosten:null,verbrauchskosten:null,gesamtkosten:null,abschlag:null,differenz:null,kwh:null};
   if(tariff){r.grundkosten=tariff.grundpreisJahr/12;r.abschlag=abschlagForDate(cat,iso);}
   if(isFinite(z)){
     if(prev){
       var hist=history("gas"),prevKwh=prev.zaehlerstand*F;
       for(var k=0;k<hist.length;k++){if(hist[k].reading.id===prev.id){prevKwh=hist[k].kwh;break;}}
-      r.kwh=prevKwh+(z-prev.zaehlerstand)*F;
+      r.kwh=prevKwh+(z-(hasStart?sw:prev.zaehlerstand))*F;
       r.verbrauch=r.kwh-prevKwh;
       if(tariff){r.verbrauchskosten=r.verbrauch*tariff.arbeitspreis;r.gesamtkosten=r.grundkosten+r.verbrauchskosten;r.differenz=r.abschlag-r.gesamtkosten;}
     }else{r.kwh=z*F;}
@@ -951,6 +967,7 @@ function reminderHtml(){
 }
 function topBanners(){return householdChipHtml()+reminderHtml();}
 function renderApp(){
+  editingId=null;
   document.body.setAttribute("data-cat",activeCat);
   document.querySelectorAll(".tab").forEach(function(b){b.classList.toggle("active",b.dataset.cat===activeCat);});
   updatePageTitle();
@@ -970,7 +987,7 @@ function categoryShell(cat){
     '<div class="field"><label for="zaehlerstand">Zählerstand ('+u+')</label><input type="text" inputmode="decimal" id="zaehlerstand" placeholder="z. B. '+(cat==="wasser"?"204,45":"12345")+'"></div>'+
     '<button class="btn big" data-action="save-reading">Ablesung speichern</button>'+
     '<div id="result" class="result"></div>'+
-    '<details class="metchange"><summary>🔧 Neuer Zähler eingebaut?</summary><div class="field"><label for="startwert">Anfangsstand des neuen Zählers ('+u+')</label><input type="text" inputmode="decimal" id="startwert" placeholder="z. B. 0"></div><p class="hint">Nur ausfüllen, wenn seit der letzten Ablesung ein neuer Zähler eingebaut wurde – der Verbrauch wird dann ab diesem Anfangsstand gerechnet.</p></details>'+
+    '<details class="metchange"><summary>🔧 Neuer Zähler eingebaut?</summary><div class="field"><label for="startwert">Anfangsstand des neuen Zählers ('+u+')</label><input type="text" inputmode="decimal" id="startwert" placeholder="z. B. 0"></div><div class="field"><label for="startmeterno">Neue Zähler-Nummer (optional)</label><input type="text" id="startmeterno" placeholder="steht auf dem neuen Zähler" autocomplete="off"></div><p class="hint">Nur ausfüllen, wenn seit der letzten Ablesung ein neuer Zähler eingebaut wurde – der Verbrauch wird dann ab diesem Anfangsstand gerechnet. Die Zähler-Nummer merken wir uns für diesen Bereich.</p></details>'+
   '</section>'+
   '<section class="card" id="verlauf"></section>'+
   '<section class="card" id="tarife"></section>';
@@ -986,11 +1003,14 @@ function updateResult(){
   var cont=$("#result");if(!cont)return;
   var cat=activeCat,c=CATS[cat],u=c.unit;
   var iso=$("#ablesedatum").value||todayISO();
-  var z=parseNum($("#zaehlerstand").value);
-  var swEl=$("#startwert"),sw=swEl?parseNum(swEl.value):NaN;
+  var z=parseMeterVal(cat,$("#zaehlerstand").value);
+  var swEl=$("#startwert"),sw=swEl?parseMeterVal(cat,swEl.value):NaN;
   var tariff=tariffForDate(cat,iso);
   var prev=prevReading(cat,iso);
-  var html=prev?'<div class="lastinfo">Letzter gespeicherter Stand: <b>'+fmtVal(cat,prev.zaehlerstand)+' '+u+'</b> am '+deDate(prev.datum)+'</div>':"";
+  var editing=editingId?STATE[cat].readings.find(function(x){return x.id===editingId;}):null;
+  if(editingId&&!editing)editingId=null;
+  var html=(editing?'<div class="notice" style="margin:0 0 10px">✏️ Du bearbeitest die Ablesung vom <b>'+deDate(editing.datum)+'</b> – „Speichern" überschreibt sie. <button class="linkbtn" type="button" data-action="edit-cancel">Abbrechen</button></div>':"")+
+    (prev?'<div class="lastinfo">Letzter gespeicherter Stand: <b>'+fmtVal(cat,prev.zaehlerstand)+' '+u+'</b> am '+deDate(prev.datum)+'</div>':"");
   if(!tariff){cont.innerHTML=html+'<div class="notice warn">⚠️ Für den '+deDate(iso)+' ist noch <b>kein Tarif</b> hinterlegt. Bitte trage zuerst weiter unten unter „Tarife" einen Tarif ein.</div>';return;}
   if(!isFinite(z)){cont.innerHTML=html+'<div class="notice">Bitte gib oben deinen aktuellen <b>Zählerstand</b> ein – das Ergebnis erscheint dann sofort.</div>';return;}
   var r=compute(cat,iso,z,isFinite(sw)?sw:null);
@@ -1140,6 +1160,18 @@ function tariffCard(t,current){
   if(t.laufzeit)optRows+='<div><span>Laufzeit</span><b>'+(lzLabel[t.laufzeit]||escapeHtml(String(t.laufzeit)))+'</b></div>';
   if(t.vertragsstart)optRows+='<div><span>Vertragsstart</span><b>'+deDate(t.vertragsstart)+'</b></div>';
   if(t.kundennummer)optRows+='<div><span>Kundennummer</span><b>'+escapeHtml(t.kundennummer)+'</b></div>';
+  /* Mindestlaufzeit: Ende anzeigen und rechtzeitig ans Kündigen/Vergleichen erinnern */
+  var runtimeNote="";
+  if(current&&(t.laufzeit==="12"||t.laufzeit==="24")){
+    var lzStart=t.vertragsstart||t.gueltigAb;
+    if(lzStart){
+      var lzEnd=addDays(addMonthsISO(lzStart,Number(t.laufzeit)),-1);
+      var lzDays=Math.round((new Date(lzEnd)-new Date(todayISO()))/86400000);
+      if(lzDays<0)runtimeNote='<div class="notice" style="margin-top:10px">⏰ Die Mindestlaufzeit ist seit '+deDate(lzEnd)+' vorbei – der Vertrag ist jetzt meist monatlich kündbar. Guter Zeitpunkt, Preise zu vergleichen.</div>';
+      else if(lzDays<=60)runtimeNote='<div class="notice warn" style="margin-top:10px">⏰ Mindestlaufzeit endet am <b>'+deDate(lzEnd)+'</b> (in '+lzDays+' Tagen) – jetzt Kündigungsfrist prüfen und Preise vergleichen.</div>';
+      else runtimeNote='<div class="tvalid">📅 Mindestlaufzeit bis '+deDate(lzEnd)+'</div>';
+    }
+  }
   return '<div class="tcard '+(current?"current":"")+'">'+
     '<div class="tcardhead"><b>'+escapeHtml(t.anbieter||"(ohne Namen)")+'</b>'+(current?'<span class="badge">aktuell</span>':"")+'</div>'+
     '<div class="tgrid">'+
@@ -1149,7 +1181,7 @@ function tariffCard(t,current){
       '<div><span>Grundkosten/Monat</span><b>'+eur(t.grundpreisJahr/12)+'</b></div>'+
       optRows+
     '</div>'+
-    '<div class="tvalid">'+gueltig+'</div>'+saldoLine+
+    '<div class="tvalid">'+gueltig+'</div>'+runtimeNote+saldoLine+
     '<div class="tactions">'+(current?'<button class="iconbtn abschlagbtn" data-action="open-abschlag" title="Abschlag anpassen">💶 Abschlag anpassen</button>':"")+'<button class="iconbtn" data-action="del-tariff" data-id="'+t.id+'" title="Tarif löschen">🗑️ löschen</button></div>'+
   '</div>';
 }
@@ -1249,6 +1281,7 @@ function onAppClick(e){
   else if(act==="toggle-group"){expandedGroups[id]=!expandedGroups[id];renderVerlauf();}
   else if(act==="del-reading")delReading(id);
   else if(act==="edit-reading")editReading(id);
+  else if(act==="edit-cancel")cancelEdit();
   else if(act==="del-tariff")delTariff(id);
   else if(act==="del-abschlag")delAbschlag(id);
   else if(act==="open-abschlag")openAbschlag();
@@ -1272,13 +1305,19 @@ function openAbschlag(){
 }
 async function saveReading(){
   var cat=activeCat,u=CATS[cat].unit;
-  var iso=$("#ablesedatum").value,z=parseNum($("#zaehlerstand").value);
-  var swEl=$("#startwert"),sw=swEl?parseNum(swEl.value):NaN;
+  var iso=$("#ablesedatum").value,z=parseMeterVal(cat,$("#zaehlerstand").value);
+  var swEl=$("#startwert"),sw=swEl?parseMeterVal(cat,swEl.value):NaN;
   if(!iso){toast("Bitte ein Ablesedatum wählen.",true);return;}
   if(!isFinite(z)){toast("Bitte einen gültigen Zählerstand eingeben.",true);return;}
   if(!tariffForDate(cat,iso)){toast("Bitte zuerst einen Tarif für dieses Datum hinterlegen.",true);tarifeOpen=true;renderTarife();return;}
-  var mk=billKey(iso),existing=STATE[cat].readings.find(function(r){return billKey(r.datum)===mk;});
-  if(existing&&!confirm("Für "+billLabel(iso)+" gibt es bereits eine Ablesung ("+fmtVal(cat,existing.zaehlerstand)+" "+u+" am "+deDate(existing.datum)+"). Möchtest du sie überschreiben?"))return;
+  var mk=billKey(iso);
+  /* Bearbeiten-Modus: immer denselben Datensatz ändern – auch wenn das Datum in einen anderen Monat rutscht (verhindert Duplikate) */
+  var editing=editingId?STATE[cat].readings.find(function(r){return r.id===editingId;}):null;
+  var existing=editing||STATE[cat].readings.find(function(r){return billKey(r.datum)===mk;});
+  if(editing){
+    var clash=STATE[cat].readings.find(function(r){return r.id!==editing.id&&billKey(r.datum)===mk;});
+    if(clash){toast("Für "+billLabel(iso)+" gibt es schon eine andere Ablesung – bitte lösche diese zuerst oder wähle ein anderes Datum.",true);return;}
+  }else if(existing&&!confirm("Für "+billLabel(iso)+" gibt es bereits eine Ablesung ("+fmtVal(cat,existing.zaehlerstand)+" "+u+" am "+deDate(existing.datum)+"). Möchtest du sie überschreiben?"))return;
   try{
     if(existing){
       var patch={datum:iso,zaehlerstand:z,startwert:(isFinite(sw)?sw:null),erfasst_am:new Date().toISOString()};
@@ -1292,7 +1331,13 @@ async function saveReading(){
       if(ri.error)throw ri.error;
       STATE[cat].readings.push(rowToReading(ri.data));
     }
-    renderVerlauf();renderTarife();updateResult();if(swEl)swEl.value="";toast("Ablesung gespeichert ✅");
+    /* Zählerwechsel: neue Zähler-Nummer (optional) im Haushalt hinterlegen */
+    var mnEl=$("#startmeterno"),mn=(isFinite(sw)&&mnEl)?(mnEl.value||"").trim():"";
+    editingId=null;
+    var sbtn=$('[data-action="save-reading"]');if(sbtn)sbtn.textContent="Ablesung speichern";
+    if(mn){saveMeter(cat,mn);renderApp();}
+    else{renderVerlauf();renderTarife();updateResult();if(swEl)swEl.value="";if(mnEl)mnEl.value="";}
+    toast("Ablesung gespeichert ✅");
   }catch(err){toast("Speichern fehlgeschlagen: "+errMsg(err),true);}
 }
 async function delReading(id){
@@ -1306,9 +1351,20 @@ async function delReading(id){
 }
 function editReading(id){
   var cat=activeCat;var r=STATE[cat].readings.find(function(x){return x.id===id;});if(!r)return;
+  editingId=id;
   $("#ablesedatum").value=r.datum;$("#zaehlerstand").value=String(r.zaehlerstand).replace(".",",");
   var swEl=$("#startwert");if(swEl)swEl.value=(r.startwert!=null?String(r.startwert).replace(".",","):"");
-  updateResult();window.scrollTo({top:0,behavior:"smooth"});toast("Werte geladen – du kannst sie ändern und erneut speichern.");
+  var b=$('[data-action="save-reading"]');if(b)b.textContent="✏️ Änderung speichern";
+  updateResult();window.scrollTo({top:0,behavior:"smooth"});toast("Werte geladen – ändern und dann speichern.");
+}
+function cancelEdit(){
+  editingId=null;
+  var d=$("#ablesedatum");if(d)d.value=todayISO();
+  var z=$("#zaehlerstand");if(z)z.value="";
+  var s=$("#startwert");if(s)s.value="";
+  var m=$("#startmeterno");if(m)m.value="";
+  var b=$('[data-action="save-reading"]');if(b)b.textContent="Ablesung speichern";
+  updateResult();
 }
 async function onTarifSubmit(e){
   e.preventDefault();
@@ -1520,6 +1576,7 @@ function abrNum(v){return (v==null||v===""||!isFinite(Number(v)))?null:Number(v)
 function periodAppSums(cat,von,bis){
   var rows=history(cat)||[],v=0,k=0,ab=0,d=0,n=0;
   rows.forEach(function(r){
+    if(r.baseline)return;
     var dt=r.reading&&r.reading.datum;if(!dt)return;
     if(von&&dt<=von)return;
     if(bis&&dt>bis)return;
@@ -1740,7 +1797,7 @@ function onCSVImport(e){
           if(ru.error)throw ru.error;
           var ix=STATE[cat].readings.findIndex(function(r){return r.id===ex.id;});STATE[cat].readings[ix]=rowToReading(ru.data);updated++;
         }else{
-          var ri=await sb.from("readings").insert({category:cat,datum:rw.datum,zaehlerstand:rw.zaehler}).select().single();
+          var ri=await sb.from("readings").insert(readingToCols(cat,{datum:rw.datum,zaehlerstand:rw.zaehler})).select().single();
           if(ri.error)throw ri.error;STATE[cat].readings.push(rowToReading(ri.data));added++;
         }
       }
