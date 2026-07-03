@@ -250,6 +250,9 @@ body.v2dark .mcflag{color:#fcd34d}
 .insth{margin:0 0 6px;font-size:1.02rem}
 .insthint{color:var(--muted);font-size:.9rem;margin:6px 0 0}
 .installcard .btn{margin-top:12px}
+.biorow{display:flex;align-items:center;gap:11px;cursor:pointer;font-size:.94rem;margin-top:12px;color:var(--fg)}
+.biorow input{width:20px;height:20px;flex:none;accent-color:var(--accent);cursor:pointer}
+.biorow input:disabled{cursor:default}
 .meterno{color:var(--muted);font-size:.86rem;margin:0 0 12px}
 .foot{border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;background:var(--panel);overflow:hidden}
 .foot>summary{cursor:pointer;padding:14px 16px;font-weight:600;font-size:.92rem;list-style:none}
@@ -445,6 +448,12 @@ body.settings-open #docsView{display:none}
       <p class="insthint iosonly" hidden>Auf dem iPhone/iPad: unten auf <b>Teilen</b> tippen und <b>„Zum Home-Bildschirm"</b> wählen.</p>
     </section>
 
+    <section class="card installcard" id="nativeSettings" hidden>
+      <h3 class="insth">🔒 App-Schutz</h3>
+      <p class="insthint">Sichere die App beim Öffnen zusätzlich mit Fingerabdruck oder Gesichtserkennung.</p>
+      <label class="biorow"><input type="checkbox" id="bioToggle"><span id="bioToggleLabel">Beim Öffnen nach Fingerabdruck / Gesicht fragen</span></label>
+    </section>
+
     <details class="foot">
       <summary>📄 Daten &amp; Sicherung</summary>
       <div class="footbody">
@@ -530,6 +539,84 @@ var DB_SCHEMA=IS_TEST?"test":"public";
 var sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true},db:{schema:DB_SCHEMA}});
 /* Haushalte (Mitgliedschaft) liegen immer im public-Schema – auch in der Testumgebung. */
 var sbPub=sb.schema("public");
+
+/* ================= Native App (Capacitor) – nur in der Android-App aktiv ================= */
+var IS_NATIVE=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+function capPlugin(n){return (window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins[n])||null;}
+/* Datei sichern/teilen: in der App über das native Teilen-Menü, im Browser klassischer Download. */
+async function saveOrShare(filename,mime,text){
+  if(IS_NATIVE){
+    var FS=capPlugin("Filesystem"),Share=capPlugin("Share");
+    try{
+      if(FS){
+        var w=await FS.writeFile({path:filename,data:text,directory:"CACHE",encoding:"utf8"});
+        var uri=(w&&w.uri)||"";
+        if(Share&&uri){await Share.share({title:filename,text:filename,files:[uri]});return true;}
+      }
+    }catch(e){}
+    toast("Teilen war nicht möglich – bitte erneut versuchen.");
+    return false;
+  }
+  var blob=new Blob([text],{type:mime});
+  var url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
+  return true;
+}
+/* Monatliche Erinnerung ans Ablesen (lokale Benachrichtigung, kein Server nötig). */
+async function scheduleMonthlyReminder(){
+  var LN=capPlugin("LocalNotifications");if(!LN)return;
+  try{
+    var perm=await LN.requestPermissions();
+    if(perm&&perm.display&&perm.display!=="granted")return;
+    try{await LN.cancel({notifications:[{id:4211}]});}catch(e){}
+    await LN.schedule({notifications:[{
+      id:4211,
+      title:"Zählerstände ablesen",
+      body:"Trag diesen Monat deine Zählerstände für Strom, Wasser und Gas ein.",
+      schedule:{on:{day:1,hour:9,minute:0},allowWhileIdle:true}
+    }]});
+  }catch(e){}
+}
+/* Fingerabdruck / Gesicht (optional, kann nie aussperren – Passwort bleibt Ausweg). */
+function bioLockOn(){try{return localStorage.getItem("vt_biolock")==="1";}catch(e){return false;}}
+async function bioAvailable(){var NB=capPlugin("NativeBiometric");if(!NB)return false;try{var r=await NB.isAvailable();return !!(r&&r.isAvailable);}catch(e){return false;}}
+async function bioVerify(){var NB=capPlugin("NativeBiometric");if(!NB)return false;try{await NB.verifyIdentity({reason:"Bitte entsperren",title:"Verbrauchs-Tracker",subtitle:"Mit Fingerabdruck oder Gesicht entsperren",description:""});return true;}catch(e){return false;}}
+function removeLock(){var d=document.getElementById("vtLock");if(d&&d.parentNode)d.parentNode.removeChild(d);}
+async function tryUnlock(){if(await bioVerify())removeLock();}
+function showLockOverlay(){
+  if(document.getElementById("vtLock"))return;
+  var d=document.createElement("div");d.id="vtLock";
+  d.setAttribute("style","position:fixed;inset:0;z-index:99999;background:#09090b;color:#fafafa;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px;font-family:Inter,system-ui,sans-serif");
+  d.innerHTML='<div style="font-size:3rem">🔒</div>'
+    +'<div style="font-size:1.15rem;font-weight:600">Verbrauchs-Tracker ist gesperrt</div>'
+    +'<button id="vtUnlock" style="background:#f59e0b;color:#111;border:none;border-radius:10px;padding:13px 22px;font-size:1rem;font-weight:600;cursor:pointer">🔓 Entsperren</button>'
+    +'<button id="vtUnlockPw" style="background:none;border:none;color:#a1a1aa;font-size:.92rem;text-decoration:underline;cursor:pointer">Mit Passwort anmelden</button>';
+  document.body.appendChild(d);
+  document.getElementById("vtUnlock").addEventListener("click",tryUnlock);
+  document.getElementById("vtUnlockPw").addEventListener("click",function(){removeLock();try{doLogout();}catch(e){}});
+}
+async function initNative(){
+  if(!IS_NATIVE)return;
+  var ns=$("#nativeSettings"),is=$("#installSection");
+  if(is)is.hidden=true;              /* PWA-Installation ist in der App sinnlos */
+  if(ns){
+    ns.hidden=false;
+    var tg=$("#bioToggle"),lbl=$("#bioToggleLabel");
+    var avail=await bioAvailable();
+    if(!avail){if(tg)tg.disabled=true;if(lbl)lbl.textContent="Auf diesem Gerät ist kein Fingerabdruck / Gesicht eingerichtet.";}
+    else if(tg){
+      tg.checked=bioLockOn();
+      tg.addEventListener("change",async function(){
+        if(tg.checked){
+          if(await bioVerify()){try{localStorage.setItem("vt_biolock","1");}catch(e){}toast("Fingerabdruck-Schutz aktiv ✅");}
+          else{tg.checked=false;toast("Nicht bestätigt – Schutz bleibt aus.");}
+        }else{try{localStorage.setItem("vt_biolock","0");}catch(e){}toast("Fingerabdruck-Schutz aus.");}
+      });
+    }
+  }
+  scheduleMonthlyReminder();
+  if(bioLockOn()&&await bioAvailable()){showLockOverlay();tryUnlock();}
+}
 var currentUser=null,enteredUserId=null;
 var HOUSEHOLDS=[],activeHousehold=null;
 var BACKUPS=[],BACKUP_MAX=3;
@@ -1717,9 +1804,7 @@ function renderBackups(){
 }
 /* ---------- Backup / Export / Import ---------- */
 function exportData(){
-  var blob=new Blob([JSON.stringify(STATE,null,2)],{type:"application/json"});
-  var url=URL.createObjectURL(blob),a=document.createElement("a");
-  a.href=url;a.download="verbrauchs-tracker-sicherung-"+todayISO()+".json";a.click();URL.revokeObjectURL(url);
+  saveOrShare("verbrauchs-tracker-sicherung-"+todayISO()+".json","application/json",JSON.stringify(STATE,null,2));
 }
 function csvEsc(s){s=String(s);if(/[";\n\r]/.test(s)){return '"'+s.replace(/"/g,'""')+'"';}return s;}
 function exportCSV(){
@@ -1743,9 +1828,7 @@ function exportCSV(){
     lines.push(arr.map(csvEsc).join(sep));
   });
   var csv="﻿"+lines.join("\r\n");
-  var blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
-  var url=URL.createObjectURL(blob),el=document.createElement("a");
-  el.href=url;el.download=cat+"-tracker-tabelle-"+todayISO()+".csv";el.click();URL.revokeObjectURL(url);
+  saveOrShare(cat+"-tracker-tabelle-"+todayISO()+".csv","text/csv;charset=utf-8",csv);
   toast("Tabelle exportiert ✅");
 }
 function splitCSV(line,sep){
@@ -2155,9 +2238,10 @@ function init(){
     if(pendingRecovery&&session&&session.user){enterRecovery(session);return;}
     handleSession(session);
   },0);});
-  if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
+  if("serviceWorker" in navigator && location.protocol.indexOf("http")===0 && !IS_NATIVE){
     navigator.serviceWorker.register("sw.js").catch(function(){});
   }
+  initNative();
   /* PWA-Installation: Knopf anzeigen, wenn das Geraet die Installation anbietet */
   (function(){
     var deferredInstall=null,installBtn=$("#installBtn"),sec=$("#installSection");

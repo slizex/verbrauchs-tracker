@@ -1,0 +1,86 @@
+name: Android-APK bauen
+
+# Baut die native Android-App (Capacitor) und haengt die fertige .apk an ein Release.
+# Ausloesen: manuell ueber den "Run workflow"-Knopf, oder automatisch wenn sich
+# etwas im mobile/-Ordner (oder an diesem Workflow) aendert.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code holen
+        uses: actions/checkout@v4
+
+      - name: Node einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Java (JDK 17) einrichten
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Android-SDK einrichten
+        uses: android-actions/setup-android@v3
+
+      - name: Abhaengigkeiten installieren
+        working-directory: mobile
+        run: npm install --no-audit --no-fund
+
+      - name: Web-App zusammenstellen (www)
+        working-directory: mobile
+        run: node copy-web.mjs
+
+      - name: Android-Projekt erzeugen
+        working-directory: mobile
+        run: npx --no-install cap add android
+
+      - name: Plugins synchronisieren
+        working-directory: mobile
+        run: npx --no-install cap sync android
+
+      - name: App-Icons erzeugen (optional)
+        working-directory: mobile
+        run: npx --no-install capacitor-assets generate --android || echo "Icon-Erzeugung uebersprungen"
+
+      - name: APK bauen (Debug, direkt installierbar)
+        working-directory: mobile/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: APK umbenennen
+        run: cp mobile/android/app/build/outputs/apk/debug/app-debug.apk verbrauchs-tracker.apk
+
+      - name: APK als Download bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: verbrauchs-tracker-apk
+          path: verbrauchs-tracker.apk
+
+      - name: Release aktualisieren (feste Adresse fuer den Download)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: Verbrauchs-Tracker (Android-App)
+          prerelease: true
+          files: verbrauchs-tracker.apk
+          body: |
+            Automatisch gebaute Android-App (Debug-Signatur, fuer die eigene Nutzung).
+
+            **Installation auf dem Handy:**
+            1. Datei `verbrauchs-tracker.apk` unten antippen und herunterladen.
+            2. In der heruntergeladenen Datei auf "Installieren" tippen.
+            3. Falls gefragt: "Installation aus unbekannten Quellen" fuer den Browser/Dateimanager einmalig erlauben.

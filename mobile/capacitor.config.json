@@ -1,0 +1,8 @@
+{
+  "appId": "de.verbrauchstracker.app",
+  "appName": "Verbrauchs-Tracker",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  }
+}
