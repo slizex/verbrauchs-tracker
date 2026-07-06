@@ -46,8 +46,8 @@ body.v2dark[data-cat="strom"]{--accent:#fbbf24}
 body.v2dark[data-cat="wasser"]{--accent:#38bdf8}
 body.v2dark[data-cat="gas"]{--accent:#fb923c}
 body.v2dark[data-cat="overview"]{--accent:#818cf8}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--fg);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+html{-webkit-text-size-adjust:100%;font-size:17px}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--fg);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
 h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.012em}
 a{color:var(--accent);text-decoration:none}
 ::selection{background:color-mix(in srgb,var(--accent) 26%,transparent)}
@@ -308,7 +308,18 @@ body.v2dark .mcflag{color:#fcd34d}
 .onbdone{color:var(--pos)}.onbwait{color:var(--muted)}
 
 /* tarife */
-.tarifehead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+/* Unternavigation je Bereich: Eintragen / Verlauf / Tarif */
+.subnav{display:flex;gap:5px;background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:5px;margin:0 0 16px}
+.subbtn{flex:1;border:none;background:none;color:var(--muted);font:inherit;font-weight:600;font-size:.95rem;padding:11px 6px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:background .12s,color .12s}
+.subbtn.active{background:var(--panel);color:var(--fg);box-shadow:var(--shadow-sm)}
+/* Aufklapp-Zeilen im Tarif-Bereich (zugeklappt = nur eine schlanke Zeile) */
+.tsec{margin-top:10px}
+.tsecbtn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel);color:var(--fg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 14px;font:inherit;font-weight:600;font-size:.93rem;cursor:pointer;text-align:left}
+.tsecbtn:hover{background:var(--panel2)}
+.tsecbtn .tchev{color:var(--muted2);transition:transform .15s;flex:none}
+.tsecbtn.open{border-radius:var(--radius-sm) var(--radius-sm) 0 0;border-bottom-color:transparent}
+.tsecbtn.open .tchev{transform:rotate(180deg)}
+.tsecbody{border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);padding:6px 14px 14px;background:var(--panel)}
 .tarifform{display:flex;flex-direction:column;gap:10px;margin:8px 0 4px}
 .tarifform label{display:flex;flex-direction:column;gap:5px;font-size:.85rem;font-weight:500}
 .tarifform select{width:100%;padding:10px 12px;font-size:.95rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel);color:var(--fg);font-family:inherit;cursor:pointer}
@@ -663,7 +674,8 @@ var CATS={
 };
 var STATE=defaults();
 var activeCat="strom";
-var tarifeOpen=false;
+var catPane="erfassen";   /* aktive Unterseite je Kategorie: erfassen | verlauf | tarif */
+var tSec={};              /* welche Aufklapp-Bereiche im Tarif-Reiter offen sind */
 var expandedGroups={};
 var ovMetric="kosten",ovScope="strom";
 var editingId=null; /* Ablesung, die gerade über das Stift-Symbol bearbeitet wird */
@@ -1060,14 +1072,32 @@ function renderApp(){
   updatePageTitle();
   var app=$("#app"),banners=topBanners();
   if(activeCat==="overview"){app.innerHTML=banners+renderOverview();return;}
-  if(CATS[activeCat]&&CATS[activeCat].tariffFields){app.innerHTML=banners+categoryShell(activeCat);wireCategory();updateResult();renderVerlauf();renderTarife();}
+  if(CATS[activeCat]&&CATS[activeCat].tariffFields){app.innerHTML=banners+categoryShell(activeCat);wireCategory();updateResult();renderVerlauf();renderTarife();applyPane();}
   else{app.innerHTML=banners+placeholder(activeCat);}
 }
 function placeholder(cat){var c=CATS[cat];return '<div class="placeholder"><div class="phicon">'+c.icon+'</div><h2>'+c.label+' folgt in Kürze</h2><p>Dieser Bereich wird als Nächstes ergänzt – mit derselben einfachen Bedienung wie Strom und Wasser.</p></div>';}
+function subnavHtml(){
+  var panes=[["erfassen","✏️","Eintragen"],["verlauf","📊","Verlauf"],["tarif","💶","Tarif"]];
+  return '<div class="subnav">'+panes.map(function(p){
+    return '<button type="button" class="subbtn'+(catPane===p[0]?" active":"")+'" data-action="cat-pane" data-pane="'+p[0]+'">'+p[1]+' '+p[2]+'</button>';
+  }).join("")+'</div>';
+}
+function applyPane(){
+  var map={erfassen:"#pane_e",verlauf:"#pane_v",tarif:"#pane_t"};
+  Object.keys(map).forEach(function(k){var el=document.querySelector(map[k]);if(el)el.hidden=(catPane!==k);});
+  document.querySelectorAll(".subbtn").forEach(function(b){b.classList.toggle("active",b.dataset.pane===catPane);});
+}
+/* Einen Aufklapp-Bereich im Tarif-Reiter öffnen, ohne neu zu rendern (Formulareingaben bleiben erhalten) */
+function tsecOpen(key){
+  tSec[key]=true;
+  var btn=document.querySelector('.tsecbtn[data-key="'+key+'"]');
+  if(btn){btn.classList.add("open");var b=btn.parentNode.querySelector(".tsecbody");if(b)b.hidden=false;}
+}
 function categoryShell(cat){
   var c=CATS[cat],u=c.unit;
   var meter=householdMeter(cat),meterLine=meter?'<p class="meterno">🔢 Zähler-Nr.: <b>'+escapeHtml(meter)+'</b></p>':"";
-  return onboardingHtml(cat)+
+  return subnavHtml()+
+  '<div id="pane_e">'+onboardingHtml(cat)+
   '<section class="card">'+
     '<h2 class="sect">'+c.icon+' Neue Ablesung</h2>'+meterLine+
     '<div class="field"><label for="ablesedatum">Ablesedatum</label><input type="date" id="ablesedatum" value="'+todayISO()+'"></div>'+
@@ -1075,9 +1105,9 @@ function categoryShell(cat){
     '<button class="btn big" data-action="save-reading">Ablesung speichern</button>'+
     '<div id="result" class="result"></div>'+
     '<details class="metchange"><summary>🔧 Neuer Zähler eingebaut?</summary><div class="field"><label for="startwert">Anfangsstand des neuen Zählers ('+u+')</label><input type="text" inputmode="decimal" id="startwert" placeholder="z. B. 0"></div><div class="field"><label for="startmeterno">Neue Zähler-Nummer (optional)</label><input type="text" id="startmeterno" placeholder="steht auf dem neuen Zähler" autocomplete="off"></div><p class="hint">Nur ausfüllen, wenn seit der letzten Ablesung ein neuer Zähler eingebaut wurde – der Verbrauch wird dann ab diesem Anfangsstand gerechnet. Die Zähler-Nummer merken wir uns für diesen Bereich.</p></details>'+
-  '</section>'+
-  '<section class="card" id="verlauf"></section>'+
-  '<section class="card" id="tarife"></section>';
+  '</section></div>'+
+  '<div id="pane_v" hidden><section class="card" id="verlauf"></section></div>'+
+  '<div id="pane_t" hidden><section class="card" id="tarife"></section></div>';
 }
 function row(label,val,cls){return '<div class="rrow '+(cls||"")+'"><span>'+label+'</span><b>'+val+'</b></div>';}
 
@@ -1098,7 +1128,7 @@ function updateResult(){
   if(editingId&&!editing)editingId=null;
   var html=(editing?'<div class="notice" style="margin:0 0 10px">✏️ Du bearbeitest die Ablesung vom <b>'+deDate(editing.datum)+'</b> – „Speichern" überschreibt sie. <button class="linkbtn" type="button" data-action="edit-cancel">Abbrechen</button></div>':"")+
     (prev?'<div class="lastinfo">Letzter gespeicherter Stand: <b>'+fmtVal(cat,prev.zaehlerstand)+' '+u+'</b> am '+deDate(prev.datum)+'</div>':"");
-  if(!tariff){cont.innerHTML=html+'<div class="notice warn">⚠️ Für den '+deDate(iso)+' ist noch <b>kein Tarif</b> hinterlegt. Bitte trage zuerst weiter unten unter „Tarife" einen Tarif ein.</div>';return;}
+  if(!tariff){cont.innerHTML=html+'<div class="notice warn">⚠️ Für den '+deDate(iso)+' ist noch <b>kein Tarif</b> hinterlegt. <button class="linkbtn" type="button" data-action="onb-tariff">Jetzt Tarif eintragen →</button></div>';return;}
   if(!isFinite(z)){cont.innerHTML=html+'<div class="notice">Bitte gib oben deinen aktuellen <b>Zählerstand</b> ein – das Ergebnis erscheint dann sofort.</div>';return;}
   var r=compute(cat,iso,z,isFinite(sw)?sw:null);
   var bu=c.billUnit||u;
@@ -1287,10 +1317,10 @@ function renderTarife(){
   var curHtml=cur?tariffCard(cur,true):'<div class="notice warn">Noch kein Tarif hinterlegt. Bitte unten einen Tarif eintragen.</div>';
   var archived=all.filter(function(t){return !cur||t.id!==cur.id;});
   var archHtml=archived.length?archived.map(function(t){return tariffCard(t,false);}).join(""):'<div class="muted">Keine archivierten Tarife.</div>';
-  var open=tarifeOpen||!cur;
+  if(!cur)tSec.neu=true; /* ohne Tarif: Eintrag-Formular direkt aufgeklappt */
   var formFields=c.tariffFields.map(function(f){return '<label>'+f.label+'<input type="text" '+(f.num?'inputmode="decimal" ':"")+'id="tf_'+f.key+'" placeholder="'+f.ph+'"'+(f.num?"":' autocomplete="off"')+'></label>';}).join("");
   var convBlock="";
-  if(c.gas){var cv=STATE.gas.conversion||defConv();convBlock='<h3>🔧 Umrechnung m³ → kWh (gilt für alle Tarife)</h3>'+
+  if(c.gas){var cv=STATE.gas.conversion||defConv();convBlock=''+
     '<form id="convForm" class="tarifform">'+
       '<label>Wandelfaktor<input type="text" inputmode="decimal" id="cv_wf" value="'+String(cv.wandelfaktor).replace(".",",")+'"></label>'+
       '<label>Zustandszahl<input type="text" inputmode="decimal" id="cv_zz" value="'+String(cv.zustandszahl).replace(".",",")+'"></label>'+
@@ -1298,44 +1328,49 @@ function renderTarife(){
       '<button type="submit" class="btn">Umrechnung speichern</button>'+
       '<p class="hint">Faktor m³ → kWh = Wandelfaktor × Zustandszahl × Brennwert = <b>'+priceNum(gasFactor())+' kWh/m³</b>. Gilt für neue Ablesungen; importierte historische Werte bleiben exakt erhalten.</p>'+
     '</form>';}
+  function tsecPart(key,title,inner,extraId){
+    var o=!!tSec[key];
+    return '<div class="tsec"'+(extraId?' id="'+extraId+'"':"")+'><button type="button" class="tsecbtn'+(o?" open":"")+'" data-action="tsec" data-key="'+key+'"><span>'+title+'</span><span class="tchev">▾</span></button><div class="tsecbody"'+(o?"":" hidden")+'>'+inner+'</div></div>';
+  }
+  var abBlock=''+
+    '<form id="abForm" class="tarifform">'+
+      '<label>Neuer Abschlag (€)<input type="text" inputmode="decimal" id="ab_betrag" placeholder="z. B. 60,00"'+(curAb!=null?' value="'+String(curAb).replace(".",",")+'"':"")+'></label>'+
+      '<label>Gültig ab (ab welchem Ablesedatum)<input type="date" id="ab_gueltig" value="'+todayISO()+'"></label>'+
+      '<button type="submit" class="btn">Abschlag speichern</button>'+
+      '<p class="hint">Für den <b>aktuellen Tarif</b>: ändert nur den monatlichen Abschlag ab diesem Datum – Anbieter und Preise bleiben gleich. Alle <b>früheren Monate behalten ihren bisherigen Abschlag</b>.</p>'+
+    '</form>'+
+    abschlagListHtml();
+  var abrBlock=''+
+    '<div class="aiimport">'+
+      '<button type="button" class="btn" data-action="ai-abr" style="width:100%">📋 Jahresabrechnung hochladen &amp; prüfen</button>'+
+      '<input type="file" id="abrFile" accept="application/pdf,image/*" hidden>'+
+      '<p class="hint">Lade deine Jahres-/Schlussabrechnung hoch – die KI liest sie aus und vergleicht Verbrauch, Kosten, Abschläge und Ergebnis mit deinen erfassten Werten. Das Dokument wird zugleich im Archiv gespeichert.</p>'+
+    '</div>'+
+    '<div id="abrResult" class="notice" style="display:none;margin-top:8px"></div>';
+  var neuBlock=''+
+    '<div class="aiimport">'+
+      '<button type="button" class="btn aiimportbtn" data-action="ai-tarif" style="width:100%">📄 Tarif aus Dokument einlesen (KI)</button>'+
+      '<input type="file" id="aiTarifFile" accept="application/pdf,image/*" hidden>'+
+      '<p class="hint">Lade dein Vertrags-/Tarifdokument (PDF oder Foto) hoch – die KI liest die Konditionen aus und füllt das Formular. Prüfe die Werte und speichere dann selbst.</p>'+
+    '</div>'+
+    '<div id="aiTarifNote" class="notice" style="display:none;margin-top:8px"></div>'+
+    '<form id="tarifForm" class="tarifform">'+formFields+
+      '<label>Gültig ab<input type="date" id="tf_gueltig" value="'+todayISO()+'"></label>'+
+      '<div class="optsep">Optionale Vertragsdetails</div>'+
+      '<label>Laufzeit<select id="tf_laufzeit"><option value="">— keine Angabe —</option><option value="flex">Flexibel / monatlich kündbar</option><option value="12">12 Monate</option><option value="24">24 Monate</option></select></label>'+
+      '<label>Vertragsstart<input type="date" id="tf_vertragsstart"></label>'+
+      '<label>Kundennummer<input type="text" id="tf_kundennummer" placeholder="optional" autocomplete="off"></label>'+
+      '<button type="submit" class="btn">Tarif speichern</button>'+
+      '<p class="hint">Nur bei echtem Tarifwechsel (neuer Anbieter/Preise). Beim Speichern wird der bisherige Tarif automatisch archiviert. Vergangene Monate werden weiterhin mit dem damals gültigen Tarif berechnet.</p>'+
+    '</form>';
   cont.innerHTML=''+
-    '<div class="tarifehead"><h2 class="sect">⚙️ Tarife ('+c.label+')</h2><button class="linkbtn" data-action="toggle-tarife">'+(open?"▲ einklappen":"▼ ausklappen")+'</button></div>'+
-    '<div style="'+(open?"":"display:none")+'">'+
-      convBlock+
-      '<h3>Aktueller Tarif</h3>'+curHtml+
-      '<h3 id="abschlagHead">💶 Abschlag anpassen (ohne Tarifwechsel)</h3>'+
-      '<form id="abForm" class="tarifform">'+
-        '<label>Neuer Abschlag (€)<input type="text" inputmode="decimal" id="ab_betrag" placeholder="z. B. 60,00"'+(curAb!=null?' value="'+String(curAb).replace(".",",")+'"':"")+'></label>'+
-        '<label>Gültig ab (ab welchem Ablesedatum)<input type="date" id="ab_gueltig" value="'+todayISO()+'"></label>'+
-        '<button type="submit" class="btn">Abschlag speichern</button>'+
-        '<p class="hint">Für den <b>aktuellen Tarif</b>: ändert nur den monatlichen Abschlag ab diesem Datum – Anbieter und Preise bleiben gleich. Alle <b>früheren Monate behalten ihren bisherigen Abschlag</b>.</p>'+
-      '</form>'+
-      abschlagListHtml()+
-      '<h3>📋 Jahresabrechnung prüfen (KI)</h3>'+
-      '<div class="aiimport">'+
-        '<button type="button" class="btn" data-action="ai-abr" style="width:100%">📋 Jahresabrechnung hochladen &amp; prüfen</button>'+
-        '<input type="file" id="abrFile" accept="application/pdf,image/*" hidden>'+
-        '<p class="hint">Lade deine Jahres-/Schlussabrechnung hoch – die KI liest sie aus und vergleicht Verbrauch, Kosten, Abschläge und Ergebnis mit deinen erfassten Werten. Das Dokument wird zugleich im Archiv gespeichert.</p>'+
-      '</div>'+
-      '<div id="abrResult" class="notice" style="display:none;margin-top:8px"></div>'+
-      '<h3>Neuen Tarif eintragen</h3>'+
-      '<div class="aiimport">'+
-        '<button type="button" class="btn aiimportbtn" data-action="ai-tarif" style="width:100%">📄 Tarif aus Dokument einlesen (KI)</button>'+
-        '<input type="file" id="aiTarifFile" accept="application/pdf,image/*" hidden>'+
-        '<p class="hint">Lade dein Vertrags-/Tarifdokument (PDF oder Foto) hoch – die KI liest die Konditionen aus und füllt das Formular. Prüfe die Werte und speichere dann selbst.</p>'+
-      '</div>'+
-      '<div id="aiTarifNote" class="notice" style="display:none;margin-top:8px"></div>'+
-      '<form id="tarifForm" class="tarifform">'+formFields+
-        '<label>Gültig ab<input type="date" id="tf_gueltig" value="'+todayISO()+'"></label>'+
-        '<div class="optsep">Optionale Vertragsdetails</div>'+
-        '<label>Laufzeit<select id="tf_laufzeit"><option value="">— keine Angabe —</option><option value="flex">Flexibel / monatlich kündbar</option><option value="12">12 Monate</option><option value="24">24 Monate</option></select></label>'+
-        '<label>Vertragsstart<input type="date" id="tf_vertragsstart"></label>'+
-        '<label>Kundennummer<input type="text" id="tf_kundennummer" placeholder="optional" autocomplete="off"></label>'+
-        '<button type="submit" class="btn">Tarif speichern</button>'+
-        '<p class="hint">Nur bei echtem Tarifwechsel (neuer Anbieter/Preise). Beim Speichern wird der bisherige Tarif automatisch archiviert. Vergangene Monate werden weiterhin mit dem damals gültigen Tarif berechnet.</p>'+
-      '</form>'+
-      '<h3>Archivierte Tarife</h3>'+archHtml+
-    '</div>';
+    '<h2 class="sect">💶 Tarif &amp; Kosten ('+c.label+')</h2>'+
+    '<h3>Aktueller Tarif</h3>'+curHtml+
+    tsecPart("ab","💶 Abschlag anpassen",abBlock,"abschlagHead")+
+    tsecPart("abr","📋 Jahresabrechnung prüfen (KI)",abrBlock)+
+    tsecPart("neu","➕ Neuen Tarif eintragen",neuBlock)+
+    (c.gas?tsecPart("conv","🔧 Gas-Umrechnung (m³ → kWh)",convBlock):"")+
+    (archived.length?tsecPart("arch","🗂️ Frühere Tarife ("+archived.length+")",archHtml):"");
   var form=$("#tarifForm");if(form)form.addEventListener("submit",onTarifSubmit);
   var aif=$("#aiTarifFile");if(aif)aif.addEventListener("change",onAiTarifFile);
   var abrf=$("#abrFile");if(abrf)abrf.addEventListener("change",onAbrFile);
@@ -1364,7 +1399,8 @@ function onAppClick(e){
   var btn=e.target.closest("[data-action]");if(!btn)return;
   var act=btn.dataset.action,id=btn.dataset.id;
   if(act==="save-reading")saveReading();
-  else if(act==="toggle-tarife"){tarifeOpen=!tarifeOpen;renderTarife();}
+  else if(act==="cat-pane"){catPane=btn.dataset.pane;applyPane();window.scrollTo({top:0,behavior:"smooth"});}
+  else if(act==="tsec"){var tk=btn.dataset.key;tSec[tk]=!tSec[tk];btn.classList.toggle("open",!!tSec[tk]);var tb=btn.parentNode.querySelector(".tsecbody");if(tb)tb.hidden=!tSec[tk];}
   else if(act==="toggle-group"){expandedGroups[id]=!expandedGroups[id];renderVerlauf();}
   else if(act==="del-reading")delReading(id);
   else if(act==="edit-reading")editReading(id);
@@ -1374,19 +1410,19 @@ function onAppClick(e){
   else if(act==="open-abschlag")openAbschlag();
   else if(act==="ai-tarif"){var aif=$("#aiTarifFile");if(aif)aif.click();}
   else if(act==="ai-abr"){var elAbr=$("#abrFile");if(elAbr)elAbr.click();}
-  else if(act==="abr-setab"){var elAb=$("#ab_betrag");if(elAb){elAb.value=String(btn.dataset.val).replace(".",",");var elHead=$("#abschlagHead");if(elHead)elHead.scrollIntoView({behavior:"smooth",block:"start"});try{elAb.focus({preventScroll:true});}catch(e){elAb.focus();}}}
-  else if(act==="goto-cat"){activeCat=btn.dataset.cat;tarifeOpen=false;expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});}
+  else if(act==="abr-setab"){tsecOpen("ab");var elAb=$("#ab_betrag");if(elAb){elAb.value=String(btn.dataset.val).replace(".",",");var elHead=$("#abschlagHead");if(elHead)elHead.scrollIntoView({behavior:"smooth",block:"start"});try{elAb.focus({preventScroll:true});}catch(e){elAb.focus();}}}
+  else if(act==="goto-cat"){activeCat=btn.dataset.cat;catPane="erfassen";tSec={};expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});}
   else if(act==="ovmetric"){ovMetric=btn.dataset.val;refreshOvChart();}
   else if(act==="ovscope"){ovScope=btn.dataset.val;refreshOvChart();}
-  else if(act==="onb-tariff"){tarifeOpen=true;renderTarife();var tf=$("#tarifForm");if(tf){tf.scrollIntoView({behavior:"smooth",block:"center"});var fa=$("#tf_anbieter");if(fa)setTimeout(function(){try{fa.focus({preventScroll:true});}catch(e){}},220);}}
+  else if(act==="onb-tariff"){catPane="tarif";tSec.neu=true;renderTarife();applyPane();var tf=$("#tarifForm");if(tf){tf.scrollIntoView({behavior:"smooth",block:"center"});var fa=$("#tf_anbieter");if(fa)setTimeout(function(){try{fa.focus({preventScroll:true});}catch(e){}},220);}}
   else if(act==="onb-reading"){var zi=$("#zaehlerstand");if(zi){zi.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zi.focus({preventScroll:true});}catch(e){}},220);}}
   else if(act==="open-account")openSettings();
   else if(act==="rem-dismiss"){reminderDismissed=true;renderApp();}
-  else if(act==="rem-goto"){activeCat=btn.dataset.cat;tarifeOpen=false;expandedGroups={};renderApp();var zr=$("#zaehlerstand");if(zr){zr.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zr.focus({preventScroll:true});}catch(e){}},250);}}
+  else if(act==="rem-goto"){activeCat=btn.dataset.cat;catPane="erfassen";tSec={};expandedGroups={};renderApp();var zr=$("#zaehlerstand");if(zr){zr.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zr.focus({preventScroll:true});}catch(e){}},250);}}
   else if(act==="ovbar"){var ot=$("#ovbartip");if(ot)ot.textContent=btn.dataset.tip;}
 }
 function openAbschlag(){
-  tarifeOpen=true;renderTarife();
+  tsecOpen("ab");
   var inp=$("#ab_betrag");if(inp){try{inp.focus({preventScroll:true});}catch(e){inp.focus();}}
   var head=$("#abschlagHead");if(head)head.scrollIntoView({behavior:"smooth",block:"start"});
 }
@@ -1396,7 +1432,7 @@ async function saveReading(){
   var swEl=$("#startwert"),sw=swEl?parseMeterVal(cat,swEl.value):NaN;
   if(!iso){toast("Bitte ein Ablesedatum wählen.",true);return;}
   if(!isFinite(z)){toast("Bitte einen gültigen Zählerstand eingeben.",true);return;}
-  if(!tariffForDate(cat,iso)){toast("Bitte zuerst einen Tarif für dieses Datum hinterlegen.",true);tarifeOpen=true;renderTarife();return;}
+  if(!tariffForDate(cat,iso)){toast("Bitte zuerst einen Tarif für dieses Datum hinterlegen.",true);catPane="tarif";tSec.neu=true;renderTarife();applyPane();return;}
   var mk=billKey(iso);
   /* Bearbeiten-Modus: immer denselben Datensatz ändern – auch wenn das Datum in einen anderen Monat rutscht (verhindert Duplikate) */
   var editing=editingId?STATE[cat].readings.find(function(r){return r.id===editingId;}):null;
@@ -1442,6 +1478,7 @@ function editReading(id){
   $("#ablesedatum").value=r.datum;$("#zaehlerstand").value=String(r.zaehlerstand).replace(".",",");
   var swEl=$("#startwert");if(swEl)swEl.value=(r.startwert!=null?String(r.startwert).replace(".",","):"");
   var b=$('[data-action="save-reading"]');if(b)b.textContent="✏️ Änderung speichern";
+  catPane="erfassen";applyPane(); /* das Formular liegt im Eintragen-Reiter */
   updateResult();window.scrollTo({top:0,behavior:"smooth"});toast("Werte geladen – ändern und dann speichern.");
 }
 function cancelEdit(){
@@ -1474,7 +1511,7 @@ async function onTarifSubmit(e){
     if(r.error)throw r.error;
     STATE[cat].tariffs.push(rowToTariff(r.data));
     if(lastAiDoc&&lastAiDoc.cat===cat){var _did=lastAiDoc.id;lastAiDoc=null;sb.from("documents").update({tariff_id:r.data.id}).eq("id",_did).then(function(){},function(){});}
-    tarifeOpen=true;renderTarife();renderVerlauf();updateResult();
+    tSec.neu=false;renderTarife();renderVerlauf();updateResult();
     toast(hadCurrent?"Tarif gespeichert. Vorheriger Tarif archiviert ✅":"Tarif gespeichert ✅");
   }catch(err){toast("Speichern fehlgeschlagen: "+errMsg(err),true);}
 }
@@ -1741,7 +1778,7 @@ async function onAbSubmit(e){
     var r=await sb.from("abschlag_changes").insert(abschlagToCols(cat,{betrag:betrag,gueltigAb:gueltig})).select().single();
     if(r.error)throw r.error;
     STATE[cat].abschlagChanges.push(rowToAbschlag(r.data));
-    tarifeOpen=true;renderTarife();renderVerlauf();updateResult();toast("Abschlag angepasst ✅");
+    renderTarife();renderVerlauf();updateResult();toast("Abschlag angepasst ✅");
   }catch(err){toast("Speichern fehlgeschlagen: "+errMsg(err),true);}
 }
 async function delAbschlag(id){
@@ -2206,7 +2243,7 @@ function init(){
   if(!savedTheme)savedTheme=(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";
   applyV2Theme(savedTheme==="dark");
   var tgl=$("#v2theme");if(tgl)tgl.addEventListener("click",function(){applyV2Theme(!document.body.classList.contains("v2dark"));});
-  function onNavClick(e){var b=e.target.closest(".tab");if(!b)return;if(b.dataset.cat){activeCat=b.dataset.cat;tarifeOpen=false;expandedGroups={};if(document.body.classList.contains("settings-open"))closeSettings();if(document.body.classList.contains("docs-open"))closeDocs();renderApp();window.scrollTo({top:0,behavior:"smooth"});}else if(b.id==="accountBtnM"){toggleSettings();}}
+  function onNavClick(e){var b=e.target.closest(".tab");if(!b)return;if(b.dataset.cat){activeCat=b.dataset.cat;catPane="erfassen";tSec={};expandedGroups={};if(document.body.classList.contains("settings-open"))closeSettings();if(document.body.classList.contains("docs-open"))closeDocs();renderApp();window.scrollTo({top:0,behavior:"smooth"});}else if(b.id==="accountBtnM"){toggleSettings();}}
   var navS=$("#tabs");if(navS)navS.addEventListener("click",onNavClick);
   var navM=$("#tabsMobile");if(navM)navM.addEventListener("click",onNavClick);
   $("#app").addEventListener("click",onAppClick);
