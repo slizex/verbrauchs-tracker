@@ -1048,9 +1048,19 @@ function ovChartBody(metric,cat){
 }
 function refreshOvChart(){var w=$("#ovchartwrap");if(w)w.innerHTML=ovChartWrap();}
 var reminderDismissed=false;
+/* Letzter abgeschlossener Abrechnungsmonat ("YYYY-MM") – der laufende Monat kann noch nicht abgelesen werden */
+function prevBillKey(){
+  var t=todayISO(),y=Number(t.slice(0,4)),m=Number(t.slice(5,7));
+  return m===1?(y-1)+"-12":y+"-"+String(m-1).padStart(2,"0");
+}
 function readingsDue(){
-  var cm=todayISO().slice(0,7);
-  return householdCats().filter(function(c){return STATE[c].tariffs.length>0 && !STATE[c].readings.some(function(r){return r.datum.slice(0,7)===cm;});});
+  var pk=prevBillKey();
+  return householdCats().filter(function(c){
+    if(!STATE[c].tariffs.length||!STATE[c].readings.length)return false;
+    var rs=readingsAsc(c);
+    if(billKey(rs[0].datum)>pk)return false; /* Erfassung begann erst nach diesem Monat */
+    return !rs.some(function(r){return billKey(r.datum)===pk;});
+  });
 }
 function householdChipHtml(){
   if(HOUSEHOLDS.length<2)return "";
@@ -1062,7 +1072,7 @@ function reminderHtml(){
   if(!due.length)return "";
   var names=due.map(function(c){return CATS[c].icon+" "+CATS[c].label;}).join(", ");
   var btns=due.map(function(c){return '<button class="rembtn" data-action="rem-goto" data-cat="'+c+'">'+CATS[c].icon+' '+CATS[c].label+' eintragen</button>';}).join("");
-  return '<div class="rembanner"><div class="remrow"><span class="remtxt">🔔 Für diesen Monat fehlt noch eine Ablesung: <b>'+names+'</b></span><button class="remclose" data-action="rem-dismiss" aria-label="Ausblenden">✕</button></div><div class="rembtns">'+btns+'</div></div>';
+  return '<div class="rembanner"><div class="remrow"><span class="remtxt">🔔 Für <b>'+monthLabel(prevBillKey())+'</b> fehlt noch eine Ablesung: <b>'+names+'</b></span><button class="remclose" data-action="rem-dismiss" aria-label="Ausblenden">✕</button></div><div class="rembtns">'+btns+'</div></div>';
 }
 function topBanners(){return householdChipHtml()+reminderHtml();}
 function renderApp(){
