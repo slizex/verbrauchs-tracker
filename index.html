@@ -233,9 +233,15 @@ body.v2dark .mcflag{color:#fcd34d}
 .remclose{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem}
 .rembtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .rembtn{background:var(--accent);color:var(--accent-fg);border:none;border-radius:var(--radius-sm);padding:8px 12px;font:inherit;font-weight:600;font-size:.84rem;cursor:pointer}
-.hhchip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--panel);color:var(--fg);border-radius:99px;padding:6px 13px;cursor:pointer;font:inherit;font-size:.84rem}
-.hhchipname{font-weight:600}
-.hhchipx{color:var(--muted)}
+/* Haushalts-Umschalter in der Kopfzeile (Dropdown) */
+.hhtopwrap{position:relative}
+.hhtopname{font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hhtopchev{color:var(--muted2);font-size:.68rem}
+.hhmenu{position:absolute;top:calc(100% + 8px);right:0;min-width:215px;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);padding:6px;z-index:60;display:flex;flex-direction:column;gap:2px}
+.hhmenuitem{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:none;background:none;color:var(--fg);font:inherit;font-size:.9rem;font-weight:500;padding:9px 11px;border-radius:8px;cursor:pointer;text-align:left}
+.hhmenuitem:hover{background:var(--panel2)}
+.hhmenuitem .on{color:var(--accent);font-weight:700}
+.hhmenuitem.manage{color:var(--muted);margin-top:4px;border-top:1px solid var(--border);border-radius:0 0 8px 8px}
 
 /* placeholder */
 .placeholder{text-align:center;padding:48px 16px;color:var(--muted)}
@@ -440,6 +446,10 @@ body.settings-open #docsView{display:none}
     <div class="topbar2">
       <div class="pagetitle" id="pageTitle">Strom</div>
       <div class="topactions">
+        <div class="hhtopwrap" id="hhTopWrap" hidden>
+          <button class="iconchip" id="hhTopBtn" title="Haushalt wechseln" aria-haspopup="true">👨‍👩‍👧 <span class="hhtopname" id="hhTopName"></span> <span class="hhtopchev">▾</span></button>
+          <div class="hhmenu" id="hhTopMenu" hidden></div>
+        </div>
         <button class="iconchip" id="docsBtn" title="Dokumente" aria-label="Dokumente" hidden>📁</button>
         <button class="iconchip" id="v2theme" title="Hell/Dunkel umschalten" aria-label="Hell oder Dunkel umschalten">🌙</button>
       </div>
@@ -1062,9 +1072,17 @@ function readingsDue(){
     return !rs.some(function(r){return billKey(r.datum)===pk;});
   });
 }
-function householdChipHtml(){
-  if(HOUSEHOLDS.length<2)return "";
-  return '<button class="hhchip" data-action="open-account"><span class="hhchipname">👨‍👩‍👧 '+escapeHtml(activeHouseholdName())+'</span><span class="hhchipx">wechseln ›</span></button>';
+/* Haushalts-Umschalter in der Kopfzeile: nur sichtbar bei mehreren Haushalten */
+function renderHhTop(){
+  var w=$("#hhTopWrap");if(!w)return;
+  if(!currentUser||HOUSEHOLDS.length<2){w.hidden=true;return;}
+  w.hidden=false;
+  var n=$("#hhTopName");if(n)n.textContent=activeHouseholdName();
+  var m=$("#hhTopMenu");
+  if(m)m.innerHTML=HOUSEHOLDS.map(function(h){
+    var on=h.id===activeHousehold;
+    return '<button type="button" class="hhmenuitem" data-id="'+h.id+'"><span>'+escapeHtml(h.name||"Haushalt")+'</span>'+(on?'<span class="on">✓</span>':"")+'</button>';
+  }).join("")+'<button type="button" class="hhmenuitem manage" data-manage="1">⚙️ Haushalte verwalten</button>';
 }
 function reminderHtml(){
   if(reminderDismissed)return "";
@@ -1074,12 +1092,12 @@ function reminderHtml(){
   var btns=due.map(function(c){return '<button class="rembtn" data-action="rem-goto" data-cat="'+c+'">'+CATS[c].icon+' '+CATS[c].label+' eintragen</button>';}).join("");
   return '<div class="rembanner"><div class="remrow"><span class="remtxt">🔔 Für <b>'+monthLabel(prevBillKey())+'</b> fehlt noch eine Ablesung: <b>'+names+'</b></span><button class="remclose" data-action="rem-dismiss" aria-label="Ausblenden">✕</button></div><div class="rembtns">'+btns+'</div></div>';
 }
-function topBanners(){return householdChipHtml()+reminderHtml();}
+function topBanners(){return reminderHtml();}
 function renderApp(){
   editingId=null;
   document.body.setAttribute("data-cat",activeCat);
   document.querySelectorAll(".tab").forEach(function(b){b.classList.toggle("active",b.dataset.cat===activeCat);});
-  updatePageTitle();
+  updatePageTitle();renderHhTop();
   var app=$("#app"),banners=topBanners();
   if(activeCat==="overview"){app.innerHTML=banners+renderOverview();return;}
   if(CATS[activeCat]&&CATS[activeCat].tariffFields){app.innerHTML=banners+categoryShell(activeCat);wireCategory();updateResult();renderVerlauf();renderTarife();applyPane();}
@@ -1426,7 +1444,6 @@ function onAppClick(e){
   else if(act==="ovscope"){ovScope=btn.dataset.val;refreshOvChart();}
   else if(act==="onb-tariff"){catPane="tarif";tSec.neu=true;renderTarife();applyPane();var tf=$("#tarifForm");if(tf){tf.scrollIntoView({behavior:"smooth",block:"center"});var fa=$("#tf_anbieter");if(fa)setTimeout(function(){try{fa.focus({preventScroll:true});}catch(e){}},220);}}
   else if(act==="onb-reading"){var zi=$("#zaehlerstand");if(zi){zi.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zi.focus({preventScroll:true});}catch(e){}},220);}}
-  else if(act==="open-account")openSettings();
   else if(act==="rem-dismiss"){reminderDismissed=true;renderApp();}
   else if(act==="rem-goto"){activeCat=btn.dataset.cat;catPane="erfassen";tSec={};expandedGroups={};renderApp();var zr=$("#zaehlerstand");if(zr){zr.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zr.focus({preventScroll:true});}catch(e){}},250);}}
   else if(act==="ovbar"){var ot=$("#ovbartip");if(ot)ot.textContent=btn.dataset.tip;}
@@ -1968,7 +1985,7 @@ function applyV2Theme(dark){
   try{localStorage.setItem("vtV2Theme",dark?"dark":"light");}catch(e){}
 }
 /* ---------- Auth ---------- */
-function showAuth(show){document.body.classList.toggle("app-hidden",show);if(show){document.body.classList.remove("settings-open");document.body.classList.remove("docs-open");}var a=$("#authscreen");if(a)a.hidden=!show;var ab=$("#accountBtn");if(ab)ab.hidden=show;var db=$("#docsBtn");if(db)db.hidden=show;}
+function showAuth(show){document.body.classList.toggle("app-hidden",show);if(show){document.body.classList.remove("settings-open");document.body.classList.remove("docs-open");}var a=$("#authscreen");if(a)a.hidden=!show;var ab=$("#accountBtn");if(ab)ab.hidden=show;var db=$("#docsBtn");if(db)db.hidden=show;if(show){var hw=$("#hhTopWrap");if(hw)hw.hidden=true;var hm=$("#hhTopMenu");if(hm)hm.hidden=true;}}
 function openSettings(){if(!currentUser)return;renderAccount();document.body.classList.add("settings-open");updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
 function closeSettings(){document.body.classList.remove("settings-open");updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
 function toggleSettings(){if(document.body.classList.contains("settings-open"))closeSettings();else openSettings();}
@@ -2106,6 +2123,7 @@ function onboardingHtml(cat){
   return '<section class="card onb"><h2 class="sect">🚀 '+c.icon+' '+c.label+' einrichten</h2><p>Nur noch wenige Angaben, dann rechnet die App automatisch:</p><ol class="onbsteps">'+s1+s2+'</ol></section>';
 }
 function renderAccount(){
+  renderHhTop();
   var body=$("#accountBody");if(!body)return;
   if(!currentUser){body.innerHTML="";return;}
   var email=escapeHtml(currentUser.email||"");
@@ -2257,6 +2275,16 @@ function init(){
   var navS=$("#tabs");if(navS)navS.addEventListener("click",onNavClick);
   var navM=$("#tabsMobile");if(navM)navM.addEventListener("click",onNavClick);
   $("#app").addEventListener("click",onAppClick);
+  /* Haushalts-Dropdown in der Kopfzeile */
+  var hhBtn=$("#hhTopBtn"),hhMenu=$("#hhTopMenu");
+  if(hhBtn)hhBtn.addEventListener("click",function(e){e.stopPropagation();if(hhMenu)hhMenu.hidden=!hhMenu.hidden;});
+  if(hhMenu)hhMenu.addEventListener("click",function(e){
+    var b=e.target.closest(".hhmenuitem");if(!b)return;
+    hhMenu.hidden=true;
+    if(b.dataset.manage){openSettings();return;}
+    switchHousehold(b.dataset.id);
+  });
+  document.addEventListener("click",function(e){if(hhMenu&&!hhMenu.hidden&&!e.target.closest("#hhTopWrap"))hhMenu.hidden=true;});
   $("#exportBtn").addEventListener("click",exportData);
   $("#importBtn").addEventListener("click",function(){$("#importFile").click();});
   $("#importFile").addEventListener("change",onImport);
