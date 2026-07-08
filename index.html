@@ -1064,12 +1064,15 @@ function prevBillKey(){
   return m===1?(y-1)+"-12":y+"-"+String(m-1).padStart(2,"0");
 }
 function readingsDue(){
-  var pk=prevBillKey();
+  var pk=prevBillKey(),pIdx=Number(pk.slice(0,4))*12+(Number(pk.slice(5,7))-1);
   return householdCats().filter(function(c){
     if(!STATE[c].tariffs.length||!STATE[c].readings.length)return false;
     var rs=readingsAsc(c);
-    if(billKey(rs[0].datum)>pk)return false; /* Erfassung begann erst nach diesem Monat */
-    return !rs.some(function(r){return billKey(r.datum)===pk;});
+    var firstIdx=billIndex(rs[0].datum),lastIdx=billIndex(rs[rs.length-1].datum);
+    if(firstIdx>pIdx)return false; /* Erfassung begann erst nach diesem Monat */
+    /* Der Vormonat gilt als abgedeckt, sobald eine Ablesung an/nach ihm existiert –
+       Lücken dazwischen werden ja automatisch berechnet (auch das ist ein Wert). */
+    return lastIdx<pIdx;
   });
 }
 /* Haushalts-Umschalter in der Kopfzeile: nur sichtbar bei mehreren Haushalten */
