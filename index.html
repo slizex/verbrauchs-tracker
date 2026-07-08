@@ -475,6 +475,16 @@ body.settings-open #docsView{display:none}
       <label class="biorow"><input type="checkbox" id="bioToggle"><span id="bioToggleLabel">Beim Öffnen nach Fingerabdruck / Gesicht fragen</span></label>
     </section>
 
+    <section class="card installcard" id="aiSettings">
+      <h3 class="insth">🤖 KI-Erkennung von Dokumenten</h3>
+      <p class="insthint">Legt fest, wie gründlich Tarife und Jahresabrechnungen aus hochgeladenen Dokumenten ausgelesen werden.</p>
+      <select id="aiLevelSel" class="hhfull">
+        <option value="basic">Einfach – schnell &amp; günstig (Standard)</option>
+        <option value="advanced">Fortgeschritten – gründlicher, bessere Ergebnisse</option>
+      </select>
+      <p class="insthint" id="aiLevelHint"></p>
+    </section>
+
     <details class="foot">
       <summary>📄 Daten &amp; Sicherung</summary>
       <div class="footbody">
@@ -598,6 +608,26 @@ async function scheduleMonthlyReminder(){
     }]});
   }catch(e){}
 }
+/* Proaktive Erinnerung an Kündigungsfristen (eine lokale Benachrichtigung ~14 Tage vorher). */
+async function scheduleTariffDeadlineNotifs(){
+  if(!IS_NATIVE)return;
+  var LN=capPlugin("LocalNotifications");if(!LN)return;
+  try{
+    var perm=await LN.requestPermissions();
+    if(perm&&perm.display&&perm.display!=="granted")return;
+    var notifs=[];
+    householdCats().forEach(function(c,i){
+      var cur=tariffForDate(c,todayISO());if(!cur)return;
+      var ki=kuendigungInfo(cur);
+      if(!ki||ki.kind!=="fixed")return;
+      var at=new Date(addDays(ki.deadline,-14)+"T09:00:00");
+      if(at.getTime()<=Date.now())return; /* liegt in der Vergangenheit -> deckt der In-App-Banner ab */
+      notifs.push({id:4300+i,title:"Kündigungsfrist läuft ab",body:CATS[c].label+"-Tarif ("+(cur.anbieter||"")+") ist nur noch bis "+deDate(ki.deadline)+" kündbar.",schedule:{at:at,allowWhileIdle:true}});
+    });
+    try{await LN.cancel({notifications:[{id:4300},{id:4301},{id:4302}]});}catch(e){}
+    if(notifs.length)await LN.schedule({notifications:notifs});
+  }catch(e){}
+}
 /* Fingerabdruck / Gesicht (optional, kann nie aussperren – Passwort bleibt Ausweg). */
 function bioLockOn(){try{return localStorage.getItem("vt_biolock")==="1";}catch(e){return false;}}
 async function bioAvailable(){var NB=capPlugin("NativeBiometric");if(!NB)return false;try{var r=await NB.isAvailable();return !!(r&&r.isAvailable);}catch(e){return false;}}
@@ -697,6 +727,38 @@ function deDate(iso){if(!iso)return"";var p=iso.split("-");return p[2]+"."+p[1]+
 function monthLabel(iso){var n=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];var p=iso.split("-");return n[Number(p[1])-1]+" "+p[0];}
 function addDays(iso,d){var p=iso.split("-").map(Number);var dt=new Date(p[0],p[1]-1,p[2]);dt.setDate(dt.getDate()+d);return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
 function addMonthsISO(iso,m){var p=iso.split("-").map(Number);var dt=new Date(p[0],p[1]-1+m,p[2]);return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
+/* ---------- Kündigung: Laufzeit + Frist ---------- */
+var LZ_LABEL={"flex":"Monatlich kündbar","12":"12 Monate (1 Jahr)","24":"24 Monate (2 Jahre)"};
+var KF_LABEL={"keine":"jederzeit / monatlich","2wochen":"2 Wochen","4wochen":"4 Wochen","6wochen":"6 Wochen","1monat":"1 Monat","3monate":"3 Monate"};
+function kfLabel(code){return KF_LABEL[code]||"";}
+/* Kündigungsfrist von einem Datum zurückrechnen -> spätester Kündigungstermin */
+function kfSub(iso,code){
+  switch(code){
+    case "2wochen":return addDays(iso,-14);
+    case "4wochen":return addDays(iso,-28);
+    case "6wochen":return addDays(iso,-42);
+    case "1monat":return addMonthsISO(iso,-1);
+    case "3monate":return addMonthsISO(iso,-3);
+    default:return iso;
+  }
+}
+/* Intelligente Kündigungs-Info für einen (aktuellen) Tarif */
+function kuendigungInfo(t){
+  if(!t)return null;
+  var start=t.vertragsstart||t.gueltigAb;
+  if(t.laufzeit==="12"||t.laufzeit==="24"){
+    var months=Number(t.laufzeit);
+    if(!start)return {kind:"fixed-nostart",months:months};
+    var end=addMonthsISO(start,months);                    // Verlängerungsstichtag (Tag nach Vertragsende)
+    var deadline=kfSub(end,t.kuendigungsfrist||"keine");   // spätester Kündigungstermin
+    var today=todayISO();
+    var days=Math.round((new Date(deadline)-new Date(today))/86400000);
+    return {kind:"fixed",months:months,end:addDays(end,-1),deadline:deadline,days:days,ended:today>=end,frist:t.kuendigungsfrist||""};
+  }
+  if(t.laufzeit==="flex")return {kind:"flex",frist:t.kuendigungsfrist||""};
+  if(t.kuendigungsfrist)return {kind:"note",frist:t.kuendigungsfrist};
+  return null;
+}
 /* Abrechnungsmonat: Ablesung am Monatsanfang zählt für den Vormonat (Ablesedatum minus 1 Tag) */
 function billISO(iso){return addDays(iso,-1);}
 function billKey(iso){return billISO(iso).slice(0,7);}
@@ -726,10 +788,10 @@ function normalize(d){var b=defaults();if(!d||typeof d!=="object")return b;["str
 function gasFactor(){var c=STATE.gas.conversion||defConv();return numOr(c.wandelfaktor,1)*numOr(c.zustandszahl,0)*numOr(c.brennwert,0);}
 function errMsg(e){return (e&&e.message)?e.message:String(e||"Unbekannter Fehler");}
 function nOrNull(x){return (x==null||x==="")?null:Number(x);}
-function rowToTariff(r){var t={id:r.id,anbieter:r.anbieter||"",grundpreisJahr:Number(r.grundpreis_jahr),abschlag:Number(r.abschlag),gueltigAb:r.gueltig_ab,erstelltAm:r.erstellt_am};if(r.arbeitspreis!=null)t.arbeitspreis=Number(r.arbeitspreis);if(r.wasser_kanal!=null)t.wasserKanal=Number(r.wasser_kanal);if(r.laufzeit)t.laufzeit=r.laufzeit;if(r.vertragsstart)t.vertragsstart=r.vertragsstart;if(r.kundennummer)t.kundennummer=r.kundennummer;return t;}
+function rowToTariff(r){var t={id:r.id,anbieter:r.anbieter||"",grundpreisJahr:Number(r.grundpreis_jahr),abschlag:Number(r.abschlag),gueltigAb:r.gueltig_ab,erstelltAm:r.erstellt_am};if(r.arbeitspreis!=null)t.arbeitspreis=Number(r.arbeitspreis);if(r.wasser_kanal!=null)t.wasserKanal=Number(r.wasser_kanal);if(r.laufzeit)t.laufzeit=r.laufzeit;if(r.kuendigungsfrist)t.kuendigungsfrist=r.kuendigungsfrist;if(r.vertragsstart)t.vertragsstart=r.vertragsstart;if(r.kundennummer)t.kundennummer=r.kundennummer;return t;}
 function rowToReading(r){var o={id:r.id,datum:r.datum,zaehlerstand:Number(r.zaehlerstand),erfasstAm:r.erfasst_am};if(r.startwert!=null)o.startwert=Number(r.startwert);if(r.zaehlerstand_kwh!=null)o.zaehlerstandKwh=Number(r.zaehlerstand_kwh);return o;}
 function rowToAbschlag(r){return {id:r.id,betrag:Number(r.betrag),gueltigAb:r.gueltig_ab,erstelltAm:r.erstellt_am};}
-function tariffToCols(cat,t){return {category:cat,anbieter:t.anbieter||null,grundpreis_jahr:nOrNull(t.grundpreisJahr),arbeitspreis:nOrNull(t.arbeitspreis),wasser_kanal:nOrNull(t.wasserKanal),abschlag:nOrNull(t.abschlag),laufzeit:t.laufzeit||null,vertragsstart:t.vertragsstart||null,kundennummer:t.kundennummer||null,gueltig_ab:t.gueltigAb,erstellt_am:t.erstelltAm||new Date().toISOString(),household_id:activeHousehold};}
+function tariffToCols(cat,t){return {category:cat,anbieter:t.anbieter||null,grundpreis_jahr:nOrNull(t.grundpreisJahr),arbeitspreis:nOrNull(t.arbeitspreis),wasser_kanal:nOrNull(t.wasserKanal),abschlag:nOrNull(t.abschlag),laufzeit:t.laufzeit||null,kuendigungsfrist:t.kuendigungsfrist||null,vertragsstart:t.vertragsstart||null,kundennummer:t.kundennummer||null,gueltig_ab:t.gueltigAb,erstellt_am:t.erstelltAm||new Date().toISOString(),household_id:activeHousehold};}
 function readingToCols(cat,r){return {category:cat,datum:r.datum,zaehlerstand:nOrNull(r.zaehlerstand),startwert:(r.startwert!=null?Number(r.startwert):null),zaehlerstand_kwh:(r.zaehlerstandKwh!=null?Number(r.zaehlerstandKwh):null),erfasst_am:r.erfasstAm||new Date().toISOString(),household_id:activeHousehold};}
 function abschlagToCols(cat,a){return {category:cat,betrag:nOrNull(a.betrag),gueltig_ab:a.gueltigAb,erstellt_am:a.erstelltAm||new Date().toISOString(),household_id:activeHousehold};}
 async function loadFromDB(){
@@ -1095,7 +1157,24 @@ function reminderHtml(){
   var btns=due.map(function(c){return '<button class="rembtn" data-action="rem-goto" data-cat="'+c+'">'+CATS[c].icon+' '+CATS[c].label+' eintragen</button>';}).join("");
   return '<div class="rembanner"><div class="remrow"><span class="remtxt">🔔 Für <b>'+monthLabel(prevBillKey())+'</b> fehlt noch eine Ablesung: <b>'+names+'</b></span><button class="remclose" data-action="rem-dismiss" aria-label="Ausblenden">✕</button></div><div class="rembtns">'+btns+'</div></div>';
 }
-function topBanners(){return reminderHtml();}
+var cancelRemDismissed=false;
+/* Aktuelle Tarife, deren Kündigungsfrist in den nächsten 45 Tagen ausläuft */
+function tariffsNearDeadline(){
+  return householdCats().filter(function(c){
+    var cur=tariffForDate(c,todayISO());if(!cur)return false;
+    var ki=kuendigungInfo(cur);
+    return ki&&ki.kind==="fixed"&&ki.days>=0&&ki.days<=45;
+  });
+}
+function cancelReminderHtml(){
+  if(cancelRemDismissed)return "";
+  var due=tariffsNearDeadline();
+  if(!due.length)return "";
+  var lines=due.map(function(c){var cur=tariffForDate(c,todayISO()),ki=kuendigungInfo(cur);return CATS[c].icon+" "+CATS[c].label+" (bis "+deDate(ki.deadline)+")";}).join(", ");
+  var btns=due.map(function(c){return '<button class="rembtn" data-action="cancel-goto" data-cat="'+c+'">'+CATS[c].icon+' '+CATS[c].label+' – Tarif prüfen</button>';}).join("");
+  return '<div class="rembanner"><div class="remrow"><span class="remtxt">⏰ <b>Kündigungsfrist läuft bald ab:</b> '+lines+'. Jetzt kündigen oder Preise vergleichen.</span><button class="remclose" data-action="cancelrem-dismiss" aria-label="Ausblenden">✕</button></div><div class="rembtns">'+btns+'</div></div>';
+}
+function topBanners(){return reminderHtml()+cancelReminderHtml();}
 function renderApp(){
   editingId=null;
   document.body.setAttribute("data-cat",activeCat);
@@ -1304,21 +1383,24 @@ function tariffCard(t,current){
   var gueltig="gültig ab "+deDate(t.gueltigAb)+(bis?" bis "+deDate(bis):" (laufend)");
   var si=tariffSaldoInfo(cat,t.id),sp=si.saldo>=0;
   var saldoLine=si.months?'<div class="tcardsaldo '+(sp?"plus":"minus")+'">Tarif-Saldo: '+(sp?"+":"")+eur(si.saldo)+' · '+(sp?"Guthaben":"Nachzahlung")+' ('+si.months+' Monat'+(si.months===1?"":"e")+')</div>':"";
-  var lzLabel={flex:"Flexibel / monatlich kündbar","12":"12 Monate","24":"24 Monate"};
   var optRows="";
-  if(t.laufzeit)optRows+='<div><span>Laufzeit</span><b>'+(lzLabel[t.laufzeit]||escapeHtml(String(t.laufzeit)))+'</b></div>';
+  if(t.laufzeit)optRows+='<div><span>Vertragslaufzeit</span><b>'+(LZ_LABEL[t.laufzeit]||escapeHtml(String(t.laufzeit)))+'</b></div>';
+  if(t.kuendigungsfrist)optRows+='<div><span>Kündigungsfrist</span><b>'+escapeHtml(kfLabel(t.kuendigungsfrist)||String(t.kuendigungsfrist))+'</b></div>';
   if(t.vertragsstart)optRows+='<div><span>Vertragsstart</span><b>'+deDate(t.vertragsstart)+'</b></div>';
   if(t.kundennummer)optRows+='<div><span>Kundennummer</span><b>'+escapeHtml(t.kundennummer)+'</b></div>';
-  /* Mindestlaufzeit: Ende anzeigen und rechtzeitig ans Kündigen/Vergleichen erinnern */
+  /* Intelligente Kündigungs-Info nur beim aktuellen Tarif */
   var runtimeNote="";
-  if(current&&(t.laufzeit==="12"||t.laufzeit==="24")){
-    var lzStart=t.vertragsstart||t.gueltigAb;
-    if(lzStart){
-      var lzEnd=addDays(addMonthsISO(lzStart,Number(t.laufzeit)),-1);
-      var lzDays=Math.round((new Date(lzEnd)-new Date(todayISO()))/86400000);
-      if(lzDays<0)runtimeNote='<div class="notice" style="margin-top:10px">⏰ Die Mindestlaufzeit ist seit '+deDate(lzEnd)+' vorbei – der Vertrag ist jetzt meist monatlich kündbar. Guter Zeitpunkt, Preise zu vergleichen.</div>';
-      else if(lzDays<=60)runtimeNote='<div class="notice warn" style="margin-top:10px">⏰ Mindestlaufzeit endet am <b>'+deDate(lzEnd)+'</b> (in '+lzDays+' Tagen) – jetzt Kündigungsfrist prüfen und Preise vergleichen.</div>';
-      else runtimeNote='<div class="tvalid">📅 Mindestlaufzeit bis '+deDate(lzEnd)+'</div>';
+  if(current){
+    var ki=kuendigungInfo(t);
+    if(ki&&ki.kind==="fixed"){
+      if(ki.ended)runtimeNote='<div class="notice" style="margin-top:10px">✅ Die Mindestlaufzeit ist abgelaufen – der Vertrag ist jetzt in der Regel monatlich kündbar. Guter Zeitpunkt, Preise zu vergleichen.</div>';
+      else if(ki.days<0)runtimeNote='<div class="notice warn" style="margin-top:10px">⏰ Die Kündigungsfrist (bis '+deDate(ki.deadline)+') ist verstrichen – der Vertrag verlängert sich zum '+deDate(ki.end)+', danach meist monatlich kündbar.</div>';
+      else if(ki.days<=60)runtimeNote='<div class="notice warn" style="margin-top:10px">⏰ <b>Jetzt kündbar bis '+deDate(ki.deadline)+'</b> (in '+ki.days+' Tagen)! Danach verlängert sich der Vertrag automatisch – jetzt kündigen oder Preise vergleichen.</div>';
+      else runtimeNote='<div class="tvalid">📅 Kündbar bis '+deDate(ki.deadline)+' · Vertragsende '+deDate(ki.end)+(ki.frist&&ki.frist!=="keine"?' · Frist '+kfLabel(ki.frist):"")+'</div>';
+    }else if(ki&&ki.kind==="fixed-nostart"){
+      runtimeNote='<div class="tvalid">📅 '+ki.months+' Monate Laufzeit – für die Kündigungserinnerung bitte oben den <b>Vertragsstart</b> ergänzen.</div>';
+    }else if(ki&&ki.kind==="flex"){
+      runtimeNote='<div class="tvalid">✅ Monatlich kündbar'+(ki.frist&&ki.frist!=="keine"?' · Frist '+kfLabel(ki.frist):"")+'</div>';
     }
   }
   return '<div class="tcard '+(current?"current":"")+'">'+
@@ -1389,7 +1471,8 @@ function renderTarife(){
     '<form id="tarifForm" class="tarifform">'+formFields+
       '<label>Gültig ab<input type="date" id="tf_gueltig" value="'+todayISO()+'"></label>'+
       '<div class="optsep">Optionale Vertragsdetails</div>'+
-      '<label>Laufzeit<select id="tf_laufzeit"><option value="">— keine Angabe —</option><option value="flex">Flexibel / monatlich kündbar</option><option value="12">12 Monate</option><option value="24">24 Monate</option></select></label>'+
+      '<label>Vertragslaufzeit<select id="tf_laufzeit"><option value="">— keine Angabe —</option><option value="flex">Monatlich kündbar</option><option value="12">12 Monate (1 Jahr)</option><option value="24">24 Monate (2 Jahre)</option></select></label>'+
+      '<label>Kündigungsfrist<select id="tf_kuendigungsfrist"><option value="">— keine Angabe —</option><option value="keine">Jederzeit / monatlich kündbar</option><option value="2wochen">2 Wochen</option><option value="4wochen">4 Wochen</option><option value="6wochen">6 Wochen</option><option value="1monat">1 Monat</option><option value="3monate">3 Monate</option></select></label>'+
       '<label>Vertragsstart<input type="date" id="tf_vertragsstart"></label>'+
       '<label>Kundennummer<input type="text" id="tf_kundennummer" placeholder="optional" autocomplete="off"></label>'+
       '<button type="submit" class="btn">Tarif speichern</button>'+
@@ -1450,6 +1533,8 @@ function onAppClick(e){
   else if(act==="onb-tariff"){catPane="tarif";tSec.neu=true;renderTarife();applyPane();var tf=$("#tarifForm");if(tf){tf.scrollIntoView({behavior:"smooth",block:"center"});var fa=$("#tf_anbieter");if(fa)setTimeout(function(){try{fa.focus({preventScroll:true});}catch(e){}},220);}}
   else if(act==="onb-reading"){var zi=$("#zaehlerstand");if(zi){zi.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zi.focus({preventScroll:true});}catch(e){}},220);}}
   else if(act==="rem-dismiss"){reminderDismissed=true;renderApp();}
+  else if(act==="cancelrem-dismiss"){cancelRemDismissed=true;renderApp();}
+  else if(act==="cancel-goto"){activeCat=btn.dataset.cat;catPane="tarif";tSec={};expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});}
   else if(act==="rem-goto"){activeCat=btn.dataset.cat;catPane="erfassen";tSec={};expandedGroups={};renderApp();var zr=$("#zaehlerstand");if(zr){zr.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zr.focus({preventScroll:true});}catch(e){}},250);}}
   else if(act==="ovbar"){var ot=$("#ovbartip");if(ot)ot.textContent=btn.dataset.tip;}
 }
@@ -1548,6 +1633,7 @@ async function onTarifSubmit(e){
   });
   if(!ok){toast("Bitte gültig ausfüllen: "+msg,true);return;}
   var lz=$("#tf_laufzeit");if(lz&&lz.value)obj.laufzeit=lz.value;
+  var kf=$("#tf_kuendigungsfrist");if(kf&&kf.value)obj.kuendigungsfrist=kf.value;
   var vs=$("#tf_vertragsstart");if(vs&&vs.value)obj.vertragsstart=vs.value;
   var kn=$("#tf_kundennummer");if(kn&&(kn.value||"").trim())obj.kundennummer=kn.value.trim();
   var hadCurrent=!!tariffForDate(cat,todayISO());
@@ -1671,6 +1757,7 @@ async function docDelete(id){
   }catch(err){toast("Löschen fehlgeschlagen: "+errMsg(err),true);}
 }
 function fileToBase64(file){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){var s=String(r.result||"");var i=s.indexOf(",");res(i>=0?s.slice(i+1):s);};r.onerror=function(){rej(new Error("Datei konnte nicht gelesen werden."));};r.readAsDataURL(file);});}
+function aiLevel(){try{return localStorage.getItem("vt_ai_level")==="advanced"?"advanced":"basic";}catch(e){return "basic";}}
 async function onAiTarifFile(e){
   var file=e.target.files&&e.target.files[0];if(!file)return;
   e.target.value="";
@@ -1683,7 +1770,7 @@ async function onAiTarifFile(e){
   try{var ap=await uploadDocFile(cat,file);var adoc=await addDocRecord(cat,file,ap,"tarif",null,null);lastAiDoc={id:adoc.id,cat:cat};}catch(arErr){console.warn("Archivierung fehlgeschlagen",arErr);}
   try{
     var b64=await fileToBase64(file);
-    var resp=await sb.functions.invoke("tarif-extract",{body:{fileBase64:b64,mimeType:file.type||"application/pdf",category:cat}});
+    var resp=await sb.functions.invoke("tarif-extract",{body:{fileBase64:b64,mimeType:file.type||"application/pdf",category:cat,level:aiLevel()}});
     if(resp.error)throw resp.error;
     var data=resp.data||{};
     if(data.error)throw new Error(data.error);
@@ -1703,6 +1790,7 @@ function fillTarifForm(cat,t){
   c.tariffFields.forEach(function(f){var v=t[f.key];if(v==null||v==="")return;setVal("#tf_"+f.key,f.num?numStr(v):String(v));});
   if(t.gueltigAb)setVal("#tf_gueltig",String(t.gueltigAb));
   var lz=$("#tf_laufzeit");if(lz&&t.laufzeit!=null){var lv=String(t.laufzeit);lz.value=(["","flex","12","24"].indexOf(lv)>=0?lv:"");}
+  var kf=$("#tf_kuendigungsfrist");if(kf&&t.kuendigungsfrist!=null){var kv=String(t.kuendigungsfrist);kf.value=(["","keine","2wochen","4wochen","6wochen","1monat","3monate"].indexOf(kv)>=0?kv:"");}
   if(t.vertragsstart)setVal("#tf_vertragsstart",String(t.vertragsstart));
   if(t.kundennummer)setVal("#tf_kundennummer",String(t.kundennummer));
   var n=$("#aiTarifNote");
@@ -1728,7 +1816,7 @@ async function onAbrFile(e){
   try{
     try{var ap=await uploadDocFile(cat,file);await addDocRecord(cat,file,ap,"abrechnung",null,null);}catch(arErr){console.warn("Archivierung fehlgeschlagen",arErr);}
     var b64=await fileToBase64(file);
-    var resp=await sb.functions.invoke("tarif-extract",{body:{fileBase64:b64,mimeType:file.type||"application/pdf",category:cat,mode:"abrechnung"}});
+    var resp=await sb.functions.invoke("tarif-extract",{body:{fileBase64:b64,mimeType:file.type||"application/pdf",category:cat,mode:"abrechnung",level:aiLevel()}});
     if(resp.error)throw resp.error;
     var data=resp.data||{};
     if(data.error)throw new Error(data.error);
@@ -2268,6 +2356,7 @@ async function enterApp(session){
   try{await loadFromDB();}catch(e){toast("Daten konnten nicht geladen werden: "+errMsg(e),true);}
   renderTabs();renderApp();renderAccount();
   try{await loadBackups();renderBackups();await maybeAutoBackup();}catch(e){}
+  try{scheduleTariffDeadlineNotifs();}catch(e){}
 }
 function handleSession(session){
   if(session&&session.user){
@@ -2303,6 +2392,12 @@ function init(){
     switchHousehold(b.dataset.id);
   });
   document.addEventListener("click",function(e){if(hhMenu&&!hhMenu.hidden&&!e.target.closest("#hhTopWrap"))hhMenu.hidden=true;});
+  /* KI-Qualitätsstufe */
+  var aiSel=$("#aiLevelSel"),aiHint=$("#aiLevelHint");
+  function aiHintTxt(){return aiLevel()==="advanced"?"Nutzt ein stärkeres KI-Modell – etwas langsamer, aber genauer bei kniffligen Dokumenten.":"Nutzt ein schnelles, günstiges KI-Modell – für die meisten Dokumente ausreichend.";}
+  if(aiSel){aiSel.value=aiLevel();if(aiHint)aiHint.textContent=aiHintTxt();
+    aiSel.addEventListener("change",function(){try{localStorage.setItem("vt_ai_level",aiSel.value==="advanced"?"advanced":"basic");}catch(e){}if(aiHint)aiHint.textContent=aiHintTxt();toast(aiSel.value==="advanced"?"KI-Erkennung: Fortgeschritten ✅":"KI-Erkennung: Einfach ✅");});
+  }
   $("#exportBtn").addEventListener("click",exportData);
   $("#importBtn").addEventListener("click",function(){$("#importFile").click();});
   $("#importFile").addEventListener("change",onImport);
