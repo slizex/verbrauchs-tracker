@@ -4,3 +4,7 @@ android/
 dist/
 package-lock.json
 *.log
+# Signatur-Schluessel NIEMALS committen – wird als GitHub-Secret hinterlegt
+*.p12
+*.keystore
+*.jks

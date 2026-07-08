@@ -1,18 +1,29 @@
 name: Android-APK bauen
 
 # Baut die native Android-App (Capacitor) und haengt die fertige .apk an ein Release.
-# Ausloesen: manuell ueber den "Run workflow"-Knopf, oder automatisch wenn sich
-# etwas im mobile/-Ordner (oder an diesem Workflow) aendert.
+# Laeuft automatisch bei jeder Aenderung an der Web-App (index.html) oder am mobile/-Ordner,
+# sowie manuell ueber den "Run workflow"-Knopf. Die APK wird immer mit DEMSELBEN Schluessel
+# (mobile/android-signing.p12) signiert, damit neue Versionen ohne Deinstallation
+# ueber die alte druebergespielt werden koennen.
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
     paths:
+      - 'index.html'
+      - 'manifest.webmanifest'
+      - 'icon-192.png'
+      - 'icon-512.png'
       - 'mobile/**'
       - '.github/workflows/build-apk.yml'
 
 permissions:
   contents: write
+
+# Laeuft immer nur der neueste Build; aeltere in Arbeit werden abgebrochen.
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -55,14 +66,54 @@ jobs:
         working-directory: mobile
         run: npx --no-install capacitor-assets generate --android || echo "Icon-Erzeugung uebersprungen"
 
-      - name: APK bauen (Debug, direkt installierbar)
+      # Wenn das Repo-Secret ANDROID_KEYSTORE_B64 gesetzt ist, wird die APK mit
+      # diesem festen Schluessel signiert (Updates ohne Deinstallation moeglich).
+      # Andernfalls faellt der Build auf eine Debug-Signatur zurueck (funktioniert
+      # ebenfalls, aber jede neue Version muss vorher deinstalliert werden).
+      - name: Signatur vorbereiten
+        id: signing
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$GITHUB_WORKSPACE/release.p12"
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+            echo "Fester Signatur-Schluessel gefunden."
+          else
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "Kein Schluessel-Secret – baue mit Debug-Signatur."
+          fi
+
+      - name: APK bauen
         working-directory: mobile/android
+        env:
+          KS_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleDebug --stacktrace
+          if [ "${{ steps.signing.outputs.signed }}" = "true" ]; then
+            ALIAS=$(keytool -list -keystore "$GITHUB_WORKSPACE/release.p12" -storepass "$KS_PW" -storetype PKCS12 2>/dev/null | awk -F, '/PrivateKeyEntry/{print $1; exit}')
+            if [ -z "$ALIAS" ]; then echo "Kein Schluessel-Alias gefunden"; exit 1; fi
+            echo "Signiere Release mit Alias: $ALIAS"
+            ./gradlew assembleRelease --stacktrace \
+              -Pandroid.injected.signing.store.file="$GITHUB_WORKSPACE/release.p12" \
+              -Pandroid.injected.signing.store.password="$KS_PW" \
+              -Pandroid.injected.signing.key.alias="$ALIAS" \
+              -Pandroid.injected.signing.key.password="$KS_PW"
+          else
+            ./gradlew assembleDebug --stacktrace
+          fi
 
-      - name: APK umbenennen
-        run: cp mobile/android/app/build/outputs/apk/debug/app-debug.apk verbrauchs-tracker.apk
+      - name: Fertige APK einsammeln
+        run: |
+          REL="mobile/android/app/build/outputs/apk/release/app-release.apk"
+          DBG="mobile/android/app/build/outputs/apk/debug/app-debug.apk"
+          if [ -f "$REL" ]; then cp "$REL" verbrauchs-tracker.apk
+          elif [ -f "$DBG" ]; then cp "$DBG" verbrauchs-tracker.apk
+          else
+            echo "Keine APK gefunden:"; ls -R mobile/android/app/build/outputs/apk || true; exit 1
+          fi
+          rm -f "$GITHUB_WORKSPACE/release.p12"
+          ls -l verbrauchs-tracker.apk
 
       - name: APK als Download bereitstellen
         uses: actions/upload-artifact@v4
@@ -78,9 +129,14 @@ jobs:
           prerelease: true
           files: verbrauchs-tracker.apk
           body: |
-            Automatisch gebaute Android-App (Debug-Signatur, fuer die eigene Nutzung).
+            Automatisch gebaute Android-App – aktualisiert sich bei jeder Aenderung an der App.
+            Immer mit demselben Schluessel signiert, daher ohne Deinstallation aktualisierbar.
 
-            **Installation auf dem Handy:**
+            **Installation / Update auf dem Handy:**
             1. Datei `verbrauchs-tracker.apk` unten antippen und herunterladen.
-            2. In der heruntergeladenen Datei auf "Installieren" tippen.
-            3. Falls gefragt: "Installation aus unbekannten Quellen" fuer den Browser/Dateimanager einmalig erlauben.
+            2. In der heruntergeladenen Datei auf "Installieren" (bzw. "Aktualisieren") tippen.
+            3. Beim allerersten Mal ggf. "Installation aus unbekannten Quellen" fuer den Browser/Dateimanager erlauben.
+
+            Hinweis: Wenn zuvor eine aeltere Test-APK installiert war, diese einmalig deinstallieren
+            (die App-Daten liegen ohnehin sicher in der Cloud) – danach lassen sich alle kuenftigen
+            Updates direkt drueberspielen.
