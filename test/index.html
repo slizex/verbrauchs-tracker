@@ -1206,7 +1206,8 @@ function monthRow(r){
   var cat=activeCat,iso=r.reading.datum,pos=r.differenz>=0,bu=CATS[cat].billUnit||CATS[cat].unit;
   var sub='<div class="vsub"><span>'+fmtVerb(cat,r.verbrauch)+' '+bu+'</span><span>Kosten '+eur(r.gesamtkosten)+'</span><span>Abschlag '+eur(r.abschlag)+'</span></div>';
   if(r.synthetic){
-    return '<div class="vrow estim"><div class="vmain"><div class="vmonth">'+billLabel(iso)+' <span class="estflag">🔢 berechnet</span></div>'+sub+'<div class="estnote">Kein Zählerstand abgelesen – Wert automatisch berechnet</div></div><div class="vright"><div class="vdiff '+(pos?"plus":"minus")+'">'+(pos?"+":"")+eur(r.differenz)+'</div></div></div>';
+    var fillAct='<div class="vactions"><button class="iconbtn" data-action="fill-reading" data-datum="'+iso+'" title="Echten Zählerstand eintragen">✏️</button></div>';
+    return '<div class="vrow estim"><div class="vmain"><div class="vmonth">'+billLabel(iso)+' <span class="estflag">🔢 berechnet</span></div>'+sub+'<div class="estnote">Kein Zählerstand abgelesen – Wert automatisch berechnet. Mit ✏️ kannst du einen echten Stand nachtragen.</div></div><div class="vright"><div class="vdiff '+(pos?"plus":"minus")+'">'+(pos?"+":"")+eur(r.differenz)+'</div>'+fillAct+'</div></div>';
   }
   var mc=r.meterChange?' <span class="mcflag">neuer Zähler</span>':"";
   var gapNote=r.estimated?'<div class="estnote">≈ Verbrauch gleichmäßig über '+r.gapMonths+' Monate verteilt (berechnet)</div>':"";
@@ -1435,6 +1436,7 @@ function onAppClick(e){
   else if(act==="toggle-group"){expandedGroups[id]=!expandedGroups[id];renderVerlauf();}
   else if(act==="del-reading")delReading(id);
   else if(act==="edit-reading")editReading(id);
+  else if(act==="fill-reading")fillReading(btn.dataset.datum);
   else if(act==="edit-cancel")cancelEdit();
   else if(act==="del-tariff")delTariff(id);
   else if(act==="del-abschlag")delAbschlag(id);
@@ -1519,6 +1521,19 @@ function cancelEdit(){
   var m=$("#startmeterno");if(m)m.value="";
   var b=$('[data-action="save-reading"]');if(b)b.textContent="Ablesung speichern";
   updateResult();
+}
+/* Berechneten Monat durch echte Ablesung ersetzen: Eintragen-Formular mit dem Monatsdatum vorbelegen */
+function fillReading(datum){
+  editingId=null;
+  catPane="erfassen";applyPane();
+  var d=$("#ablesedatum");if(d)d.value=datum;
+  var z=$("#zaehlerstand");if(z)z.value="";
+  var s=$("#startwert");if(s)s.value="";
+  var b=$('[data-action="save-reading"]');if(b)b.textContent="Ablesung speichern";
+  updateResult();
+  window.scrollTo({top:0,behavior:"smooth"});
+  if(z)setTimeout(function(){try{z.focus({preventScroll:true});}catch(e){}},220);
+  toast("Trag den echten Zählerstand für "+billLabel(datum)+" ein.");
 }
 async function onTarifSubmit(e){
   e.preventDefault();
