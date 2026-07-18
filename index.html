@@ -233,6 +233,8 @@ body.v2dark .mcflag{color:#fcd34d}
 .remclose{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem}
 .rembtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .rembtn{background:var(--accent);color:var(--accent-fg);border:none;border-radius:var(--radius-sm);padding:8px 12px;font:inherit;font-weight:600;font-size:.84rem;cursor:pointer}
+.rembanner.warnb{border-color:color-mix(in srgb,#f59e0b 40%,var(--border));background:color-mix(in srgb,#f59e0b 9%,var(--panel))}
+.rembanner.warnb .rembtn{background:#f59e0b;color:#111}
 /* Haushalts-Umschalter in der Kopfzeile (Dropdown) */
 .hhtopwrap{position:relative}
 .hhtopname{font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -377,6 +379,24 @@ body.settings-open #app{display:none}
 body.docs-open #docsView{display:block}
 body.docs-open #app,body.docs-open #settingsView{display:none}
 body.settings-open #docsView{display:none}
+/* Monatsablesung-Overlay */
+#wizardView{max-width:640px;margin:0 auto;width:100%;display:none}
+body.wizard-open #wizardView{display:block}
+body.wizard-open #app,body.wizard-open #settingsView,body.wizard-open #docsView{display:none}
+body.settings-open #wizardView,body.docs-open #wizardView{display:none}
+.wzrow{border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px;background:var(--panel)}
+.wzhead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:9px;flex-wrap:wrap}
+.wzname{font-weight:650}
+.wzlast{color:var(--muted);font-size:.8rem}
+.wzin{display:flex;gap:8px;align-items:stretch}
+.wzin input{flex:1;min-width:0}
+.wzcam{flex:none;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel);color:var(--fg);cursor:pointer;font-size:1.15rem;padding:0 13px}
+.wzcam:hover{background:var(--panel2)}
+.wzprev{font-size:.86rem;margin-top:9px;min-height:1.1em;color:var(--muted)}
+.wzprev b.pos{color:var(--pos)}.wzprev b.neg{color:var(--neg)}
+.wznote{color:var(--muted);font-size:.8rem;margin-top:7px}
+.wzskip{color:var(--muted);font-size:.84rem}
+.wzdate{margin-bottom:16px}
 .docgroup{margin:18px 0}
 .docgroup h3{margin:0 0 8px;font-size:1.02rem}
 .docrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;margin:8px 0}
@@ -543,6 +563,11 @@ body.settings-open #docsView{display:none}
     <h2 class="settitle">📁 Dokumente</h2>
     <p class="muted" style="margin:-6px 0 14px">Alle hochgeladenen Vertrags-, Tarif- und Beleg-Dokumente – getrennt nach Strom, Wasser und Gas. „✅ Gültig" = gehört zum aktuell laufenden Tarif.</p>
     <div id="docsBody"></div>
+  </div>
+  <div class="wrap" id="wizardView">
+    <button class="backbtn" id="wizardBack" type="button">← Zurück</button>
+    <h2 class="settitle">📋 Monatsablesung</h2>
+    <div id="wizardBody"></div>
   </div>
 </main>
   </div>
@@ -721,6 +746,8 @@ var tSec={};              /* welche Aufklapp-Bereiche im Tarif-Reiter offen sind
 var expandedGroups={};
 var ovMetric="kosten",ovScope="strom";
 var editingId=null; /* Ablesung, die gerade über das Stift-Symbol bearbeitet wird */
+var busySave=false,busyTarif=false,busyAb=false; /* Doppel-Submit-Schutz (verhindert doppelte Datensätze) */
+var busyWizard=false,wizardDate=""; /* Monatsablesung (alle Zähler auf einmal) */
 
 /* ---------- Helpers ---------- */
 function $(s,r){return (r||document).querySelector(s);}
@@ -729,6 +756,8 @@ function deDate(iso){if(!iso)return"";var p=iso.split("-");return p[2]+"."+p[1]+
 function monthLabel(iso){var n=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];var p=iso.split("-");return n[Number(p[1])-1]+" "+p[0];}
 function addDays(iso,d){var p=iso.split("-").map(Number);var dt=new Date(p[0],p[1]-1,p[2]);dt.setDate(dt.getDate()+d);return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
 function addMonthsISO(iso,m){var p=iso.split("-").map(Number);var dt=new Date(p[0],p[1]-1+m,p[2]);return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
+/* Erster Tag des aktuellen Monats – als Ablesedatum bucht das sauber den kompletten Vormonat (billISO = letzter Tag des Vormonats). */
+function firstOfMonthISO(){return todayISO().slice(0,7)+"-01";}
 /* ---------- Kündigung: Laufzeit + Frist ---------- */
 var LZ_LABEL={"flex":"Monatlich kündbar","12":"12 Monate (1 Jahr)","24":"24 Monate (2 Jahre)"};
 var KF_LABEL={"keine":"jederzeit / monatlich","2wochen":"2 Wochen","4wochen":"4 Wochen","6wochen":"6 Wochen","1monat":"1 Monat","3monate":"3 Monate"};
@@ -971,7 +1000,11 @@ function computeGas(cat,iso,z,sw){
   }
   return r;
 }
+/* tariffGroups() wird pro Render mehrfach gebraucht (Übersicht, Verlauf, jede Tarif-Karte).
+   Gleicher Microtask-Cache wie history(), damit die Gruppierung nicht N-fach neu läuft. */
+var _tgMemo=null;
 function tariffGroups(cat){
+  if(_tgMemo&&_tgMemo[cat])return _tgMemo[cat];
   var rows=history(cat).filter(function(r){return !r.baseline;});
   var groups=[];
   rows.forEach(function(r){
@@ -988,6 +1021,8 @@ function tariffGroups(cat){
       g.years.push({rows:ch,complete:ch.length===12,sum:ch.reduce(function(s,r){return s+(isFinite(r.differenz)?r.differenz:0);},0),start:ch[0].reading.datum,end:ch[ch.length-1].reading.datum});
     }
   });
+  if(!_tgMemo){_tgMemo={};Promise.resolve().then(function(){_tgMemo=null;});}
+  _tgMemo[cat]=groups;
   return groups;
 }
 function tariffSaldoInfo(cat,tid){var g=tariffGroups(cat).find(function(x){return x.tid===tid;});return g?{saldo:g.saldo,months:g.rows.length}:{saldo:0,months:0};}
@@ -1016,7 +1051,8 @@ function renderOverview(){
     '</div>';
   });
   var tp=totalSaldo>=0;
-  return '<section class="card"><h2 class="sect">📊 Gesamt-Übersicht</h2>'+
+  return '<button class="btn big" data-action="open-wizard" style="margin:0 0 16px">📋 Monatsablesung – alle Zähler auf einmal</button>'+
+    '<section class="card"><h2 class="sect">📊 Gesamt-Übersicht</h2>'+
       '<div class="ovgrid">'+cards+'</div>'+
       '<p class="ovhint">Tippe auf einen Bereich für Details und neue Ablesungen.</p>'+
     '</section>'+
@@ -1156,7 +1192,7 @@ function reminderHtml(){
   var due=readingsDue();
   if(!due.length)return "";
   var names=due.map(function(c){return CATS[c].icon+" "+CATS[c].label;}).join(", ");
-  var btns=due.map(function(c){return '<button class="rembtn" data-action="rem-goto" data-cat="'+c+'">'+CATS[c].icon+' '+CATS[c].label+' eintragen</button>';}).join("");
+  var btns='<button class="rembtn" data-action="open-wizard">📋 Monatsablesung starten</button>'+due.map(function(c){return '<button class="rembtn" data-action="rem-goto" data-cat="'+c+'">'+CATS[c].icon+' '+CATS[c].label+' eintragen</button>';}).join("");
   return '<div class="rembanner"><div class="remrow"><span class="remtxt">🔔 Für <b>'+monthLabel(prevBillKey())+'</b> fehlt noch eine Ablesung: <b>'+names+'</b></span><button class="remclose" data-action="rem-dismiss" aria-label="Ausblenden">✕</button></div><div class="rembtns">'+btns+'</div></div>';
 }
 var cancelRemDismissed=false;
@@ -1176,7 +1212,43 @@ function cancelReminderHtml(){
   var btns=due.map(function(c){return '<button class="rembtn" data-action="cancel-goto" data-cat="'+c+'">'+CATS[c].icon+' '+CATS[c].label+' – Tarif prüfen</button>';}).join("");
   return '<div class="rembanner"><div class="remrow"><span class="remtxt">⏰ <b>Kündigungsfrist läuft bald ab:</b> '+lines+'. Jetzt kündigen oder Preise vergleichen.</span><button class="remclose" data-action="cancelrem-dismiss" aria-label="Ausblenden">✕</button></div><div class="rembtns">'+btns+'</div></div>';
 }
-function topBanners(){return reminderHtml()+cancelReminderHtml();}
+var anomalyDismissed=false;
+/* Ungewöhnlicher Verbrauch: letzter ABGESCHLOSSENER, echter Abrechnungsmonat je Bereich
+   gegen den Vorjahres-Kalendermonat (Fallback: Schnitt der übrigen erfassten Monate).
+   Interpolierte/geschätzte Monate und der noch laufende Monat werden ausgeklammert. */
+function consumptionAnomalies(){
+  var curIdx=billIndex(todayISO()); /* Abrechnungsmonat einer heutigen Ablesung = laufender, unfertiger Monat */
+  return householdCats().map(function(c){
+    var hist=history(c).filter(function(r){return !r.baseline&&isFinite(r.verbrauch);});
+    if(hist.length<4)return null;
+    var last=hist[hist.length-1];
+    if(last.synthetic||last.estimated)return null;               /* nur echte Ablesungen bewerten */
+    if(billIndex(last.reading.datum)>=curIdx)return null;         /* laufenden Monat nicht bewerten (unvollständig) */
+    var m=((billIndex(last.reading.datum)%12)+12)%12;
+    var prior=hist.slice(0,-1);
+    var sameMonth=prior.filter(function(r){return ((billIndex(r.reading.datum)%12)+12)%12===m;});
+    var baseRows=sameMonth.length?sameMonth:prior.slice(-12);
+    if(!baseRows.length)return null;
+    var base=baseRows.reduce(function(s,r){return s+r.verbrauch;},0)/baseRows.length;
+    if(!(base>0))return null;
+    var pct=(last.verbrauch-base)/base*100;
+    if(Math.abs(pct)<25)return null;
+    return {cat:c,pct:Math.round(pct),dir:pct>0?"up":"down",month:last.reading.datum,verbrauch:last.verbrauch,base:base,seasonal:sameMonth.length>0};
+  }).filter(Boolean);
+}
+function anomalyHtml(){
+  if(anomalyDismissed)return "";
+  var an=consumptionAnomalies();if(!an.length)return "";
+  var lines=an.map(function(a){
+    var bu=CATS[a.cat].billUnit||CATS[a.cat].unit;
+    var arrow=a.dir==="up"?"📈":"📉",word=a.dir==="up"?"höher":"niedriger";
+    var basis=a.seasonal?("⌀ "+shortMon(billKey(a.month))+" Vorjahre"):"⌀ zuletzt";
+    return arrow+' <b>'+CATS[a.cat].icon+' '+CATS[a.cat].label+'</b> ('+billLabel(a.month)+'): '+fmtVerb(a.cat,a.verbrauch)+' '+bu+' – <b>'+Math.abs(a.pct)+' % '+word+'</b> als sonst ('+basis+' '+fmtVerb(a.cat,a.base)+' '+bu+')';
+  }).join("<br>");
+  var btns=an.map(function(a){return '<button class="rembtn" data-action="anom-goto" data-cat="'+a.cat+'">'+CATS[a.cat].icon+' '+CATS[a.cat].label+' ansehen</button>';}).join("");
+  return '<div class="rembanner warnb"><div class="remrow"><span class="remtxt">'+lines+'</span><button class="remclose" data-action="anom-dismiss" aria-label="Ausblenden">✕</button></div><div class="rembtns">'+btns+'</div></div>';
+}
+function topBanners(){return reminderHtml()+cancelReminderHtml()+anomalyHtml();}
 function renderApp(){
   editingId=null;
   document.body.setAttribute("data-cat",activeCat);
@@ -1214,6 +1286,8 @@ function categoryShell(cat){
     '<h2 class="sect">'+c.icon+' Neue Ablesung</h2>'+meterLine+
     '<div class="field"><label for="ablesedatum">Ablesedatum</label><input type="date" id="ablesedatum" value="'+todayISO()+'"></div>'+
     '<div class="field"><label for="zaehlerstand">Zählerstand ('+u+')</label><input type="text" inputmode="decimal" id="zaehlerstand" placeholder="z. B. '+(cat==="wasser"?"204,45":"12345")+'"></div>'+
+    '<button type="button" class="ghostbtn" data-action="cam-reading" style="margin-bottom:12px">📷 Zählerstand fotografieren (KI liest die Zahl)</button>'+
+    '<input type="file" id="camFile" accept="image/*" capture="environment" hidden>'+
     '<button class="btn big" data-action="save-reading">Ablesung speichern</button>'+
     '<div id="result" class="result"></div>'+
     '<details class="metchange"><summary>🔧 Neuer Zähler eingebaut?</summary><div class="field"><label for="startwert">Anfangsstand des neuen Zählers ('+u+')</label><input type="text" inputmode="decimal" id="startwert" placeholder="z. B. 0"></div><div class="field"><label for="startmeterno">Neue Zähler-Nummer (optional)</label><input type="text" id="startmeterno" placeholder="steht auf dem neuen Zähler" autocomplete="off"></div><p class="hint">Nur ausfüllen, wenn seit der letzten Ablesung ein neuer Zähler eingebaut wurde – der Verbrauch wird dann ab diesem Anfangsstand gerechnet. Die Zähler-Nummer merken wir uns für diesen Bereich.</p></details>'+
@@ -1511,6 +1585,7 @@ function wireCategory(){
   $("#ablesedatum").addEventListener("input",updateResult);
   $("#zaehlerstand").addEventListener("input",updateResult);
   var sw=$("#startwert");if(sw)sw.addEventListener("input",updateResult);
+  var cf=$("#camFile");if(cf)cf.addEventListener("change",onCamReadingFile);
 }
 function onAppClick(e){
   var btn=e.target.closest("[data-action]");if(!btn)return;
@@ -1526,6 +1601,7 @@ function onAppClick(e){
   else if(act==="del-tariff")delTariff(id);
   else if(act==="del-abschlag")delAbschlag(id);
   else if(act==="open-abschlag")openAbschlag();
+  else if(act==="cam-reading"){triggerMeterPhoto(activeCat,$("#zaehlerstand"),updateResult,btn,$("#camFile"));}
   else if(act==="ai-tarif"){var aif=$("#aiTarifFile");if(aif)aif.click();}
   else if(act==="ai-abr"){var elAbr=$("#abrFile");if(elAbr)elAbr.click();}
   else if(act==="abr-setab"){tsecOpen("ab");var elAb=$("#ab_betrag");if(elAb){elAb.value=String(btn.dataset.val).replace(".",",");var elHead=$("#abschlagHead");if(elHead)elHead.scrollIntoView({behavior:"smooth",block:"start"});try{elAb.focus({preventScroll:true});}catch(e){elAb.focus();}}}
@@ -1536,8 +1612,11 @@ function onAppClick(e){
   else if(act==="onb-reading"){var zi=$("#zaehlerstand");if(zi){zi.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zi.focus({preventScroll:true});}catch(e){}},220);}}
   else if(act==="rem-dismiss"){reminderDismissed=true;renderApp();}
   else if(act==="cancelrem-dismiss"){cancelRemDismissed=true;renderApp();}
+  else if(act==="anom-dismiss"){anomalyDismissed=true;renderApp();}
+  else if(act==="anom-goto"){activeCat=btn.dataset.cat;catPane="verlauf";tSec={};expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});}
   else if(act==="cancel-goto"){activeCat=btn.dataset.cat;catPane="tarif";tSec={};expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});}
-  else if(act==="rem-goto"){activeCat=btn.dataset.cat;catPane="erfassen";tSec={};expandedGroups={};renderApp();var zr=$("#zaehlerstand");if(zr){zr.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zr.focus({preventScroll:true});}catch(e){}},250);}}
+  else if(act==="rem-goto"){activeCat=btn.dataset.cat;catPane="erfassen";tSec={};expandedGroups={};renderApp();var dd=$("#ablesedatum");if(dd)dd.value=firstOfMonthISO();var zr=$("#zaehlerstand");updateResult();if(zr){zr.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zr.focus({preventScroll:true});}catch(e){}},250);}}
+  else if(act==="open-wizard"){openWizard();}
   else if(act==="ovbar"){var ot=$("#ovbartip");if(ot)ot.textContent=btn.dataset.tip;}
   pushNav();
 }
@@ -1547,6 +1626,7 @@ function openAbschlag(){
   var head=$("#abschlagHead");if(head)head.scrollIntoView({behavior:"smooth",block:"start"});
 }
 async function saveReading(){
+  if(busySave)return;
   var cat=activeCat,u=CATS[cat].unit;
   var iso=$("#ablesedatum").value,z=parseMeterVal(cat,$("#zaehlerstand").value);
   var swEl=$("#startwert"),sw=swEl?parseMeterVal(cat,swEl.value):NaN;
@@ -1561,6 +1641,8 @@ async function saveReading(){
     var clash=STATE[cat].readings.find(function(r){return r.id!==editing.id&&billKey(r.datum)===mk;});
     if(clash){toast("Für "+billLabel(iso)+" gibt es schon eine andere Ablesung – bitte lösche diese zuerst oder wähle ein anderes Datum.",true);return;}
   }else if(existing&&!confirm("Für "+billLabel(iso)+" gibt es bereits eine Ablesung ("+fmtVal(cat,existing.zaehlerstand)+" "+u+" am "+deDate(existing.datum)+"). Möchtest du sie überschreiben?"))return;
+  busySave=true;
+  var saveBtn=$('[data-action="save-reading"]');if(saveBtn)saveBtn.disabled=true;
   try{
     if(existing){
       var patch={datum:iso,zaehlerstand:z,startwert:(isFinite(sw)?sw:null),erfasst_am:new Date().toISOString()};
@@ -1582,6 +1664,7 @@ async function saveReading(){
     else{renderVerlauf();renderTarife();updateResult();if(swEl)swEl.value="";if(mnEl)mnEl.value="";}
     toast("Ablesung gespeichert ✅");
   }catch(err){toast("Speichern fehlgeschlagen: "+errMsg(err),true);}
+  finally{busySave=false;var sb2=$('[data-action="save-reading"]');if(sb2)sb2.disabled=false;}
 }
 async function delReading(id){
   var cat=activeCat;var r=STATE[cat].readings.find(function(x){return x.id===id;});if(!r)return;
@@ -1625,6 +1708,7 @@ function fillReading(datum){
 }
 async function onTarifSubmit(e){
   e.preventDefault();
+  if(busyTarif)return;
   var cat=activeCat,c=CATS[cat];
   var gueltig=$("#tf_gueltig").value||todayISO();
   var obj={gueltigAb:gueltig,erstelltAm:new Date().toISOString()};
@@ -1640,6 +1724,8 @@ async function onTarifSubmit(e){
   var vs=$("#tf_vertragsstart");if(vs&&vs.value)obj.vertragsstart=vs.value;
   var kn=$("#tf_kundennummer");if(kn&&(kn.value||"").trim())obj.kundennummer=kn.value.trim();
   var hadCurrent=!!tariffForDate(cat,todayISO());
+  busyTarif=true;
+  var tBtn=e.target&&e.target.querySelector('button[type="submit"]');if(tBtn)tBtn.disabled=true;
   try{
     var r=await sb.from("tariffs").insert(tariffToCols(cat,obj)).select().single();
     if(r.error)throw r.error;
@@ -1648,6 +1734,7 @@ async function onTarifSubmit(e){
     tSec.neu=false;renderTarife();renderVerlauf();updateResult();
     toast(hadCurrent?"Tarif gespeichert. Vorheriger Tarif archiviert ✅":"Tarif gespeichert ✅");
   }catch(err){toast("Speichern fehlgeschlagen: "+errMsg(err),true);}
+  finally{busyTarif=false;}
 }
 var lastAiDoc=null,documentsCache=[];
 async function uploadDocFile(cat,file){
@@ -1681,6 +1768,142 @@ function closeDocsRaw(){document.body.classList.remove("docs-open");updatePageTi
 function openDocs(){if(!currentUser)return;openDocsRaw();pushNav();}
 function closeDocs(){closeDocsRaw();}
 function toggleDocs(){if(document.body.classList.contains("docs-open"))window.history.back();else openDocs();}
+
+/* ================= Monatsablesung (alle Zähler auf einmal) ================= */
+function openWizardRaw(){
+  document.body.classList.remove("settings-open");document.body.classList.remove("docs-open");
+  document.body.classList.add("wizard-open");
+  updatePageTitle();renderWizard();window.scrollTo({top:0,behavior:"smooth"});
+}
+function closeWizardRaw(){document.body.classList.remove("wizard-open");updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
+function openWizard(){if(!currentUser)return;wizardDate=firstOfMonthISO();openWizardRaw();pushNav();}
+function renderWizard(){
+  var body=$("#wizardBody");if(!body)return;
+  if(!wizardDate)wizardDate=firstOfMonthISO();
+  var cats=householdCats(),billLbl=billLabel(wizardDate);
+  var rows=cats.map(function(cat){
+    var c=CATS[cat],tariff=tariffForDate(cat,wizardDate);
+    if(!tariff)return '<div class="wzrow"><div class="wzhead"><span class="wzname">'+c.icon+' '+c.label+'</span></div><div class="wzskip">Kein Tarif für diesen Monat hinterlegt – bitte zuerst im Bereich '+c.label+' einen Tarif anlegen.</div></div>';
+    var prev=prevReading(cat,wizardDate);
+    var existing=STATE[cat].readings.find(function(r){return billKey(r.datum)===billKey(wizardDate);});
+    var lastTxt=prev?('Letzter Stand: '+fmtVal(cat,prev.zaehlerstand)+' '+c.unit+' · '+deDate(prev.datum)):'Noch kein früherer Stand';
+    var exNote=existing?'<div class="wznote">ℹ️ Für '+billLbl+' existiert bereits '+fmtVal(cat,existing.zaehlerstand)+' '+c.unit+' – Speichern überschreibt diesen Wert.</div>':"";
+    var val=existing?String(existing.zaehlerstand).replace(".",","):"";
+    return '<div class="wzrow" data-cat="'+cat+'">'+
+      '<div class="wzhead"><span class="wzname">'+c.icon+' '+c.label+'</span><span class="wzlast">'+lastTxt+'</span></div>'+
+      '<div class="wzin"><input type="text" inputmode="decimal" id="wzin_'+cat+'" placeholder="Zählerstand ('+c.unit+')" value="'+val+'"><button type="button" class="wzcam" data-action="wz-cam" data-cat="'+cat+'" title="Zählerstand fotografieren" aria-label="Zählerstand fotografieren">📷</button></div>'+
+      '<input type="file" id="wzfile_'+cat+'" accept="image/*" capture="environment" hidden>'+
+      '<div class="wzprev" id="wzprev_'+cat+'"></div>'+exNote+
+    '</div>';
+  }).join("");
+  body.innerHTML=
+    '<p class="muted" style="margin:-6px 0 14px">Einmal im Monat alle Zählerstände auf einen Schlag eintragen. Das Ablesedatum gilt für alle Bereiche.</p>'+
+    '<div class="wzdate field"><label for="wzDate">Ablesedatum (für alle Zähler)</label><input type="date" id="wzDate" value="'+wizardDate+'"></div>'+
+    (rows||'<div class="notice">In diesem Haushalt ist kein Bereich aktiv.</div>')+
+    '<button class="btn big" data-action="wz-save">Alle Ablesungen speichern</button>';
+  cats.forEach(function(cat){wizardUpdateRow(cat);});
+}
+function wizardUpdateRow(cat){
+  var prev=$("#wzprev_"+cat);if(!prev)return;
+  var inp=$("#wzin_"+cat),raw=inp?(inp.value||""):"";
+  var z=parseMeterVal(cat,raw);
+  if(String(raw).trim()===""||!isFinite(z)){prev.innerHTML="";return;}
+  var r=compute(cat,wizardDate,z),bu=CATS[cat].billUnit||CATS[cat].unit;
+  if(r.baseline){prev.innerHTML='✅ Erste Ablesung (Startwert) – ab dem nächsten Monat gibt es Verbrauch &amp; Kosten.';return;}
+  if(r.verbrauch==null){prev.innerHTML="";return;}
+  var pos=r.differenz>=0;
+  var neg=r.verbrauch<0?' <b class="neg">(negativ – neuer Zähler?)</b>':"";
+  var diffTxt=isFinite(r.differenz)?(' · Differenz <b class="'+(pos?"pos":"neg")+'">'+(pos?"+":"")+eur(r.differenz)+'</b>'):"";
+  prev.innerHTML='Verbrauch <b>'+fmtVerb(cat,r.verbrauch)+' '+bu+'</b>'+neg+(isFinite(r.gesamtkosten)?' · Kosten '+eur(r.gesamtkosten):"")+diffTxt;
+}
+async function saveAllWizard(){
+  if(busyWizard)return;
+  var iso=wizardDate||firstOfMonthISO(),cats=householdCats(),jobs=[];
+  cats.forEach(function(cat){
+    if(!tariffForDate(cat,iso))return;
+    var inp=$("#wzin_"+cat);if(!inp)return;
+    var raw=(inp.value||"").trim();if(!raw)return;
+    var z=parseMeterVal(cat,raw);if(!isFinite(z))return;
+    jobs.push({cat:cat,z:z});
+  });
+  if(!jobs.length){toast("Bitte mindestens einen Zählerstand eintragen.",true);return;}
+  busyWizard=true;
+  var sBtn=document.querySelector('[data-action="wz-save"]');if(sBtn){sBtn.disabled=true;sBtn.textContent="Wird gespeichert …";}
+  var added=0,updated=0,failed=0;
+  for(var i=0;i<jobs.length;i++){
+    var job=jobs[i];
+    try{
+      var existing=STATE[job.cat].readings.find(function(r){return billKey(r.datum)===billKey(iso);});
+      if(existing){
+        var ru=await sb.from("readings").update({datum:iso,zaehlerstand:job.z,erfasst_am:new Date().toISOString()}).eq("id",existing.id).select().single();
+        if(ru.error)throw ru.error;
+        var ix=STATE[job.cat].readings.findIndex(function(r){return r.id===existing.id;});STATE[job.cat].readings[ix]=rowToReading(ru.data);updated++;
+      }else{
+        var ri=await sb.from("readings").insert(readingToCols(job.cat,{datum:iso,zaehlerstand:job.z})).select().single();
+        if(ri.error)throw ri.error;STATE[job.cat].readings.push(rowToReading(ri.data));added++;
+      }
+    }catch(err){failed++;console.warn("Wizard-Speichern",job.cat,err);}
+  }
+  busyWizard=false;
+  toast(added+" neu, "+updated+" aktualisiert"+(failed?", "+failed+" fehlgeschlagen":"")+" ✅",failed>0);
+  if(navCanGoBack())window.history.back();else closeWizardRaw();
+  renderApp();
+}
+function onWizardClick(e){
+  var btn=e.target.closest("[data-action]");if(!btn)return;
+  var act=btn.dataset.action;
+  if(act==="wz-save")saveAllWizard();
+  else if(act==="wz-cam"){var cat=btn.dataset.cat;triggerMeterPhoto(cat,$("#wzin_"+cat),function(){wizardUpdateRow(cat);},btn,$("#wzfile_"+cat));}
+}
+function onWizardInput(e){var t=e.target;if(t&&t.id&&t.id.indexOf("wzin_")===0)wizardUpdateRow(t.id.slice(5));}
+function onWizardChange(e){
+  var t=e.target;if(!t||!t.id)return;
+  if(t.id==="wzDate"){wizardDate=t.value||firstOfMonthISO();renderWizard();}
+  else if(t.id.indexOf("wzfile_")===0){var cat=t.id.slice(7),f=t.files&&t.files[0];t.value="";if(f){var cb=document.querySelector('.wzcam[data-cat="'+cat+'"]');meterPhotoToInput(cat,$("#wzin_"+cat),function(){wizardUpdateRow(cat);},cb,f);}}
+}
+
+/* ================= Foto-Ablesung (Kamera + KI) ================= */
+/* Erkennt den Zählerstand aus einem Foto über die Edge Function (mode=zaehler). */
+async function recognizeMeterB64(cat,b64,mime){
+  var resp=await sb.functions.invoke("tarif-extract",{body:{fileBase64:b64,mimeType:mime||"image/jpeg",category:cat,mode:"zaehler",level:aiLevel()}});
+  if(resp.error)throw resp.error;
+  var data=resp.data||{};
+  if(data.error)throw new Error(data.error);
+  return data.zaehler||{};
+}
+/* Web: fileInput anklicken; native (Capacitor): Kamera-Plugin direkt. */
+function triggerMeterPhoto(cat,inputEl,afterFn,btn,fileInput){
+  if(IS_NATIVE&&capPlugin("Camera")){meterPhotoToInput(cat,inputEl,afterFn,btn,null);}
+  else if(fileInput){fileInput.click();}
+  else{toast("Kamera hier nicht verfügbar – bitte Wert eintippen.",true);}
+}
+async function meterPhotoToInput(cat,inputEl,afterFn,btn,file){
+  var oldTxt=btn?btn.textContent:"";
+  if(btn){btn.disabled=true;btn.textContent="📷 …";}
+  toast("Zähler-Foto wird gelesen …");
+  try{
+    var b64,mime;
+    if(file){
+      if(file.size>14*1024*1024)throw new Error("Bild ist zu groß (max. ca. 14 MB).");
+      b64=await fileToBase64(file);mime=file.type||"image/jpeg";
+    }else{
+      var Cam=capPlugin("Camera");
+      var photo=await Cam.getPhoto({quality:60,allowEditing:false,resultType:"base64",source:"CAMERA"});
+      if(!photo||!photo.base64String)return;
+      b64=photo.base64String;mime="image/"+(photo.format||"jpeg");
+    }
+    var z=await recognizeMeterB64(cat,b64,mime),val=z.zaehlerstand;
+    if(val==null||val===""||!isFinite(Number(val))){toast("Keine Zahl erkannt – bitte eintippen oder erneut fotografieren.",true);return;}
+    if(inputEl){inputEl.value=String(val).replace(".",",");if(afterFn)afterFn();}
+    toast("Erkannt: "+String(val).replace(".",",")+(z.hinweise?" ("+z.hinweise+")":"")+" – bitte prüfen ✅");
+  }catch(err){var m=errMsg(err);if(/cancel/i.test(m))return;toast("Foto-Erkennung fehlgeschlagen: "+m,true);}
+  finally{if(btn){btn.disabled=false;btn.textContent=oldTxt||"📷";}}
+}
+function onCamReadingFile(e){
+  var f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
+  var btn=document.querySelector('[data-action="cam-reading"]');
+  meterPhotoToInput(activeCat,$("#zaehlerstand"),updateResult,btn,f);
+}
 function renderDocs(){
   var body=$("#docsBody");if(!body)return;
   body.innerHTML=householdCats().map(function(cat){return docGroupHtml(cat);}).join("");
@@ -1907,16 +2130,20 @@ async function delTariff(id){
 }
 async function onAbSubmit(e){
   e.preventDefault();
+  if(busyAb)return;
   var cat=activeCat;
   var betrag=parseNum($("#ab_betrag").value),gueltig=$("#ab_gueltig").value||todayISO();
   if(!isFinite(betrag)||betrag<0){toast("Bitte einen gültigen Abschlag eingeben.",true);return;}
   if(!tariffForDate(cat,gueltig)){toast("Für dieses Datum gibt es noch keinen Tarif. Bitte zuerst einen Tarif anlegen.",true);return;}
+  busyAb=true;
+  var abBtn=e.target&&e.target.querySelector('button[type="submit"]');if(abBtn)abBtn.disabled=true;
   try{
     var r=await sb.from("abschlag_changes").insert(abschlagToCols(cat,{betrag:betrag,gueltigAb:gueltig})).select().single();
     if(r.error)throw r.error;
     STATE[cat].abschlagChanges.push(rowToAbschlag(r.data));
     renderTarife();renderVerlauf();updateResult();toast("Abschlag angepasst ✅");
   }catch(err){toast("Speichern fehlgeschlagen: "+errMsg(err),true);}
+  finally{busyAb=false;}
 }
 async function delAbschlag(id){
   var cat=activeCat;
@@ -2095,7 +2322,7 @@ function applyV2Theme(dark){
   try{localStorage.setItem("vtV2Theme",dark?"dark":"light");}catch(e){}
 }
 /* ---------- Auth ---------- */
-function showAuth(show){document.body.classList.toggle("app-hidden",show);if(show){document.body.classList.remove("settings-open");document.body.classList.remove("docs-open");}var a=$("#authscreen");if(a)a.hidden=!show;var ab=$("#accountBtn");if(ab)ab.hidden=show;var db=$("#docsBtn");if(db)db.hidden=show;if(show){var hw=$("#hhTopWrap");if(hw)hw.hidden=true;var hm=$("#hhTopMenu");if(hm)hm.hidden=true;}}
+function showAuth(show){document.body.classList.toggle("app-hidden",show);if(show){document.body.classList.remove("settings-open");document.body.classList.remove("docs-open");document.body.classList.remove("wizard-open");}var a=$("#authscreen");if(a)a.hidden=!show;var ab=$("#accountBtn");if(ab)ab.hidden=show;var db=$("#docsBtn");if(db)db.hidden=show;if(show){var hw=$("#hhTopWrap");if(hw)hw.hidden=true;var hm=$("#hhTopMenu");if(hm)hm.hidden=true;}}
 function openSettingsRaw(){renderAccount();document.body.classList.add("settings-open");updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
 function closeSettingsRaw(){document.body.classList.remove("settings-open");updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
 function openSettings(){if(!currentUser)return;openSettingsRaw();pushNav();}
@@ -2104,7 +2331,7 @@ function toggleSettings(){if(document.body.classList.contains("settings-open"))w
 
 /* ================= Navigations-Verlauf (Browser-Zurück + Android-Geste) ================= */
 var navReady=false,navApplying=false;
-function currentNavState(){var v="main";if(document.body.classList.contains("settings-open"))v="settings";else if(document.body.classList.contains("docs-open"))v="docs";return {view:v,cat:activeCat,pane:catPane};}
+function currentNavState(){var v="main";if(document.body.classList.contains("settings-open"))v="settings";else if(document.body.classList.contains("docs-open"))v="docs";else if(document.body.classList.contains("wizard-open"))v="wizard";return {view:v,cat:activeCat,pane:catPane};}
 function navStateEq(a,b){return !!a&&!!b&&a.view===b.view&&a.cat===b.cat&&a.pane===b.pane;}
 /* Aktuellen Zustand als neuen Verlaufseintrag ablegen (nur bei echter Änderung). */
 function pushNav(){
@@ -2124,9 +2351,11 @@ function applyNavState(s){
     else if(s.pane&&catPane!==s.pane){catPane=s.pane;renderApp();}
     var setOpen=document.body.classList.contains("settings-open");
     var docOpen=document.body.classList.contains("docs-open");
-    if(s.view==="settings"){if(docOpen)closeDocsRaw();if(!setOpen)openSettingsRaw();}
-    else if(s.view==="docs"){if(setOpen)closeSettingsRaw();if(!docOpen)openDocsRaw();}
-    else{if(setOpen)closeSettingsRaw();if(docOpen)closeDocsRaw();}
+    var wizOpen=document.body.classList.contains("wizard-open");
+    if(s.view==="settings"){if(docOpen)closeDocsRaw();if(wizOpen)closeWizardRaw();if(!setOpen)openSettingsRaw();}
+    else if(s.view==="docs"){if(setOpen)closeSettingsRaw();if(wizOpen)closeWizardRaw();if(!docOpen)openDocsRaw();}
+    else if(s.view==="wizard"){if(setOpen)closeSettingsRaw();if(docOpen)closeDocsRaw();if(!wizOpen)openWizardRaw();}
+    else{if(setOpen)closeSettingsRaw();if(docOpen)closeDocsRaw();if(wizOpen)closeWizardRaw();}
   }finally{navApplying=false;}
 }
 function navInit(){if(navReady)return;try{window.history.replaceState({vt:true,d:0,s:currentNavState()},"");}catch(e){}navReady=true;}
@@ -2225,7 +2454,8 @@ function renderTabs(){
 }
 function updatePageTitle(){
   var el=$("#pageTitle");if(!el)return;
-  if(document.body.classList.contains("docs-open"))el.textContent="Dokumente";
+  if(document.body.classList.contains("wizard-open"))el.textContent="Monatsablesung";
+  else if(document.body.classList.contains("docs-open"))el.textContent="Dokumente";
   else if(document.body.classList.contains("settings-open"))el.textContent="Konto & Einstellungen";
   else if(activeCat==="overview")el.textContent="Übersicht";
   else el.textContent=(CATS[activeCat]?CATS[activeCat].label:"");
@@ -2421,7 +2651,7 @@ function init(){
   if(!savedTheme)savedTheme=(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";
   applyV2Theme(savedTheme==="dark");
   var tgl=$("#v2theme");if(tgl)tgl.addEventListener("click",function(){applyV2Theme(!document.body.classList.contains("v2dark"));});
-  function onNavClick(e){var b=e.target.closest(".tab");if(!b)return;if(b.dataset.cat){activeCat=b.dataset.cat;catPane="erfassen";tSec={};expandedGroups={};if(document.body.classList.contains("settings-open"))closeSettingsRaw();if(document.body.classList.contains("docs-open"))closeDocsRaw();renderApp();window.scrollTo({top:0,behavior:"smooth"});pushNav();}else if(b.id==="accountBtnM"){toggleSettings();}}
+  function onNavClick(e){var b=e.target.closest(".tab");if(!b)return;if(b.dataset.cat){activeCat=b.dataset.cat;catPane="erfassen";tSec={};expandedGroups={};if(document.body.classList.contains("settings-open"))closeSettingsRaw();if(document.body.classList.contains("docs-open"))closeDocsRaw();if(document.body.classList.contains("wizard-open"))closeWizardRaw();renderApp();window.scrollTo({top:0,behavior:"smooth"});pushNav();}else if(b.id==="accountBtnM"){toggleSettings();}}
   var navS=$("#tabs");if(navS)navS.addEventListener("click",onNavClick);
   var navM=$("#tabsMobile");if(navM)navM.addEventListener("click",onNavClick);
   $("#app").addEventListener("click",onAppClick);
@@ -2459,6 +2689,8 @@ function init(){
   /* Browser-Zurück / Wischgeste: den vorherigen Zustand wiederherstellen statt die Seite zu verlassen */
   window.addEventListener("popstate",function(e){var s=(e.state&&e.state.vt&&e.state.s)?e.state.s:null;if(s)applyNavState(s);});
   var docsViewEl=$("#docsView");if(docsViewEl){docsViewEl.addEventListener("click",onDocsClick);docsViewEl.addEventListener("change",onDocsChange);}
+  var wizViewEl=$("#wizardView");if(wizViewEl){wizViewEl.addEventListener("click",onWizardClick);wizViewEl.addEventListener("input",onWizardInput);wizViewEl.addEventListener("change",onWizardChange);}
+  var wizBackEl=$("#wizardBack");if(wizBackEl)wizBackEl.addEventListener("click",function(){window.history.back();});
   $("#auth_login").addEventListener("click",doLogin);
   $("#auth_signup").addEventListener("click",doSignup);
   $("#auth_pass").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin();});
