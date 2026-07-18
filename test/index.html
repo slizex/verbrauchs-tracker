@@ -828,8 +828,9 @@ function abschlagToCols(cat,a){return {category:cat,betrag:nOrNull(a.betrag),gue
 async function loadFromDB(){
   var st=defaults();
   var tq=sb.from("tariffs").select("*"),rq=sb.from("readings").select("*"),aq=sb.from("abschlag_changes").select("*");
-  if(activeHousehold){tq=tq.eq("household_id",activeHousehold);rq=rq.eq("household_id",activeHousehold);aq=aq.eq("household_id",activeHousehold);}
-  var res=await Promise.all([tq,rq,aq,sb.from("gas_conversion").select("*").maybeSingle()]);
+  var cq=sb.from("gas_conversion").select("*");
+  if(activeHousehold){tq=tq.eq("household_id",activeHousehold);rq=rq.eq("household_id",activeHousehold);aq=aq.eq("household_id",activeHousehold);cq=cq.eq("household_id",activeHousehold);}
+  var res=await Promise.all([tq,rq,aq,cq.maybeSingle()]);
   var tRes=res[0],rRes=res[1],aRes=res[2],cRes=res[3];
   var err=tRes.error||rRes.error||aRes.error;if(err)throw err;
   (tRes.data||[]).forEach(function(r){if(st[r.category])st[r.category].tariffs.push(rowToTariff(r));});
@@ -882,7 +883,7 @@ async function replaceAllInDB(data){
   if(rRows.length){var ir=await sb.from("readings").insert(rRows);if(ir.error)throw ir.error;}
   if(aRows.length){var ia=await sb.from("abschlag_changes").insert(aRows);if(ia.error)throw ia.error;}
   var conv=(data.gas&&data.gas.conversion)?data.gas.conversion:defConv();
-  var ic=await sb.from("gas_conversion").upsert({user_id:uidv,wandelfaktor:Number(conv.wandelfaktor),zustandszahl:Number(conv.zustandszahl),brennwert:Number(conv.brennwert),updated_at:new Date().toISOString()},{onConflict:"user_id"});if(ic.error)throw ic.error;
+  var ic=await sb.from("gas_conversion").upsert({household_id:activeHousehold,user_id:uidv,wandelfaktor:Number(conv.wandelfaktor),zustandszahl:Number(conv.zustandszahl),brennwert:Number(conv.brennwert),updated_at:new Date().toISOString()},{onConflict:"household_id"});if(ic.error)throw ic.error;
 }
 
 /* ---------- Domain logic ---------- */
@@ -1572,8 +1573,9 @@ async function onConvSubmit(e){
   e.preventDefault();
   var wf=parseNum($("#cv_wf").value),zz=parseNum($("#cv_zz").value),bw=parseNum($("#cv_bw").value);
   if(!isFinite(wf)||!isFinite(zz)||!isFinite(bw)){toast("Bitte alle drei Werte gültig eingeben.",true);return;}
+  if(!activeHousehold){toast("Kein Haushalt ausgewählt.",true);return;}
   try{
-    var r=await sb.from("gas_conversion").upsert({user_id:currentUser.id,wandelfaktor:wf,zustandszahl:zz,brennwert:bw,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+    var r=await sb.from("gas_conversion").upsert({household_id:activeHousehold,user_id:currentUser.id,wandelfaktor:wf,zustandszahl:zz,brennwert:bw,updated_at:new Date().toISOString()},{onConflict:"household_id"});
     if(r.error)throw r.error;
     STATE.gas.conversion={wandelfaktor:wf,zustandszahl:zz,brennwert:bw};
     renderTarife();renderVerlauf();updateResult();toast("Umrechnung gespeichert ✅");
