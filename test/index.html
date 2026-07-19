@@ -748,6 +748,8 @@ var ovMetric="kosten",ovScope="strom";
 var editingId=null; /* Ablesung, die gerade über das Stift-Symbol bearbeitet wird */
 var busySave=false,busyTarif=false,busyAb=false; /* Doppel-Submit-Schutz (verhindert doppelte Datensätze) */
 var busyWizard=false,wizardDate=""; /* Monatsablesung (alle Zähler auf einmal) */
+var hhRenaming=false; /* Inline-Umbenennen des aktuellen Haushalts */
+var _urTimer=null;    /* Debounce für die Live-Vorschau beim Tippen */
 
 /* ---------- Helpers ---------- */
 function $(s,r){return (r||document).querySelector(s);}
@@ -1583,10 +1585,12 @@ async function onConvSubmit(e){
 }
 
 /* ---------- Events ---------- */
+/* Entkoppelt das Neurechnen vom Tastendruck (bei Gas laeuft sonst pro Anschlag die ganze kWh-Kette). */
+function updateResultDebounced(){clearTimeout(_urTimer);_urTimer=setTimeout(updateResult,60);}
 function wireCategory(){
-  $("#ablesedatum").addEventListener("input",updateResult);
-  $("#zaehlerstand").addEventListener("input",updateResult);
-  var sw=$("#startwert");if(sw)sw.addEventListener("input",updateResult);
+  $("#ablesedatum").addEventListener("input",updateResultDebounced);
+  $("#zaehlerstand").addEventListener("input",updateResultDebounced);
+  var sw=$("#startwert");if(sw)sw.addEventListener("input",updateResultDebounced);
   var cf=$("#camFile");if(cf)cf.addEventListener("change",onCamReadingFile);
 }
 function onAppClick(e){
@@ -2520,7 +2524,9 @@ function renderAccount(){
     '<div class="acclabel accsep">Was wird in „'+escapeHtml(activeHouseholdName())+'" erfasst?</div>'+
     '<div class="catcfg">'+catCfgEditorActive()+'</div>'+
     '<p class="ovhint" style="text-align:left;margin:10px 0 0">Tippe an/aus, was du in diesem Haushalt verfolgen möchtest. Die Zähler-Nummer ist optional (nur zur Info).</p>'+
-    '<button class="linkbtn" data-action="hh-rename" style="margin-top:16px">✏️ Aktuellen Haushalt umbenennen</button>'+
+    (hhRenaming
+      ? '<div class="hhadd" style="margin-top:16px"><input id="hhRenameInp" type="text" maxlength="60" value="'+escapeHtml(activeHouseholdName())+'"><button class="hhaddbtn" data-action="hh-rename-save">Speichern</button><button class="hhaddbtn" data-action="hh-rename-cancel">Abbrechen</button></div>'
+      : '<button class="linkbtn" data-action="hh-rename" style="margin-top:16px">✏️ Aktuellen Haushalt umbenennen</button>')+
     (HOUSEHOLDS.length>1?'<button class="linkbtn linkdanger" data-action="hh-leave" style="margin-top:10px">🚪 Diesen Haushalt verlassen</button>':"")+
     '<div class="acclabel accsep">➕ Neuen Haushalt anlegen</div>'+
     '<input id="hhNewName" class="hhfull" type="text" maxlength="60" placeholder="Name (z. B. Ferienwohnung)">'+
@@ -2564,6 +2570,7 @@ async function leaveHouseholdUI(){
 }
 async function switchHousehold(hid){
   if(!hid||hid===activeHousehold)return;
+  hhRenaming=false;
   activeHousehold=hid;saveActiveHousehold();renderAccount();
   try{await loadFromDB();}catch(e){toast("Daten konnten nicht geladen werden: "+errMsg(e),true);}
   renderTabs();renderApp();
@@ -2592,13 +2599,20 @@ async function createHouseholdUI(){
     toast('Haushalt „'+name+'" angelegt ✅');
   }catch(e){toast("Konnte Haushalt nicht anlegen: "+errMsg(e),true);}
 }
-async function renameHouseholdUI(){
+function startRenameHousehold(){
+  hhRenaming=true;renderAccount();
+  var inp=$("#hhRenameInp");if(inp){try{inp.focus({preventScroll:true});}catch(e){inp.focus();}inp.select();}
+}
+function cancelRenameHousehold(){hhRenaming=false;renderAccount();}
+async function saveRenameHousehold(){
+  var inp=$("#hhRenameInp"),name=inp?(inp.value||"").trim():"";
+  if(!name){toast("Bitte einen Namen eingeben.",true);if(inp)inp.focus();return;}
   var cur=HOUSEHOLDS.find(function(h){return h.id===activeHousehold;});
-  var name=prompt("Neuer Name für den Haushalt:",cur?cur.name:"");
-  if(name==null)return;name=name.trim();if(!name)return;
+  if(cur&&name===cur.name){hhRenaming=false;renderAccount();return;}
   try{
     var r=await sbPub.from("households").update({name:name}).eq("id",activeHousehold);
     if(r.error)throw r.error;
+    hhRenaming=false;
     await loadHouseholds();renderAccount();toast("Haushalt umbenannt ✅");
   }catch(e){toast("Umbenennen fehlgeschlagen: "+errMsg(e),true);}
 }
@@ -2681,9 +2695,9 @@ function init(){
   $("#csvFile").addEventListener("change",onCSVImport);
   $("#autoBackupBtn").addEventListener("click",manualBackup);
   $("#backupList").addEventListener("click",function(e){var b=e.target.closest("[data-action='restore-backup']");if(b)restoreBackup(b.dataset.id);});
-  $("#accountBody").addEventListener("click",function(e){var b=e.target.closest("[data-action]");if(!b)return;var a=b.dataset.action;if(a==="hh-switch")switchHousehold(b.dataset.id);else if(a==="hh-create")createHouseholdUI();else if(a==="hh-rename")renameHouseholdUI();else if(a==="hh-invite")inviteUI();else if(a==="hh-join")joinUI();else if(a==="hh-copy")copyInvite(b.dataset.code);else if(a==="cat-toggle")toggleCat(b.dataset.cat);else if(a==="hh-leave")leaveHouseholdUI();});
+  $("#accountBody").addEventListener("click",function(e){var b=e.target.closest("[data-action]");if(!b)return;var a=b.dataset.action;if(a==="hh-switch")switchHousehold(b.dataset.id);else if(a==="hh-create")createHouseholdUI();else if(a==="hh-rename")startRenameHousehold();else if(a==="hh-rename-save")saveRenameHousehold();else if(a==="hh-rename-cancel")cancelRenameHousehold();else if(a==="hh-invite")inviteUI();else if(a==="hh-join")joinUI();else if(a==="hh-copy")copyInvite(b.dataset.code);else if(a==="cat-toggle")toggleCat(b.dataset.cat);else if(a==="hh-leave")leaveHouseholdUI();});
   $("#accountBody").addEventListener("change",function(e){var t=e.target;if(!t||!t.id)return;if(t.id.indexOf("meter_")===0&&t.dataset.cat){saveMeter(t.dataset.cat,t.value);}else if(t.id.indexOf("new_en_")===0){var c=t.id.slice(7),mi=$("#new_meter_"+c);if(mi)mi.style.display=t.checked?"":"none";}});
-  $("#accountBody").addEventListener("keydown",function(e){if(!e.target)return;if(e.key==="Enter"&&e.target.id==="hhNewName"){e.preventDefault();createHouseholdUI();}else if(e.key==="Enter"&&e.target.id==="hhJoinCode"){e.preventDefault();joinUI();}});
+  $("#accountBody").addEventListener("keydown",function(e){if(!e.target)return;if(e.key==="Enter"&&e.target.id==="hhNewName"){e.preventDefault();createHouseholdUI();}else if(e.key==="Enter"&&e.target.id==="hhJoinCode"){e.preventDefault();joinUI();}else if(e.target.id==="hhRenameInp"){if(e.key==="Enter"){e.preventDefault();saveRenameHousehold();}else if(e.key==="Escape"){e.preventDefault();cancelRenameHousehold();}}});
   $("#accountBtn").addEventListener("click",toggleSettings);
   $("#settingsBack").addEventListener("click",function(){window.history.back();});
   var docsBtnEl=$("#docsBtn");if(docsBtnEl)docsBtnEl.addEventListener("click",toggleDocs);
