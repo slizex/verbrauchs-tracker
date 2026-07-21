@@ -869,6 +869,7 @@ async function loadFromDB(){
   if(cRes&&cRes.data){st.gas.conversion={wandelfaktor:Number(cRes.data.wandelfaktor),zustandszahl:Number(cRes.data.zustandszahl),brennwert:Number(cRes.data.brennwert)};}
   STATE=st;
   try{await fetchDismissedNotifs();}catch(e){}
+  try{await fetchUserPrefs();}catch(e){}
   try{subscribeRealtime();}catch(e){}
 }
 /* ---------- Live-Sync (Supabase Realtime) ---------- */
@@ -2127,6 +2128,46 @@ async function docDelete(id){
 }
 function fileToBase64(file){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){var s=String(r.result||"");var i=s.indexOf(",");res(i>=0?s.slice(i+1):s);};r.onerror=function(){rej(new Error("Datei konnte nicht gelesen werden."));};r.readAsDataURL(file);});}
 function aiLevel(){try{return localStorage.getItem("vt_ai_level")==="advanced"?"advanced":"basic";}catch(e){return "basic";}}
+function aiHintTxt(){return aiLevel()==="advanced"?"Nutzt ein stärkeres KI-Modell – etwas langsamer, aber genauer bei kniffligen Dokumenten.":"Nutzt ein schnelles, günstiges KI-Modell – für die meisten Dokumente ausreichend.";}
+function applyAiLevelUi(){var s=$("#aiLevelSel");if(s)s.value=aiLevel();var h=$("#aiLevelHint");if(h)h.textContent=aiHintTxt();}
+/* ---------- Persönliche Einstellungen (Theme, KI-Stufe) – pro User in Supabase, localStorage als schneller Cache ---------- */
+var USER_PREFS=null;
+async function fetchUserPrefs(){
+  if(!currentUser){USER_PREFS=null;return;}
+  try{
+    var r=await sb.from("user_prefs").select("ai_level,theme").eq("user_id",currentUser.id).maybeSingle();
+    if(r.error)throw r.error;
+    USER_PREFS=r.data||null;
+  }catch(e){USER_PREFS=null;return;}
+  if(USER_PREFS){
+    if(USER_PREFS.theme==="dark"||USER_PREFS.theme==="light"){
+      try{localStorage.setItem("vtV2Theme",USER_PREFS.theme);}catch(_e){}
+      applyV2Theme(USER_PREFS.theme==="dark");
+    }
+    if(USER_PREFS.ai_level==="advanced"||USER_PREFS.ai_level==="basic"){
+      try{localStorage.setItem("vt_ai_level",USER_PREFS.ai_level);}catch(_e){}
+      applyAiLevelUi();
+    }
+  }else{
+    /* Erstes Login nach Einführung: aktuelle lokale Werte in die Cloud übernehmen */
+    var lt="light",la="basic";
+    try{lt=localStorage.getItem("vtV2Theme")||(document.body.classList.contains("v2dark")?"dark":"light");}catch(_e){}
+    try{la=localStorage.getItem("vt_ai_level")==="advanced"?"advanced":"basic";}catch(_e){}
+    if(lt!=="dark"&&lt!=="light")lt="light";
+    USER_PREFS={ai_level:la,theme:lt};
+    saveUserPref({ai_level:la,theme:lt});
+  }
+}
+function saveUserPref(patch){
+  if(!currentUser)return;
+  if(USER_PREFS){if(patch.ai_level!=null)USER_PREFS.ai_level=patch.ai_level;if(patch.theme!=null)USER_PREFS.theme=patch.theme;}
+  try{
+    var row={user_id:currentUser.id,updated_at:new Date().toISOString()};
+    if(patch.ai_level!=null)row.ai_level=patch.ai_level;
+    if(patch.theme!=null)row.theme=patch.theme;
+    sb.from("user_prefs").upsert(row,{onConflict:"user_id"}).then(function(r){if(r&&r.error)toast("Einstellung konnte nicht synchronisiert werden.",true);},function(){});
+  }catch(e){}
+}
 async function onAiTarifFile(e){
   var file=e.target.files&&e.target.files[0];if(!file)return;
   e.target.value="";
@@ -2803,7 +2844,7 @@ function handleSession(session){
   if(session&&session.user){
     if(enteredUserId===session.user.id){currentUser=session.user;return;}
     enteredUserId=session.user.id;enterApp(session);
-  }else{try{unsubscribeRealtime();}catch(e){}navReady=false;enteredUserId=null;currentUser=null;BACKUPS=[];HOUSEHOLDS=[];DISMISSED_NOTIFS=[];activeHousehold=null;var app=$("#app");if(app)app.innerHTML="";var bl=$("#backupList");if(bl)bl.innerHTML="";var ab=$("#accountBody");if(ab)ab.innerHTML="";var nb=$("#notifBody");if(nb)nb.innerHTML="";showAuth(true);}
+  }else{try{unsubscribeRealtime();}catch(e){}navReady=false;enteredUserId=null;currentUser=null;BACKUPS=[];HOUSEHOLDS=[];DISMISSED_NOTIFS=[];USER_PREFS=null;activeHousehold=null;var app=$("#app");if(app)app.innerHTML="";var bl=$("#backupList");if(bl)bl.innerHTML="";var ab=$("#accountBody");if(ab)ab.innerHTML="";var nb=$("#notifBody");if(nb)nb.innerHTML="";showAuth(true);}
 }
 function renderEnvSwitch(){
   var el=$("#envswitch"),note=$("#envnote");
@@ -2818,7 +2859,7 @@ function init(){
   var savedTheme="";try{savedTheme=localStorage.getItem("vtV2Theme")||"";}catch(e){}
   if(!savedTheme)savedTheme=(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";
   applyV2Theme(savedTheme==="dark");
-  var tgl=$("#v2theme");if(tgl)tgl.addEventListener("click",function(){applyV2Theme(!document.body.classList.contains("v2dark"));});
+  var tgl=$("#v2theme");if(tgl)tgl.addEventListener("click",function(){var dark=!document.body.classList.contains("v2dark");applyV2Theme(dark);saveUserPref({theme:dark?"dark":"light"});});
   function onNavClick(e){var b=e.target.closest(".tab");if(!b)return;if(b.dataset.cat){activeCat=b.dataset.cat;catPane="erfassen";tSec={};expandedGroups={};if(document.body.classList.contains("settings-open"))closeSettingsRaw();if(document.body.classList.contains("docs-open"))closeDocsRaw();if(document.body.classList.contains("wizard-open"))closeWizardRaw();renderApp();window.scrollTo({top:0,behavior:"smooth"});pushNav();}else if(b.id==="accountBtnM"){toggleSettings();}}
   var navS=$("#tabs");if(navS)navS.addEventListener("click",onNavClick);
   var navM=$("#tabsMobile");if(navM)navM.addEventListener("click",onNavClick);
@@ -2834,10 +2875,9 @@ function init(){
   });
   document.addEventListener("click",function(e){if(hhMenu&&!hhMenu.hidden&&!e.target.closest("#hhTopWrap"))hhMenu.hidden=true;});
   /* KI-Qualitätsstufe */
-  var aiSel=$("#aiLevelSel"),aiHint=$("#aiLevelHint");
-  function aiHintTxt(){return aiLevel()==="advanced"?"Nutzt ein stärkeres KI-Modell – etwas langsamer, aber genauer bei kniffligen Dokumenten.":"Nutzt ein schnelles, günstiges KI-Modell – für die meisten Dokumente ausreichend.";}
-  if(aiSel){aiSel.value=aiLevel();if(aiHint)aiHint.textContent=aiHintTxt();
-    aiSel.addEventListener("change",function(){try{localStorage.setItem("vt_ai_level",aiSel.value==="advanced"?"advanced":"basic");}catch(e){}if(aiHint)aiHint.textContent=aiHintTxt();toast(aiSel.value==="advanced"?"KI-Erkennung: Fortgeschritten ✅":"KI-Erkennung: Einfach ✅");});
+  var aiSel=$("#aiLevelSel");
+  if(aiSel){applyAiLevelUi();
+    aiSel.addEventListener("change",function(){var v=aiSel.value==="advanced"?"advanced":"basic";try{localStorage.setItem("vt_ai_level",v);}catch(e){}applyAiLevelUi();saveUserPref({ai_level:v});toast(v==="advanced"?"KI-Erkennung: Fortgeschritten ✅":"KI-Erkennung: Einfach ✅");});
   }
   $("#exportBtn").addEventListener("click",exportData);
   $("#importBtn").addEventListener("click",function(){$("#importFile").click();});
