@@ -214,6 +214,16 @@ body.v2dark .mcflag{color:#fcd34d}
 .ycol.fc{opacity:.6}
 .ycol.fc .ybar,.ycol.fc .ystack{outline:1.5px dashed var(--muted2);outline-offset:-2px}
 .abmark{position:absolute;left:8%;right:8%;border-top:2px dashed var(--muted2)}
+.pvmark{position:absolute;left:6%;right:6%;border-top:2px dashed #8b5cf6;pointer-events:none}
+.pvmarkleg{display:inline-block;width:14px;border-top:2px dashed #8b5cf6}
+/* Jahresvergleich-Matrix */
+.cmpwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.cmptbl{border-collapse:collapse;width:100%;font-size:.85rem}
+.cmptbl th,.cmptbl td{padding:7px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border)}
+.cmptbl thead th{color:var(--muted);font-weight:600;border-bottom:2px solid var(--border2)}
+.cmptbl th.cmpm{text-align:left;font-weight:600;position:sticky;left:0;background:var(--panel);z-index:1}
+.cmptbl td.cmpna{color:var(--muted2)}
+.cmptbl .cmpavg{color:var(--muted)}
 .yzero{position:absolute;left:0;right:0;border-top:1px solid var(--border2)}
 .ylabels{display:flex;gap:5px;margin-top:8px}
 .ylabels span{flex:1 1 0;text-align:center;font-size:.72rem;color:var(--muted)}
@@ -745,6 +755,7 @@ var catPane="erfassen";   /* aktive Unterseite je Kategorie: erfassen | verlauf 
 var tSec={};              /* welche Aufklapp-Bereiche im Tarif-Reiter offen sind */
 var expandedGroups={};
 var ovMetric="kosten",ovScope="strom";
+var cmpMetric="verbrauch"; /* Jahresvergleich-Matrix: verbrauch | kosten */
 var editingId=null; /* Ablesung, die gerade über das Stift-Symbol bearbeitet wird */
 var busySave=false,busyTarif=false,busyAb=false; /* Doppel-Submit-Schutz (verhindert doppelte Datensätze) */
 var busyWizard=false,wizardDate=""; /* Monatsablesung (alle Zähler auf einmal) */
@@ -1138,8 +1149,12 @@ function ovChartBody(metric,cat){
     legend='<div class="ovlegend"><span><i class="abmarkleg"></i>Abschlag</span><span><b style="background:var(--pos)"></b>Guthaben</span><span><b style="background:var(--neg)"></b>Nachzahlung</span>'+(fc.length?'<span><b class="fcdash"></b>Prognose</span>':"")+'</div>';
   }else{
     var valOf=function(r){return metric==="kosten"?r.gesamtkosten:metric==="differenz"?r.differenz:r.verbrauch;};
+    /* Vorjahres-Wert desselben Monats aus der GESAMTEN Historie (auch aus früheren Tarifen). */
+    var byIdx={};history(cat).forEach(function(r){if(!r.baseline)byIdx[billIndex(r.reading.datum)]=r;});
     var vals=allRows.map(valOf);
-    var minV=Math.min.apply(null,vals),maxV2=Math.max.apply(null,vals);
+    var pvVals=allRows.map(function(r){var pr=byIdx[billIndex(r.reading.datum)-12];if(!pr)return null;var pv=valOf(pr);return isFinite(pv)?pv:null;});
+    var pool=vals.slice();pvVals.forEach(function(x){if(x!=null)pool.push(x);});
+    var minV=Math.min.apply(null,pool),maxV2=Math.max.apply(null,pool);
     if(minV>0)minV=0;if(maxV2<0)maxV2=0;
     var range=(maxV2-minV)||1,zeroFrac=(0-minV)/range,isDiff=(metric==="differenz");
     bars=allRows.map(function(r,i){
@@ -1147,10 +1162,18 @@ function ovChartBody(metric,cat){
       var bottom=Math.min(zeroFrac,valFrac)*100,height=Math.abs(valFrac-zeroFrac)*100;
       var bc=isDiff?(v>=0?"var(--pos)":"var(--neg)"):col;
       var ml=monthLabel(billKey(r.reading.datum)+"-01");
-      var tip=r.forecast?("🔮 Prognose "+ml+": "+(metric==="verbrauch"?("~"+fmtVerb(cat,v)+" "+(c.billUnit||c.unit)):("~"+eur(v)))):(ml+": "+(metric==="verbrauch"?(fmtVerb(cat,v)+" "+(c.billUnit||c.unit)):eur(v))+(r.synthetic?" · berechnet":""));
+      var pvv=pvVals[i],pvMark="",pvTip="";
+      if(pvv!=null){
+        var pr=byIdx[billIndex(r.reading.datum)-12];
+        pvMark='<i class="pvmark" style="bottom:'+(((pvv-minV)/range)*100).toFixed(1)+'%"></i>';
+        pvTip=" · Vorjahr "+shortMon(billKey(pr.reading.datum))+" "+billKey(pr.reading.datum).slice(0,4)+": "+(metric==="verbrauch"?(fmtVerb(cat,pvv)+" "+(c.billUnit||c.unit)):eur(pvv));
+      }
+      var tip=r.forecast?("🔮 Prognose "+ml+": "+(metric==="verbrauch"?("~"+fmtVerb(cat,v)+" "+(c.billUnit||c.unit)):("~"+eur(v)))):(ml+": "+(metric==="verbrauch"?(fmtVerb(cat,v)+" "+(c.billUnit||c.unit)):eur(v))+(r.synthetic?" · berechnet":"")+pvTip);
       var cls="ycol"+(r.forecast?" fc":(r.synthetic?" est":""))+(i===rows.length-1?" cur":"");
-      return '<div class="'+cls+'" data-action="ovbar" data-tip="'+tip+'" title="'+tip+'"><i class="ybar" style="bottom:'+bottom.toFixed(1)+'%;height:'+Math.max(height,0.8).toFixed(1)+'%;background:'+bc+'"></i></div>';
+      return '<div class="'+cls+'" data-action="ovbar" data-tip="'+tip+'" title="'+tip+'"><i class="ybar" style="bottom:'+bottom.toFixed(1)+'%;height:'+Math.max(height,0.8).toFixed(1)+'%;background:'+bc+'"></i>'+pvMark+'</div>';
     }).join("");
+    var anyPv=pvVals.some(function(x){return x!=null;});
+    if(anyPv||fc.length)legend='<div class="ovlegend">'+(anyPv?'<span><i class="pvmarkleg"></i>Vorjahresmonat</span>':"")+(fc.length?'<span><b class="fcdash"></b>Prognose</span>':"")+'</div>';
     if(isDiff&&minV<0)zeroLine='<div class="yzero" style="bottom:'+(zeroFrac*100).toFixed(1)+'%"></div>';
     var sv=rows.map(valOf).reduce(function(a,b){return a+b;},0);
     if(metric==="verbrauch"){var u=(c.billUnit||c.unit);caption=firstFull+" – "+lastFull+" · ⌀ "+fmtVerb(cat,sv/rows.length)+" "+u+" / Monat · Summe "+fmtVerb(cat,sv)+" "+u+fcCap;}
@@ -1295,7 +1318,7 @@ function categoryShell(cat){
     '<div id="result" class="result"></div>'+
     '<details class="metchange"><summary>🔧 Neuer Zähler eingebaut?</summary><div class="field"><label for="startwert">Anfangsstand des neuen Zählers ('+u+')</label><input type="text" inputmode="decimal" id="startwert" placeholder="z. B. 0"></div><div class="field"><label for="startmeterno">Neue Zähler-Nummer (optional)</label><input type="text" id="startmeterno" placeholder="steht auf dem neuen Zähler" autocomplete="off"></div><p class="hint">Nur ausfüllen, wenn seit der letzten Ablesung ein neuer Zähler eingebaut wurde – der Verbrauch wird dann ab diesem Anfangsstand gerechnet. Die Zähler-Nummer merken wir uns für diesen Bereich.</p></details>'+
   '</section></div>'+
-  '<div id="pane_v" hidden><section class="card" id="verlauf"></section></div>'+
+  '<div id="pane_v" hidden><section class="card" id="yearcompare" hidden></section><section class="card" id="verlauf"></section></div>'+
   '<div id="pane_t" hidden><section class="card" id="tarife"></section></div>';
 }
 function row(label,val,cls){return '<div class="rrow '+(cls||"")+'"><span>'+label+'</span><b>'+val+'</b></div>';}
@@ -1454,6 +1477,59 @@ function renderVerlauf(){
     html+='<div class="vrow baseline"><div class="vmain"><div class="vmonth">Startwert</div><div class="vsub">Zählerstand '+fmtVal(cat,base.reading.zaehlerstand)+' '+CATS[cat].unit+' am '+deDate(base.reading.datum)+'</div></div><div class="vactions"><button class="iconbtn" data-action="edit-reading" data-id="'+base.reading.id+'" title="Bearbeiten">✏️</button><button class="iconbtn" data-action="del-reading" data-id="'+base.reading.id+'" title="Löschen">🗑️</button></div></div>';
   }
   cont.innerHTML=html;
+  renderYearCompare();
+}
+/* Jahresvergleich: gleicher Kalendermonat über die Jahre, mit Heatmap nach Abweichung vom Monats-Schnitt. */
+function buildYearCompareHtml(cat){
+  var c=CATS[cat],bu=c.billUnit||c.unit;
+  var rows=history(cat).filter(function(r){return !r.baseline;});
+  if(rows.length<2)return "";
+  var data={},yearsSet={};
+  rows.forEach(function(r){
+    var bk=billKey(r.reading.datum),y=Number(bk.slice(0,4)),m=Number(bk.slice(5,7))-1;
+    yearsSet[y]=true;if(!data[m])data[m]={};
+    data[m][y]={v:isFinite(r.verbrauch)?r.verbrauch:null,k:isFinite(r.gesamtkosten)?r.gesamtkosten:null};
+  });
+  var years=Object.keys(yearsSet).map(Number).sort(function(a,b){return a-b;});
+  if(years.length<2)return ""; /* Vergleich braucht mindestens zwei Jahre */
+  var metric=cmpMetric;
+  var valOfCell=function(cell){if(!cell)return null;var val=metric==="kosten"?cell.k:cell.v;return (val==null)?null:val;};
+  var mNames=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+  var monthsPresent=[];for(var mm=0;mm<12;mm++){if(data[mm])monthsPresent.push(mm);}
+  if(!monthsPresent.length)return "";
+  var head='<tr><th class="cmpm">Monat</th>'+years.map(function(y){return '<th>'+y+'</th>';}).join("")+'<th class="cmpavg">⌀</th></tr>';
+  var body=monthsPresent.map(function(m){
+    var cellVals=years.map(function(y){return valOfCell(data[m][y]);});
+    var present=cellVals.filter(function(x){return x!=null;});
+    var avg=present.length?present.reduce(function(a,b){return a+b;},0)/present.length:null;
+    var tds=years.map(function(y,idx){
+      var val=cellVals[idx];
+      if(val==null)return '<td class="cmpna">–</td>';
+      var txt=metric==="kosten"?eur(val):fmtVerb(cat,val);
+      var style="";
+      if(avg!=null&&present.length>=2&&avg!==0){
+        var dev=(val-avg)/Math.abs(avg),inten=Math.max(0,Math.min(1,Math.abs(dev)/0.4));
+        if(inten>0.05){var hue=dev>0?"#dc2626":"#16a34a";style=' style="background:color-mix(in srgb,'+hue+' '+Math.round(inten*26)+'%,transparent)"';}
+      }
+      return '<td'+style+'>'+txt+'</td>';
+    }).join("");
+    var avgTxt=avg==null?"–":(metric==="kosten"?eur(avg):fmtVerb(cat,avg));
+    return '<tr><th class="cmpm">'+mNames[m]+'</th>'+tds+'<td class="cmpavg">'+avgTxt+'</td></tr>';
+  }).join("");
+  var seg='<div class="ovseg" role="group" aria-label="Kennzahl" style="margin-bottom:12px">'+
+    '<button class="ovsegbtn'+(metric==="verbrauch"?" active":"")+'" data-action="cmp-metric" data-val="verbrauch">Verbrauch</button>'+
+    '<button class="ovsegbtn'+(metric==="kosten"?" active":"")+'" data-action="cmp-metric" data-val="kosten">Kosten</button>'+
+  '</div>';
+  var unit=metric==="kosten"?"€":bu;
+  return '<h2 class="sect" style="margin-bottom:10px">📆 Jahresvergleich <span class="muted" style="font-weight:400;font-size:.8rem">· gleicher Monat über die Jahre ('+unit+')</span></h2>'+
+    seg+'<div class="cmpwrap"><table class="cmptbl"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'+
+    '<p class="ovhint" style="text-align:left;margin-top:10px">🔴 auffällig höher · 🟢 niedriger als der Monats-Schnitt – so erkennst du Ausreißer sofort.</p>';
+}
+function renderYearCompare(){
+  var cont=$("#yearcompare");if(!cont)return;
+  var html=buildYearCompareHtml(activeCat);
+  if(!html){cont.hidden=true;cont.innerHTML="";return;}
+  cont.hidden=false;cont.innerHTML=html;
 }
 
 function tariffCard(t,current){
@@ -1600,6 +1676,7 @@ function onAppClick(e){
   else if(act==="cat-pane"){catPane=btn.dataset.pane;applyPane();window.scrollTo({top:0,behavior:"smooth"});}
   else if(act==="tsec"){var tk=btn.dataset.key;tSec[tk]=!tSec[tk];btn.classList.toggle("open",!!tSec[tk]);var tb=btn.parentNode.querySelector(".tsecbody");if(tb)tb.hidden=!tSec[tk];}
   else if(act==="toggle-group"){expandedGroups[id]=!expandedGroups[id];renderVerlauf();}
+  else if(act==="cmp-metric"){cmpMetric=btn.dataset.val;renderYearCompare();}
   else if(act==="del-reading")delReading(id);
   else if(act==="edit-reading")editReading(id);
   else if(act==="fill-reading")fillReading(btn.dataset.datum);
@@ -1782,10 +1859,10 @@ function openWizardRaw(){
   updatePageTitle();renderWizard();window.scrollTo({top:0,behavior:"smooth"});
 }
 function closeWizardRaw(){document.body.classList.remove("wizard-open");updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
-function openWizard(){if(!currentUser)return;wizardDate=firstOfMonthISO();openWizardRaw();pushNav();}
+function openWizard(){if(!currentUser)return;wizardDate=todayISO();openWizardRaw();pushNav();}
 function renderWizard(){
   var body=$("#wizardBody");if(!body)return;
-  if(!wizardDate)wizardDate=firstOfMonthISO();
+  if(!wizardDate)wizardDate=todayISO();
   var cats=householdCats(),billLbl=billLabel(wizardDate);
   var rows=cats.map(function(cat){
     var c=CATS[cat],tariff=tariffForDate(cat,wizardDate);
@@ -1824,7 +1901,7 @@ function wizardUpdateRow(cat){
 }
 async function saveAllWizard(){
   if(busyWizard)return;
-  var iso=wizardDate||firstOfMonthISO(),cats=householdCats(),jobs=[];
+  var iso=wizardDate||todayISO(),cats=householdCats(),jobs=[];
   cats.forEach(function(cat){
     if(!tariffForDate(cat,iso))return;
     var inp=$("#wzin_"+cat);if(!inp)return;
