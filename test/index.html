@@ -868,6 +868,7 @@ async function loadFromDB(){
   (aRes.data||[]).forEach(function(r){if(st[r.category])st[r.category].abschlagChanges.push(rowToAbschlag(r));});
   if(cRes&&cRes.data){st.gas.conversion={wandelfaktor:Number(cRes.data.wandelfaktor),zustandszahl:Number(cRes.data.zustandszahl),brennwert:Number(cRes.data.brennwert)};}
   STATE=st;
+  try{await fetchDismissedNotifs();}catch(e){}
   try{subscribeRealtime();}catch(e){}
 }
 /* ---------- Live-Sync (Supabase Realtime) ---------- */
@@ -1255,12 +1256,46 @@ function cancelReminderHtml(){
   var btns=due.map(function(c){return '<button class="rembtn" data-action="cancel-goto" data-cat="'+c+'">'+CATS[c].icon+' '+CATS[c].label+' – Tarif prüfen</button>';}).join("");
   return '<div class="rembanner"><div class="remrow"><span class="remtxt">⏰ <b>Kündigungsfrist läuft bald ab:</b> '+lines+'. Jetzt kündigen oder Preise vergleichen.</span><button class="remclose" data-action="cancelrem-dismiss" aria-label="Ausblenden">✕</button></div><div class="rembtns">'+btns+'</div></div>';
 }
-/* ---------- Ausgeblendete Benachrichtigungen (pro User, lokal gespeichert) ---------- */
-function notifKey(){return "vt_notif_dismissed_"+(currentUser?currentUser.id:"anon");}
-function loadDismissedNotifs(){try{var a=JSON.parse(localStorage.getItem(notifKey())||"[]");return Array.isArray(a)?a:[];}catch(e){return [];}}
-function saveDismissedNotifs(arr){try{localStorage.setItem(notifKey(),JSON.stringify(arr));}catch(e){}}
+/* ---------- Ausgeblendete Benachrichtigungen (pro User, in Supabase – geräteübergreifend) ---------- */
+var DISMISSED_NOTIFS=[];
+async function fetchDismissedNotifs(){
+  if(!currentUser){DISMISSED_NOTIFS=[];return;}
+  try{
+    var r=await sb.from("notification_dismissals").select("id,household_id,notif_key,text,created_at").eq("user_id",currentUser.id).order("created_at",{ascending:false});
+    DISMISSED_NOTIFS=(r&&!r.error&&Array.isArray(r.data))?r.data:[];
+  }catch(e){DISMISSED_NOTIFS=[];}
+}
 function anomalyKey(a){return a.cat+"|"+billKey(a.month)+"|"+a.dir;}
-function isNotifDismissed(k){return loadDismissedNotifs().some(function(n){return n.key===k;});}
+/* Ausblendung gilt pro Haushalt: derselbe Monat in einem anderen Haushalt bleibt sichtbar */
+function isNotifDismissed(k){return DISMISSED_NOTIFS.some(function(n){return n.notif_key===k&&n.household_id===activeHousehold;});}
+async function dismissAnomalies(){
+  if(!currentUser)return;
+  var openAn=consumptionAnomalies().filter(function(a){return !isNotifDismissed(anomalyKey(a));});
+  if(!openAn.length){renderApp();return;}
+  var rows=openAn.map(function(a){return {user_id:currentUser.id,household_id:activeHousehold,notif_key:anomalyKey(a),text:anomalyLine(a)};});
+  /* optimistisch sofort ausblenden, dann mit Server abgleichen */
+  var nowIso=new Date().toISOString();
+  DISMISSED_NOTIFS=rows.map(function(r){return {id:null,household_id:r.household_id,notif_key:r.notif_key,text:r.text,created_at:nowIso};}).concat(DISMISSED_NOTIFS);
+  renderApp();
+  try{
+    var ins=await sb.from("notification_dismissals").upsert(rows,{onConflict:"user_id,household_id,notif_key"});
+    if(ins.error)throw ins.error;
+    await fetchDismissedNotifs();
+    if(document.body.classList.contains("settings-open"))renderNotifHistory();
+  }catch(e){toast("Konnte Ausblendung nicht speichern: "+errMsg(e),true);await fetchDismissedNotifs();renderApp();}
+}
+async function deleteNotif(id){
+  if(!id)return;
+  try{var r=await sb.from("notification_dismissals").delete().eq("id",id);if(r.error)throw r.error;}
+  catch(e){toast("Löschen fehlgeschlagen: "+errMsg(e),true);return;}
+  await fetchDismissedNotifs();renderNotifHistory();toast("Benachrichtigung gelöscht ✅");
+}
+async function clearNotifs(){
+  if(!currentUser)return;
+  try{var r=await sb.from("notification_dismissals").delete().eq("user_id",currentUser.id);if(r.error)throw r.error;}
+  catch(e){toast("Löschen fehlgeschlagen: "+errMsg(e),true);return;}
+  await fetchDismissedNotifs();renderNotifHistory();toast("Alle Benachrichtigungen gelöscht ✅");
+}
 function anomalyLine(a){
   var bu=CATS[a.cat].billUnit||CATS[a.cat].unit;
   var arrow=a.dir==="up"?"📈":"📉",word=a.dir==="up"?"höher":"niedriger";
@@ -1719,16 +1754,7 @@ function onAppClick(e){
   else if(act==="onb-reading"){var zi=$("#zaehlerstand");if(zi){zi.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zi.focus({preventScroll:true});}catch(e){}},220);}}
   else if(act==="rem-dismiss"){reminderDismissed=true;renderApp();}
   else if(act==="cancelrem-dismiss"){cancelRemDismissed=true;renderApp();}
-  else if(act==="anom-dismiss"){
-    var openAn=consumptionAnomalies().filter(function(a){return !isNotifDismissed(anomalyKey(a));});
-    if(openAn.length){
-      var nstore=loadDismissedNotifs(),nowIso=new Date().toISOString();
-      openAn.forEach(function(a){nstore.unshift({key:anomalyKey(a),text:anomalyLine(a),at:nowIso});});
-      if(nstore.length>200)nstore=nstore.slice(0,200);
-      saveDismissedNotifs(nstore);
-    }
-    renderApp();
-  }
+  else if(act==="anom-dismiss"){dismissAnomalies();}
   else if(act==="anom-goto"){activeCat=btn.dataset.cat;catPane="verlauf";tSec={};expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});}
   else if(act==="cancel-goto"){activeCat=btn.dataset.cat;catPane="tarif";tSec={};expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});}
   else if(act==="rem-goto"){activeCat=btn.dataset.cat;catPane="erfassen";tSec={};expandedGroups={};renderApp();var dd=$("#ablesedatum");if(dd)dd.value=firstOfMonthISO();var zr=$("#zaehlerstand");updateResult();if(zr){zr.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zr.focus({preventScroll:true});}catch(e){}},250);}}
@@ -2620,13 +2646,13 @@ function onboardingHtml(cat){
 function renderNotifHistory(){
   var el=$("#notifBody");if(!el)return;
   if(!currentUser){el.innerHTML="";return;}
-  var list=loadDismissedNotifs();
-  if(!list.length){el.innerHTML='<div class="notice">Noch nichts ausgeblendet. Wenn du oben eine Verbrauchs-Warnung mit ✕ schließt, merkt sich die App das – die Warnung erscheint dann nicht erneut und wird hier abgelegt.</div>';return;}
-  var rows=list.map(function(n,i){
+  var list=DISMISSED_NOTIFS;
+  if(!list.length){el.innerHTML='<div class="notice">Noch nichts ausgeblendet. Wenn du oben eine Verbrauchs-Warnung mit ✕ schließt, merkt sich die App das – die Warnung erscheint dann nicht erneut und wird hier abgelegt (geräteübergreifend synchron).</div>';return;}
+  var rows=list.map(function(n){
     return '<div class="notifrow"><div class="notiftxt">'+n.text+'</div>'+
-      '<div class="notifbot"><span class="notifmeta">Ausgeblendet am '+deDateTime(n.at)+'</span>'+
-      '<span class="notifact"><button class="linkbtn linkdanger notifdel" data-action="notif-del" data-i="'+i+'">🗑️ Löschen</button>'+
-      '<span class="notifconfirm" hidden>Wirklich löschen? <button class="hhaddbtn" data-action="notif-del-yes" data-i="'+i+'">Ja, löschen</button> <button class="hhaddbtn" data-action="notif-del-no">Abbrechen</button></span></span></div></div>';
+      '<div class="notifbot"><span class="notifmeta">Ausgeblendet am '+deDateTime(n.created_at)+'</span>'+
+      '<span class="notifact"><button class="linkbtn linkdanger notifdel" data-action="notif-del">🗑️ Löschen</button>'+
+      '<span class="notifconfirm" hidden>Wirklich löschen? <button class="hhaddbtn" data-action="notif-del-yes" data-id="'+n.id+'">Ja, löschen</button> <button class="hhaddbtn" data-action="notif-del-no">Abbrechen</button></span></span></div></div>';
   }).join("");
   el.innerHTML='<div class="notiflist">'+rows+'</div>'+
     '<div class="notifclearwrap"><button class="linkbtn linkdanger" data-action="notif-clear">🗑️ Alle löschen</button>'+
@@ -2777,7 +2803,7 @@ function handleSession(session){
   if(session&&session.user){
     if(enteredUserId===session.user.id){currentUser=session.user;return;}
     enteredUserId=session.user.id;enterApp(session);
-  }else{try{unsubscribeRealtime();}catch(e){}navReady=false;enteredUserId=null;currentUser=null;BACKUPS=[];HOUSEHOLDS=[];activeHousehold=null;var app=$("#app");if(app)app.innerHTML="";var bl=$("#backupList");if(bl)bl.innerHTML="";var ab=$("#accountBody");if(ab)ab.innerHTML="";var nb=$("#notifBody");if(nb)nb.innerHTML="";showAuth(true);}
+  }else{try{unsubscribeRealtime();}catch(e){}navReady=false;enteredUserId=null;currentUser=null;BACKUPS=[];HOUSEHOLDS=[];DISMISSED_NOTIFS=[];activeHousehold=null;var app=$("#app");if(app)app.innerHTML="";var bl=$("#backupList");if(bl)bl.innerHTML="";var ab=$("#accountBody");if(ab)ab.innerHTML="";var nb=$("#notifBody");if(nb)nb.innerHTML="";showAuth(true);}
 }
 function renderEnvSwitch(){
   var el=$("#envswitch"),note=$("#envnote");
@@ -2829,10 +2855,10 @@ function init(){
     var a=b.dataset.action;
     if(a==="notif-del"){var w=b.closest(".notifact");if(w){b.hidden=true;var cf=w.querySelector(".notifconfirm");if(cf)cf.hidden=false;}}
     else if(a==="notif-del-no"){var w2=b.closest(".notifact");if(w2){var cf2=w2.querySelector(".notifconfirm");if(cf2)cf2.hidden=true;var db=w2.querySelector(".notifdel");if(db)db.hidden=false;}}
-    else if(a==="notif-del-yes"){var i=Number(b.dataset.i),list=loadDismissedNotifs();if(i>=0&&i<list.length){list.splice(i,1);saveDismissedNotifs(list);}renderNotifHistory();toast("Benachrichtigung gelöscht ✅");}
+    else if(a==="notif-del-yes"){deleteNotif(b.dataset.id);}
     else if(a==="notif-clear"){var w3=b.closest(".notifclearwrap");if(w3){b.hidden=true;var cf3=w3.querySelector(".notifconfirm");if(cf3)cf3.hidden=false;}}
     else if(a==="notif-clear-no"){var w4=b.closest(".notifclearwrap");if(w4){var cf4=w4.querySelector(".notifconfirm");if(cf4)cf4.hidden=true;var cb=w4.querySelector('[data-action="notif-clear"]');if(cb)cb.hidden=false;}}
-    else if(a==="notif-clear-yes"){saveDismissedNotifs([]);renderNotifHistory();toast("Alle Benachrichtigungen gelöscht ✅");}
+    else if(a==="notif-clear-yes"){clearNotifs();}
   });
   $("#accountBtn").addEventListener("click",toggleSettings);
   $("#settingsBack").addEventListener("click",function(){window.history.back();});
