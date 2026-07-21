@@ -245,6 +245,17 @@ body.v2dark .mcflag{color:#fcd34d}
 .rembtn{background:var(--accent);color:var(--accent-fg);border:none;border-radius:var(--radius-sm);padding:8px 12px;font:inherit;font-weight:600;font-size:.84rem;cursor:pointer}
 .rembanner.warnb{border-color:color-mix(in srgb,#f59e0b 40%,var(--border));background:color-mix(in srgb,#f59e0b 9%,var(--panel))}
 .rembanner.warnb .rembtn{background:#f59e0b;color:#111}
+/* Ausgeblendete Benachrichtigungen (Konto) */
+.linkdanger{color:#dc2626}
+.notiflist{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.notifrow{border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;background:var(--panel)}
+.notiftxt{font-size:.88rem;line-height:1.4}
+.notifbot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:9px}
+.notifmeta{color:var(--muted);font-size:.78rem}
+.notifact,.notifclearwrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.notifclearwrap{margin-top:14px}
+.notifconfirm{font-size:.82rem;color:var(--muted);display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.notifconfirm .hhaddbtn{padding:5px 10px;font-size:.8rem;font-weight:600}
 /* Haushalts-Umschalter in der Kopfzeile (Dropdown) */
 .hhtopwrap{position:relative}
 .hhtopname{font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -491,6 +502,12 @@ body.settings-open #wizardView,body.docs-open #wizardView{display:none}
     <h2 class="settitle">👤 Mein Konto &amp; Einstellungen</h2>
 
     <section class="card accountcard"><div id="accountBody"></div></section>
+
+    <section class="card notifcard" id="notifSection">
+      <h3 class="insth">🔔 Ausgeblendete Benachrichtigungen</h3>
+      <p class="insthint">Verbrauchs-Warnungen, die du oben mit ✕ geschlossen hast. Sie tauchen nicht erneut auf – hier kannst du sie nachlesen und dauerhaft löschen.</p>
+      <div id="notifBody"></div>
+    </section>
 
     <section class="card installcard" id="installSection">
       <h3 class="insth">📲 Als App installieren</h3>
@@ -1238,7 +1255,18 @@ function cancelReminderHtml(){
   var btns=due.map(function(c){return '<button class="rembtn" data-action="cancel-goto" data-cat="'+c+'">'+CATS[c].icon+' '+CATS[c].label+' – Tarif prüfen</button>';}).join("");
   return '<div class="rembanner"><div class="remrow"><span class="remtxt">⏰ <b>Kündigungsfrist läuft bald ab:</b> '+lines+'. Jetzt kündigen oder Preise vergleichen.</span><button class="remclose" data-action="cancelrem-dismiss" aria-label="Ausblenden">✕</button></div><div class="rembtns">'+btns+'</div></div>';
 }
-var anomalyDismissed=false;
+/* ---------- Ausgeblendete Benachrichtigungen (pro User, lokal gespeichert) ---------- */
+function notifKey(){return "vt_notif_dismissed_"+(currentUser?currentUser.id:"anon");}
+function loadDismissedNotifs(){try{var a=JSON.parse(localStorage.getItem(notifKey())||"[]");return Array.isArray(a)?a:[];}catch(e){return [];}}
+function saveDismissedNotifs(arr){try{localStorage.setItem(notifKey(),JSON.stringify(arr));}catch(e){}}
+function anomalyKey(a){return a.cat+"|"+billKey(a.month)+"|"+a.dir;}
+function isNotifDismissed(k){return loadDismissedNotifs().some(function(n){return n.key===k;});}
+function anomalyLine(a){
+  var bu=CATS[a.cat].billUnit||CATS[a.cat].unit;
+  var arrow=a.dir==="up"?"📈":"📉",word=a.dir==="up"?"höher":"niedriger";
+  var basis=a.seasonal?("⌀ "+shortMon(billKey(a.month))+" Vorjahre"):"⌀ zuletzt";
+  return arrow+' <b>'+CATS[a.cat].icon+' '+CATS[a.cat].label+'</b> ('+billLabel(a.month)+'): '+fmtVerb(a.cat,a.verbrauch)+' '+bu+' – <b>'+Math.abs(a.pct)+' % '+word+'</b> als sonst ('+basis+' '+fmtVerb(a.cat,a.base)+' '+bu+')';
+}
 /* Ungewöhnlicher Verbrauch: letzter ABGESCHLOSSENER, echter Abrechnungsmonat je Bereich
    gegen den Vorjahres-Kalendermonat (Fallback: Schnitt der übrigen erfassten Monate).
    Interpolierte/geschätzte Monate und der noch laufende Monat werden ausgeklammert. */
@@ -1263,14 +1291,9 @@ function consumptionAnomalies(){
   }).filter(Boolean);
 }
 function anomalyHtml(){
-  if(anomalyDismissed)return "";
-  var an=consumptionAnomalies();if(!an.length)return "";
-  var lines=an.map(function(a){
-    var bu=CATS[a.cat].billUnit||CATS[a.cat].unit;
-    var arrow=a.dir==="up"?"📈":"📉",word=a.dir==="up"?"höher":"niedriger";
-    var basis=a.seasonal?("⌀ "+shortMon(billKey(a.month))+" Vorjahre"):"⌀ zuletzt";
-    return arrow+' <b>'+CATS[a.cat].icon+' '+CATS[a.cat].label+'</b> ('+billLabel(a.month)+'): '+fmtVerb(a.cat,a.verbrauch)+' '+bu+' – <b>'+Math.abs(a.pct)+' % '+word+'</b> als sonst ('+basis+' '+fmtVerb(a.cat,a.base)+' '+bu+')';
-  }).join("<br>");
+  var an=consumptionAnomalies().filter(function(a){return !isNotifDismissed(anomalyKey(a));});
+  if(!an.length)return "";
+  var lines=an.map(anomalyLine).join("<br>");
   var btns=an.map(function(a){return '<button class="rembtn" data-action="anom-goto" data-cat="'+a.cat+'">'+CATS[a.cat].icon+' '+CATS[a.cat].label+' ansehen</button>';}).join("");
   return '<div class="rembanner warnb"><div class="remrow"><span class="remtxt">'+lines+'</span><button class="remclose" data-action="anom-dismiss" aria-label="Ausblenden">✕</button></div><div class="rembtns">'+btns+'</div></div>';
 }
@@ -1490,12 +1513,13 @@ function buildYearCompareHtml(cat){
     yearsSet[y]=true;if(!data[m])data[m]={};
     data[m][y]={v:isFinite(r.verbrauch)?r.verbrauch:null,k:isFinite(r.gesamtkosten)?r.gesamtkosten:null};
   });
-  var years=Object.keys(yearsSet).map(Number).sort(function(a,b){return a-b;});
-  if(years.length<2)return ""; /* Vergleich braucht mindestens zwei Jahre */
+  var curY=Number(todayISO().slice(0,4));
+  var years=Object.keys(yearsSet).map(Number).filter(function(y){return y>=curY-2&&y<=curY;}).sort(function(a,b){return a-b;});
+  if(years.length<2)return ""; /* nur aktuelles + zwei Vorjahre; wechselt automatisch zum Jahreswechsel */
   var metric=cmpMetric;
   var valOfCell=function(cell){if(!cell)return null;var val=metric==="kosten"?cell.k:cell.v;return (val==null)?null:val;};
   var mNames=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
-  var monthsPresent=[];for(var mm=0;mm<12;mm++){if(data[mm])monthsPresent.push(mm);}
+  var monthsPresent=[];for(var mm=0;mm<12;mm++){if(data[mm]&&years.some(function(y){return data[mm][y];}))monthsPresent.push(mm);}
   if(!monthsPresent.length)return "";
   var head='<tr><th class="cmpm">Monat</th>'+years.map(function(y){return '<th>'+y+'</th>';}).join("")+'<th class="cmpavg">⌀</th></tr>';
   var body=monthsPresent.map(function(m){
@@ -1695,7 +1719,16 @@ function onAppClick(e){
   else if(act==="onb-reading"){var zi=$("#zaehlerstand");if(zi){zi.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zi.focus({preventScroll:true});}catch(e){}},220);}}
   else if(act==="rem-dismiss"){reminderDismissed=true;renderApp();}
   else if(act==="cancelrem-dismiss"){cancelRemDismissed=true;renderApp();}
-  else if(act==="anom-dismiss"){anomalyDismissed=true;renderApp();}
+  else if(act==="anom-dismiss"){
+    var openAn=consumptionAnomalies().filter(function(a){return !isNotifDismissed(anomalyKey(a));});
+    if(openAn.length){
+      var nstore=loadDismissedNotifs(),nowIso=new Date().toISOString();
+      openAn.forEach(function(a){nstore.unshift({key:anomalyKey(a),text:anomalyLine(a),at:nowIso});});
+      if(nstore.length>200)nstore=nstore.slice(0,200);
+      saveDismissedNotifs(nstore);
+    }
+    renderApp();
+  }
   else if(act==="anom-goto"){activeCat=btn.dataset.cat;catPane="verlauf";tSec={};expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});}
   else if(act==="cancel-goto"){activeCat=btn.dataset.cat;catPane="tarif";tSec={};expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});}
   else if(act==="rem-goto"){activeCat=btn.dataset.cat;catPane="erfassen";tSec={};expandedGroups={};renderApp();var dd=$("#ablesedatum");if(dd)dd.value=firstOfMonthISO();var zr=$("#zaehlerstand");updateResult();if(zr){zr.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zr.focus({preventScroll:true});}catch(e){}},250);}}
@@ -2584,8 +2617,24 @@ function onboardingHtml(cat){
   var s2=hasR?'<li class="onbdone">✓ Erste Ablesung ist erfasst</li>':(hasT?'<li><b>Schritt 2:</b> Aktuellen Zählerstand als Startwert eintragen.<div><button class="onbbtn" data-action="onb-reading">Zählerstand eintragen</button></div></li>':'<li class="onbwait"><b>Schritt 2:</b> Aktuellen Zählerstand eintragen <span>(nach Schritt 1)</span></li>');
   return '<section class="card onb"><h2 class="sect">🚀 '+c.icon+' '+c.label+' einrichten</h2><p>Nur noch wenige Angaben, dann rechnet die App automatisch:</p><ol class="onbsteps">'+s1+s2+'</ol></section>';
 }
+function renderNotifHistory(){
+  var el=$("#notifBody");if(!el)return;
+  if(!currentUser){el.innerHTML="";return;}
+  var list=loadDismissedNotifs();
+  if(!list.length){el.innerHTML='<div class="notice">Noch nichts ausgeblendet. Wenn du oben eine Verbrauchs-Warnung mit ✕ schließt, merkt sich die App das – die Warnung erscheint dann nicht erneut und wird hier abgelegt.</div>';return;}
+  var rows=list.map(function(n,i){
+    return '<div class="notifrow"><div class="notiftxt">'+n.text+'</div>'+
+      '<div class="notifbot"><span class="notifmeta">Ausgeblendet am '+deDateTime(n.at)+'</span>'+
+      '<span class="notifact"><button class="linkbtn linkdanger notifdel" data-action="notif-del" data-i="'+i+'">🗑️ Löschen</button>'+
+      '<span class="notifconfirm" hidden>Wirklich löschen? <button class="hhaddbtn" data-action="notif-del-yes" data-i="'+i+'">Ja, löschen</button> <button class="hhaddbtn" data-action="notif-del-no">Abbrechen</button></span></span></div></div>';
+  }).join("");
+  el.innerHTML='<div class="notiflist">'+rows+'</div>'+
+    '<div class="notifclearwrap"><button class="linkbtn linkdanger" data-action="notif-clear">🗑️ Alle löschen</button>'+
+    '<span class="notifconfirm" hidden>Alle '+list.length+' löschen? <button class="hhaddbtn" data-action="notif-clear-yes">Ja, alle löschen</button> <button class="hhaddbtn" data-action="notif-clear-no">Abbrechen</button></span></div>';
+}
 function renderAccount(){
   renderHhTop();
+  renderNotifHistory();
   var body=$("#accountBody");if(!body)return;
   if(!currentUser){body.innerHTML="";return;}
   var email=escapeHtml(currentUser.email||"");
@@ -2728,7 +2777,7 @@ function handleSession(session){
   if(session&&session.user){
     if(enteredUserId===session.user.id){currentUser=session.user;return;}
     enteredUserId=session.user.id;enterApp(session);
-  }else{try{unsubscribeRealtime();}catch(e){}navReady=false;enteredUserId=null;currentUser=null;BACKUPS=[];HOUSEHOLDS=[];activeHousehold=null;var app=$("#app");if(app)app.innerHTML="";var bl=$("#backupList");if(bl)bl.innerHTML="";var ab=$("#accountBody");if(ab)ab.innerHTML="";showAuth(true);}
+  }else{try{unsubscribeRealtime();}catch(e){}navReady=false;enteredUserId=null;currentUser=null;BACKUPS=[];HOUSEHOLDS=[];activeHousehold=null;var app=$("#app");if(app)app.innerHTML="";var bl=$("#backupList");if(bl)bl.innerHTML="";var ab=$("#accountBody");if(ab)ab.innerHTML="";var nb=$("#notifBody");if(nb)nb.innerHTML="";showAuth(true);}
 }
 function renderEnvSwitch(){
   var el=$("#envswitch"),note=$("#envnote");
@@ -2775,6 +2824,16 @@ function init(){
   $("#accountBody").addEventListener("click",function(e){var b=e.target.closest("[data-action]");if(!b)return;var a=b.dataset.action;if(a==="hh-switch")switchHousehold(b.dataset.id);else if(a==="hh-create")createHouseholdUI();else if(a==="hh-rename")startRenameHousehold();else if(a==="hh-rename-save")saveRenameHousehold();else if(a==="hh-rename-cancel")cancelRenameHousehold();else if(a==="hh-invite")inviteUI();else if(a==="hh-join")joinUI();else if(a==="hh-copy")copyInvite(b.dataset.code);else if(a==="cat-toggle")toggleCat(b.dataset.cat);else if(a==="hh-leave")leaveHouseholdUI();});
   $("#accountBody").addEventListener("change",function(e){var t=e.target;if(!t||!t.id)return;if(t.id.indexOf("meter_")===0&&t.dataset.cat){saveMeter(t.dataset.cat,t.value);}else if(t.id.indexOf("new_en_")===0){var c=t.id.slice(7),mi=$("#new_meter_"+c);if(mi)mi.style.display=t.checked?"":"none";}});
   $("#accountBody").addEventListener("keydown",function(e){if(!e.target)return;if(e.key==="Enter"&&e.target.id==="hhNewName"){e.preventDefault();createHouseholdUI();}else if(e.key==="Enter"&&e.target.id==="hhJoinCode"){e.preventDefault();joinUI();}else if(e.target.id==="hhRenameInp"){if(e.key==="Enter"){e.preventDefault();saveRenameHousehold();}else if(e.key==="Escape"){e.preventDefault();cancelRenameHousehold();}}});
+  $("#notifBody").addEventListener("click",function(e){
+    var b=e.target.closest("[data-action]");if(!b)return;
+    var a=b.dataset.action;
+    if(a==="notif-del"){var w=b.closest(".notifact");if(w){b.hidden=true;var cf=w.querySelector(".notifconfirm");if(cf)cf.hidden=false;}}
+    else if(a==="notif-del-no"){var w2=b.closest(".notifact");if(w2){var cf2=w2.querySelector(".notifconfirm");if(cf2)cf2.hidden=true;var db=w2.querySelector(".notifdel");if(db)db.hidden=false;}}
+    else if(a==="notif-del-yes"){var i=Number(b.dataset.i),list=loadDismissedNotifs();if(i>=0&&i<list.length){list.splice(i,1);saveDismissedNotifs(list);}renderNotifHistory();toast("Benachrichtigung gelöscht ✅");}
+    else if(a==="notif-clear"){var w3=b.closest(".notifclearwrap");if(w3){b.hidden=true;var cf3=w3.querySelector(".notifconfirm");if(cf3)cf3.hidden=false;}}
+    else if(a==="notif-clear-no"){var w4=b.closest(".notifclearwrap");if(w4){var cf4=w4.querySelector(".notifconfirm");if(cf4)cf4.hidden=true;var cb=w4.querySelector('[data-action="notif-clear"]');if(cb)cb.hidden=false;}}
+    else if(a==="notif-clear-yes"){saveDismissedNotifs([]);renderNotifHistory();toast("Alle Benachrichtigungen gelöscht ✅");}
+  });
   $("#accountBtn").addEventListener("click",toggleSettings);
   $("#settingsBack").addEventListener("click",function(){window.history.back();});
   var docsBtnEl=$("#docsBtn");if(docsBtnEl)docsBtnEl.addEventListener("click",toggleDocs);
