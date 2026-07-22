@@ -13,7 +13,7 @@ mkdirSync(www, { recursive: true });
 
 // sw.js wird bewusst NICHT kopiert: in der nativen App ist der Service Worker
 // unnoetig und wuerde nur die localhost-Huelle zwischenspeichern.
-const files = ['index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
+const files = ['index.html', 'supabase.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 for (const f of files) {
   copyFileSync(join(root, f), join(www, f));
 }

@@ -388,10 +388,15 @@ h3{font-size:.94rem;margin:18px 0 8px}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(60px);background:var(--fg);color:var(--bg);padding:13px 18px;border-radius:10px;font-weight:500;font-size:.9rem;opacity:0;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s;z-index:100;max-width:92%;text-align:center;box-shadow:var(--shadow-lg);pointer-events:none}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.err{background:var(--neg);color:#fff}
+#undotoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(60px);background:var(--fg);color:var(--bg);padding:9px 10px 9px 18px;border-radius:10px;font-weight:500;font-size:.9rem;opacity:0;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s;z-index:101;max-width:92%;display:none;align-items:center;gap:14px;box-shadow:var(--shadow-lg)}
+#undotoast.show{display:flex;opacity:1;transform:translateX(-50%) translateY(0)}
+.undobtn{background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;padding:7px 12px;font:inherit;font-weight:600;font-size:.85rem;cursor:pointer;white-space:nowrap}
 
 /* test banner + visibility */
 .testbanner{display:none}
 body.test-env .testbanner{display:block;background:#7c3aed;color:#fff;text-align:center;padding:7px;font-size:.82rem}
+.offbar{display:none}
+body.offline .offbar{display:block;position:sticky;top:0;z-index:60;background:#b45309;color:#fff;text-align:center;padding:8px 12px;font-size:.83rem;font-weight:500}
 body.app-hidden .shell,body.app-hidden .bottomnav{display:none}
 #settingsView{display:none}
 body.settings-open #settingsView{display:block}
@@ -442,10 +447,11 @@ body.settings-open #wizardView,body.docs-open #wizardView{display:none}
  .vright{width:100%;justify-content:space-between}
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- supabase-js lokal gepinnt (2.110.8), damit die App nicht von einem CDN abhaengt (Offline-Kaltstart, native App, Supply-Chain). --><script src="supabase.js"></script>
 </head>
 <body data-cat="strom" class="app-hidden">
 <div class="testbanner">🧪 TESTUMGEBUNG – zum Ausprobieren. Änderungen hier betreffen <b>NICHT</b> deine echten Daten.</div>
+<div id="offbar" class="offbar">📴 Keine Internetverbindung – neue Eingaben werden gespeichert und automatisch übertragen, sobald du wieder online bist.</div>
 
 <div id="authscreen" class="authscreen">
   <div class="authblobs" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -456,14 +462,14 @@ body.settings-open #wizardView,body.docs-open #wizardView{display:none}
     <div id="auth_msg" class="authmsg" hidden></div>
     <div id="auth_login_panel">
       <div class="field"><label for="auth_email">E-Mail</label><input type="email" id="auth_email" autocomplete="username" placeholder="name@beispiel.de"></div>
-      <div class="field"><label for="auth_pass">Passwort</label><input type="password" id="auth_pass" autocomplete="current-password" placeholder="mindestens 6 Zeichen"></div>
+      <div class="field"><label for="auth_pass">Passwort</label><input type="password" id="auth_pass" autocomplete="current-password" placeholder="mindestens 8 Zeichen"></div>
       <button id="auth_login" class="btn big">Anmelden</button>
       <button id="auth_signup" class="btn ghostbtn">Neues Konto erstellen</button>
       <button id="auth_forgot" class="linkbtn" type="button">Passwort vergessen?</button>
       <p class="authhint">Beim allerersten Mal „Neues Konto erstellen" – danach immer „Anmelden".</p>
     </div>
     <div id="auth_reset_panel" hidden>
-      <div class="field"><label for="auth_newpass">Neues Passwort</label><input type="password" id="auth_newpass" autocomplete="new-password" placeholder="mindestens 6 Zeichen"></div>
+      <div class="field"><label for="auth_newpass">Neues Passwort</label><input type="password" id="auth_newpass" autocomplete="new-password" placeholder="mindestens 8 Zeichen"></div>
       <button id="auth_setpass" class="btn big">Neues Passwort speichern</button>
     </div>
   </div>
@@ -542,6 +548,9 @@ body.settings-open #wizardView,body.docs-open #wizardView{display:none}
         <div class="backup">
           <button id="exportBtn">💾 Komplett-Sicherung (JSON)</button>
           <button id="importBtn">↩️ Sicherung laden (JSON)</button>
+        </div>
+        <div class="backup">
+          <button id="pdfExportBtn">📄 Bericht als PDF (drucken / speichern)</button>
         </div>
         <input type="file" id="importFile" accept="application/json" hidden>
         <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
@@ -678,6 +687,22 @@ async function scheduleTariffDeadlineNotifs(){
     });
     try{await LN.cancel({notifications:[{id:4300},{id:4301},{id:4302}]});}catch(e){}
     if(notifs.length)await LN.schedule({notifications:notifs});
+  }catch(e){}
+}
+/* Monats-Push mit dynamischer Kurz-Zusammenfassung (fällige Ablesung + auffälliger Verbrauch),
+   bei jedem App-Start anhand des aktuellen Datenstands neu terminiert. Ersetzt den generischen Reminder (id 4211). */
+async function scheduleMonthlySummary(){
+  if(!IS_NATIVE)return;
+  var LN=capPlugin("LocalNotifications");if(!LN)return;
+  try{
+    var perm=await LN.requestPermissions();
+    if(perm&&perm.display&&perm.display!=="granted")return;
+    var due=readingsDue(),an=[];
+    try{an=consumptionAnomalies().filter(function(a){return !isNotifDismissed(anomalyKey(a));});}catch(e){}
+    var body=due.length?("Bitte ablesen: "+due.map(function(c){return CATS[c].label;}).join(", ")+"."):"Zählerstände für diesen Monat eintragen.";
+    if(an.length){var a0=an[0];body+=" Auffällig: "+CATS[a0.cat].label+" "+(a0.dir==="up"?"höher":"niedriger")+" als sonst.";}
+    try{await LN.cancel({notifications:[{id:4211}]});}catch(e){}
+    await LN.schedule({notifications:[{id:4211,title:"Verbrauch: Monats-Check",body:body,schedule:{on:{day:1,hour:9,minute:0},allowWhileIdle:true}}]});
   }catch(e){}
 }
 /* Fingerabdruck / Gesicht (optional, kann nie aussperren – Passwort bleibt Ausweg). */
@@ -840,6 +865,8 @@ function parseMeterVal(cat,v){var s=String(v==null?"":v).trim();if(CATS[cat]&&CA
 function csvNum(n,dec){return Number(n).toFixed(dec).replace(".",",");}
 function csvVal(cat,n){var s=Number(n).toFixed(CATS[cat].valDec);if(s.indexOf(".")>=0)s=s.replace(/\.?0+$/,"");return s.replace(".",",");}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+/* Für gespeicherte Benachrichtigungstexte: alles escapen, nur das von uns erzeugte <b> wieder zulassen. */
+function sanitizeNotif(s){return escapeHtml(s==null?"":s).replace(/&lt;(\/?)b&gt;/g,"<$1b>");}
 
 /* ---------- Persistence ---------- */
 function defConv(){return {wandelfaktor:1,zustandszahl:0.9546,brennwert:11.552};}
@@ -887,10 +914,31 @@ function subscribeRealtime(){
   rtChannel=ch;rtHousehold=activeHousehold;
 }
 function unsubscribeRealtime(){if(rtChannel){try{sb.removeChannel(rtChannel);}catch(e){}}rtChannel=null;rtHousehold=null;}
+/* Ist dieses Realtime-Event nur das Echo eines Writes, den WIR gerade gemacht haben?
+   Dann ist STATE bereits aktuell (optimistisch) und ein Neu-Laden wäre überflüssig.
+   Fremde Änderungen (unbekannte id / geänderter Zeitstempel / noch vorhandener Lösch-Kandidat) lösen weiter ein Reload aus. */
+function isSelfEcho(p){
+  if(!p)return false;
+  var ev=p.eventType||p.event,tbl=p.table,row=p.new||p.old||{},cat=row.category,list=null;
+  if(tbl==="readings"&&cat&&STATE[cat])list=STATE[cat].readings;
+  else if(tbl==="tariffs"&&cat&&STATE[cat])list=STATE[cat].tariffs;
+  else if(tbl==="abschlag_changes"&&cat&&STATE[cat])list=STATE[cat].abschlagChanges;
+  if(!list||!row.id)return false;
+  var found=list.find(function(x){return x.id===row.id;});
+  if(ev==="DELETE")return !found;              /* schon lokal entfernt = eigenes Echo */
+  if(!found)return false;                       /* von außen neu -> laden */
+  var stamp=row.erfasst_am||row.erstellt_am,fstamp=found.erfasstAm||found.erstelltAm;
+  return (stamp&&fstamp)?String(stamp)===String(fstamp):true;
+}
 /* Aenderung von einem anderen Geraet/Mitglied: Daten neu laden und die sichtbaren Kennzahlen aktualisieren – ohne das Eingabeformular zu zerstoeren. */
-function onRealtimeChange(){
+var rtBatch=[];
+function onRealtimeChange(payload){
+  if(payload)rtBatch.push(payload);
   clearTimeout(rtTimer);
   rtTimer=setTimeout(function(){
+    var batch=rtBatch;rtBatch=[];
+    var external=(batch.length===0)||batch.some(function(p){return !isSelfEcho(p);});
+    if(!external)return; /* nur eigene Echos – STATE ist schon aktuell */
     loadFromDB().then(function(){
       if(document.body.classList.contains("settings-open"))renderAccount();
       if(activeCat==="overview"){renderApp();}
@@ -898,25 +946,27 @@ function onRealtimeChange(){
     }).catch(function(){});
   },300);
 }
+/* Ersetzt ALLE Haushaltsdaten in EINER Transaktion (Server-RPC). Löschen+Einfügen sind damit
+   atomar – bricht etwas ab, bleibt der alte Stand komplett erhalten (kein halb-leerer Haushalt). */
 async function replaceAllInDB(data){
   if(!currentUser)throw new Error("Nicht angemeldet.");
   if(!activeHousehold)throw new Error("Kein Haushalt ausgewählt.");
-  var uidv=currentUser.id;
-  var d1=await sb.from("readings").delete().eq("household_id",activeHousehold);if(d1.error)throw d1.error;
-  var d2=await sb.from("tariffs").delete().eq("household_id",activeHousehold);if(d2.error)throw d2.error;
-  var d3=await sb.from("abschlag_changes").delete().eq("household_id",activeHousehold);if(d3.error)throw d3.error;
   var tRows=[],rRows=[],aRows=[];
   ["strom","wasser","gas"].forEach(function(cat){
     (data[cat].tariffs||[]).forEach(function(t){tRows.push(tariffToCols(cat,t));});
     (data[cat].readings||[]).forEach(function(r){rRows.push(readingToCols(cat,r));});
     (data[cat].abschlagChanges||[]).forEach(function(a){aRows.push(abschlagToCols(cat,a));});
   });
-  if(tRows.length){var it=await sb.from("tariffs").insert(tRows);if(it.error)throw it.error;}
-  if(rRows.length){var ir=await sb.from("readings").insert(rRows);if(ir.error)throw ir.error;}
-  if(aRows.length){var ia=await sb.from("abschlag_changes").insert(aRows);if(ia.error)throw ia.error;}
   var conv=(data.gas&&data.gas.conversion)?data.gas.conversion:defConv();
-  var ic=await sb.from("gas_conversion").upsert({household_id:activeHousehold,user_id:uidv,wandelfaktor:Number(conv.wandelfaktor),zustandszahl:Number(conv.zustandszahl),brennwert:Number(conv.brennwert),updated_at:new Date().toISOString()},{onConflict:"household_id"});if(ic.error)throw ic.error;
+  var r=await sb.rpc("replace_household_data",{
+    p_household_id:activeHousehold,
+    p_tariffs:tRows,p_readings:rRows,p_abschlag:aRows,
+    p_conversion:{wandelfaktor:Number(conv.wandelfaktor),zustandszahl:Number(conv.zustandszahl),brennwert:Number(conv.brennwert)}
+  });
+  if(r.error)throw r.error;
 }
+/* Sicherheits-Backup des AKTUELLEN Standes, bevor er überschrieben wird (Import/Restore). Best effort. */
+async function safetyBackup(){try{await createBackup("manual",backupPeriod());}catch(e){}}
 
 /* ---------- Domain logic ---------- */
 function tariffsAsc(cat){return STATE[cat].tariffs.slice().sort(function(a,b){return a.gueltigAb===b.gueltigAb?(a.erstelltAm<b.erstelltAm?-1:1):(a.gueltigAb<b.gueltigAb?-1:1);});}
@@ -1077,10 +1127,12 @@ function renderOverview(){
       sub=billLabel(last.reading.datum)+' · '+fmtVerb(cat,last.verbrauch)+' '+(c.billUnit||c.unit)+' · '+eur(last.gesamtkosten);
     }else{diffHtml='<span class="ovdiff">–</span>';sub='Noch keine Auswertung';}
     var sp=saldo>=0;
+    var ziel=householdZiel(cat),zielLine="";
+    if(ziel&&last&&isFinite(last.verbrauch)){var pctZ=Math.round(last.verbrauch/ziel*100),overZ=last.verbrauch>ziel;zielLine='<div class="ovsaldo">🎯 Ziel '+fmtVerb(cat,ziel)+' '+(c.billUnit||c.unit)+'/Mon · '+shortMon(billKey(last.reading.datum))+': <b class="'+(overZ?"minus":"plus")+'">'+fmtVerb(cat,last.verbrauch)+' ('+pctZ+' %)</b></div>';}
     cards+='<div class="ovcard" data-action="goto-cat" data-cat="'+cat+'">'+
       '<div class="ovtop"><span class="ovname">'+c.icon+' '+c.label+'</span>'+diffHtml+'</div>'+
       '<div class="ovsub">'+sub+'</div>'+(g?sparkline(g.rows):"")+
-      '<div class="ovsaldo">Tarif-Saldo: <b class="'+(sp?"plus":"minus")+'">'+(sp?"+":"")+eur(saldo)+'</b> · '+(sp?"Guthaben":"Nachzahlung")+'</div>'+
+      '<div class="ovsaldo">Tarif-Saldo: <b class="'+(sp?"plus":"minus")+'">'+(sp?"+":"")+eur(saldo)+'</b> · '+(sp?"Guthaben":"Nachzahlung")+'</div>'+zielLine+
     '</div>';
   });
   var tp=totalSaldo>=0;
@@ -1417,6 +1469,8 @@ function updateResult(){
   var perVK=split?CATS[cat].verbrauchskosten(r.tariff,perVerb):r.verbrauchskosten;
   var perGes=split?(r.grundkosten+perVK):r.gesamtkosten;
   var perDiff=split?(r.abschlag-perGes):r.differenz;
+  var zielV=householdZiel(cat);
+  var zielNote=(zielV&&isFinite(perVerb)&&perVerb>zielV)?'<div class="notice warn">🎯 Über deinem Monatsziel: '+fmtVerb(cat,perVerb)+' '+bu+' (Ziel '+fmtVerb(cat,zielV)+' '+bu+').</div>':"";
   var fromM=prev?billLabel(billIndexToReadDatum(billIndex(prev.datum)+1)):billLabel(iso);
   var splitNote=split?'<div class="notice">ℹ️ Diese Ablesung liegt <b>'+n+' Monate</b> nach der letzten. Der Gesamtverbrauch von <b>'+fmtVerb(cat,r.verbrauch)+' '+bu+'</b> wird gleichmäßig auf <b>'+fromM+' – '+billLabel(iso)+'</b> verteilt. Die berechneten Monate werden im Verlauf mit „🔢 berechnet" gekennzeichnet.</div>':"";
   var cls=perDiff>0?"plus":perDiff<0?"minus":"plus";
@@ -1438,7 +1492,7 @@ function updateResult(){
     row(c.verbrauchskostenLabel+(split?" (je Monat)":""),eur(split?perVK:r.verbrauchskosten))+
     row("Gesamtkosten"+(split?" (je Monat)":""),eur(split?perGes:r.gesamtkosten),"hl")+
     row("Monatlicher Abschlag",eur(r.abschlag))+
-  '</div>'+negWarn+
+  '</div>'+negWarn+zielNote+
   '<div class="diffbox '+cls+'"><div class="difftop"><span class="difftrend">'+trendIcon(posD)+'</span><div class="difflabel">Differenz'+(split?" je Monat":"")+'</div></div><div class="diffval">'+eur(perDiff)+'</div><div class="diffstate">'+state+'</div>'+costBar+'</div>';
 }
 
@@ -1637,6 +1691,29 @@ function abschlagListHtml(){
   if(!list.length)return '<div class="muted">Keine Abschlag-Anpassungen.</div>';
   return list.map(function(a){return '<div class="abrow"><span>ab '+deDate(a.gueltigAb)+'</span><b>'+eur(a.betrag)+'</b><button class="iconbtn" data-action="del-abschlag" data-id="'+a.id+'" title="Löschen">🗑️</button></div>';}).join("");
 }
+/* Geschätzter Jahresverbrauch (Schnitt der letzten bis zu 12 echten Monate × 12). */
+function annualVerbrauchEst(cat){
+  var h=history(cat).filter(function(r){return !r.baseline&&isFinite(r.verbrauch);});
+  if(!h.length)return null;
+  var last=h.slice(-12),sum=last.reduce(function(s,r){return s+r.verbrauch;},0);
+  return sum/last.length*12;
+}
+/* Tarifwechsel-Rechner: aktueller Tarif vs. eingetippte Alternativkonditionen, hochgerechnet aufs Jahr. */
+function updateWechsel(cat){
+  var box=$("#wxResult");if(!box)return;
+  var c=CATS[cat],cur=tariffForDate(cat,todayISO()),av=annualVerbrauchEst(cat);
+  if(!cur){box.className="notice";box.innerHTML="Erst einen aktuellen Tarif hinterlegen.";return;}
+  if(av==null){box.className="notice";box.innerHTML="Noch nicht genug Verbrauchsdaten für eine Hochrechnung.";return;}
+  var curPrice=(cat==="wasser"?cur.wasserKanal:cur.arbeitspreis)||0;
+  var ng=parseNum($("#wx_grund").value),np=parseNum($("#wx_preis").value);
+  if(!isFinite(ng)||ng<0||!isFinite(np)||np<0){box.className="notice";box.innerHTML="Bitte neuen Grundpreis und Preis eingeben.";return;}
+  var bu=c.billUnit||c.unit;
+  var curAnnual=cur.grundpreisJahr+av*curPrice,newAnnual=ng+av*np,diff=curAnnual-newAnnual,save=diff>=0;
+  box.className="notice "+(save?"ok":"warn");
+  box.innerHTML='Geschätzter Jahresverbrauch: <b>'+fmtVerb(cat,av)+' '+bu+'</b><br>'+
+    'Aktueller Tarif: <b>'+eur(curAnnual)+'</b>/Jahr · Neuer Tarif: <b>'+eur(newAnnual)+'</b>/Jahr<br>'+
+    '<b style="font-size:1.05rem">'+(save?'✅ Ersparnis ':'⚠️ Mehrkosten ')+eur(Math.abs(diff))+'/Jahr</b> '+(save?'– ein Wechsel würde sich lohnen.':'– der aktuelle Tarif ist günstiger.');
+}
 function renderTarife(){
   var cont=$("#tarife");if(!cont)return;
   var cat=activeCat,c=CATS[cat];
@@ -1676,6 +1753,15 @@ function renderTarife(){
       '<p class="hint">Lade deine Jahres-/Schlussabrechnung hoch – die KI liest sie aus und vergleicht Verbrauch, Kosten, Abschläge und Ergebnis mit deinen erfassten Werten. Das Dokument wird zugleich im Archiv gespeichert.</p>'+
     '</div>'+
     '<div id="abrResult" class="notice" style="display:none;margin-top:8px"></div>';
+  var wxPrice=cur?(cat==="wasser"?cur.wasserKanal:cur.arbeitspreis):null;
+  var wxPriceLabel=cat==="wasser"?"Wasser + Kanal (€/m³)":"Arbeitspreis (€/kWh)";
+  var wechselBlock=''+
+    '<form id="wechselForm" class="tarifform">'+
+      '<label>Neuer Grundpreis/Jahr (€)<input type="text" inputmode="decimal" id="wx_grund" value="'+(cur?String(cur.grundpreisJahr).replace(".",","):"")+'"></label>'+
+      '<label>Neuer '+wxPriceLabel+'<input type="text" inputmode="decimal" id="wx_preis" value="'+(wxPrice!=null?String(wxPrice).replace(".",","):"")+'"></label>'+
+      '<div id="wxResult" class="notice" style="margin-top:6px"></div>'+
+      '<p class="hint">Trag die Konditionen eines Alternativangebots ein – wir rechnen mit deinem geschätzten Jahresverbrauch aus, ob sich der Wechsel lohnt. Vorbelegt mit deinen aktuellen Werten.</p>'+
+    '</form>';
   var neuBlock=''+
     '<div class="aiimport">'+
       '<button type="button" class="btn aiimportbtn" data-action="ai-tarif" style="width:100%">📄 Tarif aus Dokument einlesen (KI)</button>'+
@@ -1698,6 +1784,7 @@ function renderTarife(){
     '<h3>Aktueller Tarif</h3>'+curHtml+
     tsecPart("ab","💶 Abschlag anpassen",abBlock,"abschlagHead")+
     tsecPart("abr","📋 Jahresabrechnung prüfen (KI)",abrBlock)+
+    tsecPart("wechsel","🔄 Lohnt sich ein Wechsel?",wechselBlock)+
     tsecPart("neu","➕ Neuen Tarif eintragen",neuBlock)+
     (c.gas?tsecPart("conv","🔧 Gas-Umrechnung (m³ → kWh)",convBlock):"")+
     (archived.length?tsecPart("arch","🗂️ Frühere Tarife ("+archived.length+")",archHtml):"");
@@ -1706,6 +1793,7 @@ function renderTarife(){
   var abrf=$("#abrFile");if(abrf)abrf.addEventListener("change",onAbrFile);
   var abf=$("#abForm");if(abf)abf.addEventListener("submit",onAbSubmit);
   var cvf=$("#convForm");if(cvf)cvf.addEventListener("submit",onConvSubmit);
+  var wxf=$("#wechselForm");if(wxf){wxf.addEventListener("input",function(){updateWechsel(cat);});wxf.addEventListener("submit",function(e){e.preventDefault();});updateWechsel(cat);}
 }
 async function onConvSubmit(e){
   e.preventDefault();
@@ -1768,6 +1856,76 @@ function openAbschlag(){
   var inp=$("#ab_betrag");if(inp){try{inp.focus({preventScroll:true});}catch(e){inp.focus();}}
   var head=$("#abschlagHead");if(head)head.scrollIntoView({behavior:"smooth",block:"start"});
 }
+/* Warnt vor offensichtlich unplausiblen Ablesungen (negativ ohne Zählerwechsel, oder unrealistisch
+   hoher Sprung = wahrscheinlich Tippfehler). Gibt einen Warntext zurück oder null. */
+function plausibilityWarning(cat,iso,z,sw){
+  var r=compute(cat,iso,z,isFinite(sw)?sw:null);
+  if(!r||r.baseline||r.verbrauch==null||!isFinite(r.verbrauch))return null;
+  var prev=prevReading(cat,iso);
+  var n=prev?(billIndex(iso)-billIndex(prev.datum)):1;if(n<1)n=1;
+  var per=r.verbrauch/n,bu=CATS[cat].billUnit||CATS[cat].unit;
+  if(per<0&&!isFinite(sw))return "Der errechnete Verbrauch ist negativ ("+fmtVerb(cat,per)+" "+bu+"). Meist ist der Zählerstand niedriger als zuvor. Falls ein neuer Zähler eingebaut wurde, brich ab und trag ihn unter „Neuer Zähler“ ein.";
+  var hist=history(cat).filter(function(x){return !x.baseline&&isFinite(x.verbrauch);}).map(function(x){return x.verbrauch;});
+  if(hist.length>=3){
+    var mx=Math.max.apply(null,hist),avg=hist.reduce(function(a,b){return a+b;},0)/hist.length;
+    if(avg>0&&per>Math.max(mx*3,avg*5)&&(per-avg)>avg)return "Der Verbrauch für "+billLabel(iso)+" ist mit "+fmtVerb(cat,per)+" "+bu+" ungewöhnlich hoch (bisher im Schnitt "+fmtVerb(cat,avg)+" "+bu+"). Bitte den Zählerstand prüfen – vielleicht eine Ziffer zu viel?";
+  }
+  return null;
+}
+/* ---------- Offline-Warteschlange für Ablesungen ---------- */
+/* Getrennt je Umgebung (live/test) UND User, damit nichts im falschen Bereich landet. */
+var _localSeq=0,_flushing=false;
+function qKey(){return "vt_queue_"+DB_SCHEMA+"_"+(currentUser?currentUser.id:"anon");}
+function loadQueue(){try{return JSON.parse(localStorage.getItem(qKey())||"[]");}catch(e){return [];}}
+function saveQueue(q){try{localStorage.setItem(qKey(),JSON.stringify(q));}catch(e){}}
+function queueLen(){return loadQueue().length;}
+/* Optimistisch in STATE anzeigen (temp-id für neue Monate), damit der Wert sofort sichtbar ist. */
+function applyLocalReading(cat,iso,z,sw){
+  var mk=billKey(iso),list=STATE[cat].readings;
+  var ex=list.find(function(r){return billKey(r.datum)===mk;});
+  var stamp=new Date().toISOString(),start=(isFinite(sw)?sw:null);
+  if(ex){ex.datum=iso;ex.zaehlerstand=z;ex.startwert=start;ex.erfasstAm=stamp;}
+  else list.push({id:"local-"+(++_localSeq),datum:iso,zaehlerstand:z,startwert:start,erfasstAm:stamp});
+}
+function queueReadingOffline(cat,iso,z,sw){
+  var q=loadQueue();
+  q.push({t:"reading",household_id:activeHousehold,cat:cat,datum:iso,zaehlerstand:z,startwert:(isFinite(sw)?sw:null)});
+  saveQueue(q);
+  applyLocalReading(cat,iso,z,sw);
+  editingId=null;
+  var sbtn=$('[data-action="save-reading"]');if(sbtn)sbtn.textContent="Ablesung speichern";
+  var swEl=$("#startwert");if(swEl)swEl.value="";var mnEl=$("#startmeterno");if(mnEl)mnEl.value="";
+  renderVerlauf();renderTarife();updateResult();
+  toast("📴 Offline gespeichert – wird automatisch übertragen, sobald du online bist.");
+}
+/* Bei Reconnect / App-Start: gepufferte Ablesungen zum Server übertragen (dedupliziert je Monat). */
+async function flushQueue(){
+  if(_flushing||isOffline()||!currentUser||!activeHousehold)return;
+  var q=loadQueue();if(!q.length)return;
+  _flushing=true;
+  try{await loadFromDB();}catch(e){_flushing=false;return;} /* noch offline -> später erneut */
+  var remain=[],ok=0,fail=0;
+  for(var i=0;i<q.length;i++){
+    var op=q[i];
+    if(op.t!=="reading"||op.household_id!==activeHousehold){remain.push(op);continue;}
+    try{
+      var mk=billKey(op.datum),start=(op.startwert!=null?op.startwert:null);
+      var ex=(STATE[op.cat]&&STATE[op.cat].readings)?STATE[op.cat].readings.find(function(r){return billKey(r.datum)===mk&&String(r.id).indexOf("local-")!==0;}):null;
+      if(ex){
+        var ru=await sb.from("readings").update({datum:op.datum,zaehlerstand:op.zaehlerstand,startwert:start,erfasst_am:new Date().toISOString()}).eq("id",ex.id).select().single();
+        if(ru.error)throw ru.error;var ix=STATE[op.cat].readings.findIndex(function(r){return r.id===ex.id;});if(ix>=0)STATE[op.cat].readings[ix]=rowToReading(ru.data);
+      }else{
+        var ri=await sb.from("readings").insert(readingToCols(op.cat,{datum:op.datum,zaehlerstand:op.zaehlerstand,startwert:start})).select().single();
+        if(ri.error)throw ri.error;STATE[op.cat].readings.push(rowToReading(ri.data));
+      }
+      ok++;
+    }catch(e){fail++;remain.push(op);}
+  }
+  saveQueue(remain);_flushing=false;
+  try{await loadFromDB();}catch(e){}
+  renderApp();if(document.body.classList.contains("settings-open"))renderAccount();
+  if(ok)toast(ok+" nachträglich übertragen ✅"+(fail?", "+fail+" später erneut":""),fail>0);
+}
 async function saveReading(){
   if(busySave)return;
   var cat=activeCat,u=CATS[cat].unit;
@@ -1784,6 +1942,12 @@ async function saveReading(){
     var clash=STATE[cat].readings.find(function(r){return r.id!==editing.id&&billKey(r.datum)===mk;});
     if(clash){toast("Für "+billLabel(iso)+" gibt es schon eine andere Ablesung – bitte lösche diese zuerst oder wähle ein anderes Datum.",true);return;}
   }else if(existing&&!confirm("Für "+billLabel(iso)+" gibt es bereits eine Ablesung ("+fmtVal(cat,existing.zaehlerstand)+" "+u+" am "+deDate(existing.datum)+"). Möchtest du sie überschreiben?"))return;
+  var pw=plausibilityWarning(cat,iso,z,sw);
+  if(pw&&!confirm(pw+"\n\nTrotzdem speichern?"))return;
+  if(isOffline()){
+    if(editing){toast("Bearbeiten geht erst wieder online. Neue Ablesungen kannst du aber offline eintragen.",true);return;}
+    queueReadingOffline(cat,iso,z,sw);return;
+  }
   busySave=true;
   var saveBtn=$('[data-action="save-reading"]');if(saveBtn)saveBtn.disabled=true;
   try{
@@ -1815,7 +1979,7 @@ async function delReading(id){
   try{
     var d=await sb.from("readings").delete().eq("id",id);if(d.error)throw d.error;
     STATE[cat].readings=STATE[cat].readings.filter(function(x){return x.id!==id;});
-    renderVerlauf();renderTarife();updateResult();toast("Ablesung gelöscht ✅");
+    renderVerlauf();renderTarife();updateResult();toastUndo("Ablesung gelöscht",function(){restoreReading(cat,r);});
   }catch(err){toast("Löschen fehlgeschlagen: "+errMsg(err),true);}
 }
 function editReading(id){
@@ -1970,6 +2134,16 @@ async function saveAllWizard(){
     jobs.push({cat:cat,z:z});
   });
   if(!jobs.length){toast("Bitte mindestens einen Zählerstand eintragen.",true);return;}
+  var warns=jobs.map(function(j){var w=plausibilityWarning(j.cat,iso,j.z);return w?("• "+CATS[j.cat].label+": "+w):null;}).filter(Boolean);
+  if(warns.length&&!confirm(warns.join("\n\n")+"\n\nTrotzdem alle speichern?"))return;
+  if(isOffline()){
+    var q=loadQueue();
+    jobs.forEach(function(j){q.push({t:"reading",household_id:activeHousehold,cat:j.cat,datum:iso,zaehlerstand:j.z,startwert:null});applyLocalReading(j.cat,iso,j.z,NaN);});
+    saveQueue(q);
+    toast("📴 "+jobs.length+" offline gespeichert – werden übertragen, sobald du online bist.");
+    if(navCanGoBack())window.history.back();else closeWizardRaw();
+    renderApp();return;
+  }
   busyWizard=true;
   var sBtn=document.querySelector('[data-action="wz-save"]');if(sBtn){sBtn.disabled=true;sBtn.textContent="Wird gespeichert …";}
   var added=0,updated=0,failed=0;
@@ -2308,7 +2482,7 @@ async function delTariff(id){
   try{
     var d=await sb.from("tariffs").delete().eq("id",id);if(d.error)throw d.error;
     STATE[cat].tariffs=STATE[cat].tariffs.filter(function(x){return x.id!==id;});
-    renderTarife();renderVerlauf();updateResult();toast("Tarif gelöscht.");
+    renderTarife();renderVerlauf();updateResult();toastUndo("Tarif gelöscht",function(){restoreTariff(cat,t);});
   }catch(err){toast("Löschen fehlgeschlagen: "+errMsg(err),true);}
 }
 async function onAbSubmit(e){
@@ -2329,11 +2503,12 @@ async function onAbSubmit(e){
   finally{busyAb=false;}
 }
 async function delAbschlag(id){
-  var cat=activeCat;
+  var cat=activeCat,a=(STATE[cat].abschlagChanges||[]).find(function(x){return x.id===id;});
   try{
     var d=await sb.from("abschlag_changes").delete().eq("id",id);if(d.error)throw d.error;
     STATE[cat].abschlagChanges=(STATE[cat].abschlagChanges||[]).filter(function(x){return x.id!==id;});
-    renderTarife();renderVerlauf();updateResult();toast("Abschlag-Anpassung gelöscht.");
+    renderTarife();renderVerlauf();updateResult();
+    if(a)toastUndo("Abschlag-Anpassung gelöscht",function(){restoreAbschlag(cat,a);});else toast("Abschlag-Anpassung gelöscht.");
   }catch(err){toast("Löschen fehlgeschlagen: "+errMsg(err),true);}
 }
 
@@ -2370,10 +2545,11 @@ async function manualBackup(){
 }
 async function restoreBackup(id){
   var b=BACKUPS.find(function(x){return x.id===id;});if(!b)return;
-  if(!confirm("Backup vom "+deDateTime(b.created_at)+" wiederherstellen? Deine aktuellen Daten werden dadurch ersetzt."))return;
+  if(!confirm("Backup vom "+deDateTime(b.created_at)+" wiederherstellen? Dein aktueller Stand wird vorher automatisch als Cloud-Backup gesichert und dann ersetzt."))return;
   try{
     var r=await sb.from("backups").select("data").eq("id",id).single();
     if(r.error)throw r.error;
+    await safetyBackup();
     await replaceAllInDB(normalize(r.data.data));
     await loadFromDB();renderApp();await loadBackups();renderBackups();toast("Backup wiederhergestellt ✅");
   }catch(e){toast("Wiederherstellen fehlgeschlagen: "+errMsg(e),true);}
@@ -2414,6 +2590,38 @@ function exportCSV(){
   var csv="﻿"+lines.join("\r\n");
   saveOrShare(cat+"-tracker-tabelle-"+todayISO()+".csv","text/csv;charset=utf-8",csv);
   toast("Tabelle exportiert ✅");
+}
+/* ---------- PDF-Bericht (druckbare Ansicht -> „Als PDF speichern") ---------- */
+function buildReportHtml(){
+  var cats=householdCats(),hhName=activeHouseholdName()||"Haushalt",today=deDate(todayISO());
+  var css="body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:24px;font-size:12px}h1{font-size:20px;margin:0 0 2px}h2{font-size:15px;margin:22px 0 6px;border-bottom:2px solid #333;padding-bottom:3px}table{border-collapse:collapse;width:100%;margin:6px 0}th,td{border:1px solid #ccc;padding:4px 6px;text-align:right}th{background:#f0f0f0}td:first-child,th:first-child{text-align:left}.muted{color:#666}.pos{color:#15803d}.neg{color:#b91c1c}.sum{font-weight:bold;background:#fafafa}@media print{@page{margin:14mm}}";
+  var body='<h1>Verbrauchs-Tracker – Bericht</h1><div class="muted">'+escapeHtml(hhName)+' · Stand '+today+'</div>';
+  var totalSaldo=0;
+  cats.forEach(function(cat){
+    var c=CATS[cat],cur=tariffForDate(cat,todayISO());
+    var rows=history(cat).filter(function(r){return !r.baseline&&isFinite(r.gesamtkosten);});
+    var last12=rows.slice(-12),bu=c.billUnit||c.unit;
+    var g=cur?tariffGroups(cat).find(function(x){return x.tid===cur.id;}):null,saldo=g?g.saldo:0;totalSaldo+=saldo;
+    body+='<h2>'+c.icon+' '+c.label+'</h2>';
+    body+='<div class="muted">Aktueller Tarif: '+(cur?escapeHtml(cur.anbieter||"(ohne Namen)")+' · Grundpreis '+eur(cur.grundpreisJahr)+'/Jahr':"—")+' · Tarif-Saldo '+eur(saldo)+'</div>';
+    if(last12.length){
+      body+='<table><thead><tr><th>Monat</th><th>Verbrauch ('+bu+')</th><th>Kosten</th><th>Abschlag</th><th>Differenz</th></tr></thead><tbody>';
+      last12.forEach(function(r){var pos=r.differenz>=0;body+='<tr><td>'+billLabel(r.reading.datum)+'</td><td>'+fmtVerb(cat,r.verbrauch)+'</td><td>'+eur(r.gesamtkosten)+'</td><td>'+eur(r.abschlag)+'</td><td class="'+(pos?"pos":"neg")+'">'+(pos?"+":"")+eur(r.differenz)+'</td></tr>';});
+      var sV=last12.reduce(function(s,r){return s+r.verbrauch;},0),sK=last12.reduce(function(s,r){return s+r.gesamtkosten;},0),sD=last12.reduce(function(s,r){return s+(isFinite(r.differenz)?r.differenz:0);},0);
+      body+='<tr class="sum"><td>Summe ('+last12.length+' Mon.)</td><td>'+fmtVerb(cat,sV)+'</td><td>'+eur(sK)+'</td><td></td><td>'+(sD>=0?"+":"")+eur(sD)+'</td></tr></tbody></table>';
+    }else{body+='<div class="muted">Noch keine abgerechneten Monate.</div>';}
+  });
+  body+='<h2>Gesamt</h2><div>Gesamt-Saldo laufende Tarife: <b>'+(totalSaldo>=0?"+":"")+eur(totalSaldo)+'</b> ('+(totalSaldo>=0?"Guthaben":"Nachzahlung")+')</div>';
+  return '<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Verbrauchs-Tracker Bericht '+today+'</title><style>'+css+'</style></head><body>'+body+'</body></html>';
+}
+function exportPdf(){
+  var html=buildReportHtml();
+  var f=document.getElementById("pdfFrame");if(f&&f.parentNode)f.parentNode.removeChild(f);
+  f=document.createElement("iframe");f.id="pdfFrame";f.setAttribute("style","position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0");
+  document.body.appendChild(f);
+  var d=f.contentWindow.document;d.open();d.write(html);d.close();
+  setTimeout(function(){try{f.contentWindow.focus();f.contentWindow.print();}catch(e){toast("Drucken/PDF nicht möglich: "+errMsg(e),true);}},450);
+  toast("Bericht geöffnet – im Druckdialog „Als PDF speichern“ wählen.");
 }
 function splitCSV(line,sep){
   var out=[],cur="",q=false;
@@ -2480,8 +2688,9 @@ function onImport(e){
   reader.onload=function(){(async function(){
     try{
       var data=normalize(JSON.parse(reader.result));
-      if(!confirm("Aktuelle Daten durch die Sicherung ersetzen? Das überschreibt ALLE Bereiche (Strom, Wasser, Gas) in der Datenbank."))return;
+      if(!confirm("Aktuelle Daten durch die Sicherung ersetzen? Das überschreibt ALLE Bereiche (Strom, Wasser, Gas). Vom bisherigen Stand wird vorher automatisch ein Cloud-Backup angelegt."))return;
       toast("Sicherung wird geladen …");
+      await safetyBackup();
       await replaceAllInDB(data);
       await loadFromDB();renderApp();toast("Sicherung geladen ✅");
     }catch(err){toast("Sicherung konnte nicht geladen werden: "+errMsg(err),true);}
@@ -2495,7 +2704,48 @@ function toast(msg,err){
   var t=$("#toast");if(!t){t=document.createElement("div");t.id="toast";document.body.appendChild(t);}
   t.textContent=msg;t.className=err?"show err":"show";clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.className="";},3000);
 }
+/* Toast mit „Rückgängig"-Knopf (für Löschen). */
+var undoTimer;
+function toastUndo(msg,undoFn){
+  var t=$("#undotoast");if(!t){t=document.createElement("div");t.id="undotoast";document.body.appendChild(t);}
+  t.innerHTML="";
+  var s=document.createElement("span");s.textContent=msg;t.appendChild(s);
+  var b=document.createElement("button");b.className="undobtn";b.type="button";b.textContent="↩︎ Rückgängig";
+  b.addEventListener("click",function(){t.className="";clearTimeout(undoTimer);try{undoFn();}catch(e){}});
+  t.appendChild(b);
+  t.className="show";clearTimeout(undoTimer);undoTimer=setTimeout(function(){t.className="";},6000);
+}
+async function restoreReading(cat,r){
+  try{
+    var ri=await sb.from("readings").insert(readingToCols(cat,{datum:r.datum,zaehlerstand:r.zaehlerstand,startwert:r.startwert,zaehlerstandKwh:r.zaehlerstandKwh})).select().single();
+    if(ri.error)throw ri.error;
+    STATE[cat].readings.push(rowToReading(ri.data));
+    renderVerlauf();renderTarife();updateResult();toast("Wiederhergestellt ✅");
+  }catch(e){toast("Wiederherstellen fehlgeschlagen: "+errMsg(e),true);}
+}
+async function restoreTariff(cat,t){
+  try{
+    var r=await sb.from("tariffs").insert(tariffToCols(cat,t)).select().single();
+    if(r.error)throw r.error;
+    STATE[cat].tariffs.push(rowToTariff(r.data));
+    renderTarife();renderVerlauf();updateResult();toast("Wiederhergestellt ✅");
+  }catch(e){toast("Wiederherstellen fehlgeschlagen: "+errMsg(e),true);}
+}
+async function restoreAbschlag(cat,a){
+  try{
+    var r=await sb.from("abschlag_changes").insert(abschlagToCols(cat,a)).select().single();
+    if(r.error)throw r.error;
+    STATE[cat].abschlagChanges.push(rowToAbschlag(r.data));
+    renderTarife();renderVerlauf();updateResult();toast("Wiederhergestellt ✅");
+  }catch(e){toast("Wiederherstellen fehlgeschlagen: "+errMsg(e),true);}
+}
 
+/* ---------- Netzwerk-Zustand ---------- */
+function isOffline(){return navigator.onLine===false;}
+function setNetState(on){
+  document.body.classList.toggle("offline",!on);
+  if(on){try{flushQueue();}catch(e){}}
+}
 /* ---------- Init ---------- */
 /* V2: nur Hell/Dunkel (Clean-Minimal-Theme) */
 function applyV2Theme(dark){
@@ -2562,7 +2812,7 @@ async function doLogin(){
 async function doSignup(){
   var email=($("#auth_email").value||"").trim(),pass=$("#auth_pass").value||"";
   if(!email||!pass){authMsg("Bitte E-Mail und Passwort eingeben.","err");return;}
-  if(pass.length<6){authMsg("Das Passwort muss mindestens 6 Zeichen haben.","err");return;}
+  if(pass.length<8){authMsg("Das Passwort muss mindestens 8 Zeichen haben.","err");return;}
   authMsg("Konto wird erstellt …","");
   try{
     var r=await sb.auth.signUp({email:email,password:pass});
@@ -2590,7 +2840,7 @@ async function doForgot(){
 }
 async function doSetPassword(){
   var p=$("#auth_newpass").value||"";
-  if(p.length<6){authMsg("Das Passwort muss mindestens 6 Zeichen haben.","err");return;}
+  if(p.length<8){authMsg("Das Passwort muss mindestens 8 Zeichen haben.","err");return;}
   authMsg("Passwort wird gespeichert …","");
   try{
     var r=await sb.auth.updateUser({password:p});
@@ -2626,6 +2876,8 @@ async function loadHouseholds(){
 function householdConfig(){var h=HOUSEHOLDS.find(function(x){return x.id===activeHousehold;});return (h&&h.category_config)?h.category_config:null;}
 function householdCats(){var cfg=householdConfig();if(!cfg)return ["strom","wasser","gas"];var out=["strom","wasser","gas"].filter(function(c){return cfg[c]&&cfg[c].enabled===true;});return out.length?out:["strom","wasser","gas"];}
 function householdMeter(cat){var cfg=householdConfig();return (cfg&&cfg[cat]&&cfg[cat].meter)?cfg[cat].meter:"";}
+/* Optionales Monats-Verbrauchsziel je Bereich (in der Abrechnungseinheit). */
+function householdZiel(cat){var cfg=householdConfig();return (cfg&&cfg[cat]&&isFinite(cfg[cat].ziel)&&cfg[cat].ziel>0)?cfg[cat].ziel:null;}
 function navItem(cat,label,icon){return '<button class="tab'+(cat===activeCat?" active":"")+'" data-cat="'+cat+'"><span class="tcon">'+icon+'</span>'+label+'</button>';}
 function renderTabs(){
   var cats=householdCats();
@@ -2653,7 +2905,7 @@ async function setHouseholdConfig(cfg){
 }
 function toggleCat(cat){
   var cur=householdConfig()||{},eff=householdCats(),ncfg={};
-  ["strom","wasser","gas"].forEach(function(c){ncfg[c]={enabled:eff.indexOf(c)>=0};if(cur[c]&&cur[c].meter)ncfg[c].meter=cur[c].meter;});
+  ["strom","wasser","gas"].forEach(function(c){ncfg[c]={enabled:eff.indexOf(c)>=0};if(cur[c]&&cur[c].meter)ncfg[c].meter=cur[c].meter;if(cur[c]&&cur[c].ziel!=null)ncfg[c].ziel=cur[c].ziel;});
   var willEnable=!ncfg[cat].enabled;
   if(!willEnable&&["strom","wasser","gas"].filter(function(c){return ncfg[c].enabled;}).length<=1){toast("Mindestens eine Kategorie muss aktiv bleiben.",true);return;}
   ncfg[cat].enabled=willEnable;
@@ -2665,11 +2917,18 @@ function saveMeter(cat,value){
   var v=(value||"").trim();if(v)ncfg[cat].meter=v;else delete ncfg[cat].meter;
   setHouseholdConfig(ncfg);
 }
+function saveZiel(cat,value){
+  var cfg=householdConfig()||{},ncfg=JSON.parse(JSON.stringify(cfg));
+  if(!ncfg[cat])ncfg[cat]={enabled:true};
+  var v=parseNum(value);if(isFinite(v)&&v>0)ncfg[cat].ziel=v;else delete ncfg[cat].ziel;
+  setHouseholdConfig(ncfg);
+}
 function catCfgEditorActive(){
   var cfg=householdConfig()||{},eff=householdCats();
   return ["strom","wasser","gas"].map(function(c){
     var en=eff.indexOf(c)>=0,meter=(cfg[c]&&cfg[c].meter)?escapeHtml(cfg[c].meter):"";
-    return '<div class="catrow"><button class="cattoggle'+(en?" on":"")+'" role="switch" aria-checked="'+(en?"true":"false")+'" data-action="cat-toggle" data-cat="'+c+'"><span class="catname">'+CATS[c].icon+' '+CATS[c].label+'</span><span class="catsw"></span></button>'+(en?'<input class="meterinp" id="meter_'+c+'" data-cat="'+c+'" placeholder="Zähler-Nr. (optional)" value="'+meter+'">':"")+'</div>';
+    var ziel=householdZiel(c),zielStr=ziel!=null?String(ziel).replace(".",","):"";
+    return '<div class="catrow"><button class="cattoggle'+(en?" on":"")+'" role="switch" aria-checked="'+(en?"true":"false")+'" data-action="cat-toggle" data-cat="'+c+'"><span class="catname">'+CATS[c].icon+' '+CATS[c].label+'</span><span class="catsw"></span></button>'+(en?'<input class="meterinp" id="meter_'+c+'" data-cat="'+c+'" placeholder="Zähler-Nr. (optional)" value="'+meter+'"><input class="meterinp" id="ziel_'+c+'" data-cat="'+c+'" inputmode="decimal" placeholder="Ziel '+(CATS[c].billUnit||CATS[c].unit)+'/Monat (optional)" value="'+zielStr+'">':"")+'</div>';
   }).join("");
 }
 function catCfgEditorNew(){
@@ -2690,7 +2949,7 @@ function renderNotifHistory(){
   var list=DISMISSED_NOTIFS;
   if(!list.length){el.innerHTML='<div class="notice">Noch nichts ausgeblendet. Wenn du oben eine Verbrauchs-Warnung mit ✕ schließt, merkt sich die App das – die Warnung erscheint dann nicht erneut und wird hier abgelegt (geräteübergreifend synchron).</div>';return;}
   var rows=list.map(function(n){
-    return '<div class="notifrow"><div class="notiftxt">'+n.text+'</div>'+
+    return '<div class="notifrow"><div class="notiftxt">'+sanitizeNotif(n.text)+'</div>'+
       '<div class="notifbot"><span class="notifmeta">Ausgeblendet am '+deDateTime(n.created_at)+'</span>'+
       '<span class="notifact"><button class="linkbtn linkdanger notifdel" data-action="notif-del">🗑️ Löschen</button>'+
       '<span class="notifconfirm" hidden>Wirklich löschen? <button class="hhaddbtn" data-action="notif-del-yes" data-id="'+n.id+'">Ja, löschen</button> <button class="hhaddbtn" data-action="notif-del-no">Abbrechen</button></span></span></div></div>';
@@ -2837,8 +3096,10 @@ async function enterApp(session){
   try{await loadHouseholds();}catch(e){}
   try{await loadFromDB();}catch(e){toast("Daten konnten nicht geladen werden: "+errMsg(e),true);}
   renderTabs();renderApp();renderAccount();navInit();
+  try{flushQueue();}catch(e){}
   try{await loadBackups();renderBackups();await maybeAutoBackup();}catch(e){}
   try{scheduleTariffDeadlineNotifs();}catch(e){}
+  try{scheduleMonthlySummary();}catch(e){}
 }
 function handleSession(session){
   if(session&&session.user){
@@ -2883,12 +3144,13 @@ function init(){
   $("#importBtn").addEventListener("click",function(){$("#importFile").click();});
   $("#importFile").addEventListener("change",onImport);
   $("#csvExportBtn").addEventListener("click",exportCSV);
+  var pdfBtn=$("#pdfExportBtn");if(pdfBtn)pdfBtn.addEventListener("click",exportPdf);
   $("#csvImportBtn").addEventListener("click",function(){$("#csvFile").click();});
   $("#csvFile").addEventListener("change",onCSVImport);
   $("#autoBackupBtn").addEventListener("click",manualBackup);
   $("#backupList").addEventListener("click",function(e){var b=e.target.closest("[data-action='restore-backup']");if(b)restoreBackup(b.dataset.id);});
   $("#accountBody").addEventListener("click",function(e){var b=e.target.closest("[data-action]");if(!b)return;var a=b.dataset.action;if(a==="hh-switch")switchHousehold(b.dataset.id);else if(a==="hh-create")createHouseholdUI();else if(a==="hh-rename")startRenameHousehold();else if(a==="hh-rename-save")saveRenameHousehold();else if(a==="hh-rename-cancel")cancelRenameHousehold();else if(a==="hh-invite")inviteUI();else if(a==="hh-join")joinUI();else if(a==="hh-copy")copyInvite(b.dataset.code);else if(a==="cat-toggle")toggleCat(b.dataset.cat);else if(a==="hh-leave")leaveHouseholdUI();});
-  $("#accountBody").addEventListener("change",function(e){var t=e.target;if(!t||!t.id)return;if(t.id.indexOf("meter_")===0&&t.dataset.cat){saveMeter(t.dataset.cat,t.value);}else if(t.id.indexOf("new_en_")===0){var c=t.id.slice(7),mi=$("#new_meter_"+c);if(mi)mi.style.display=t.checked?"":"none";}});
+  $("#accountBody").addEventListener("change",function(e){var t=e.target;if(!t||!t.id)return;if(t.id.indexOf("meter_")===0&&t.dataset.cat){saveMeter(t.dataset.cat,t.value);}else if(t.id.indexOf("ziel_")===0&&t.dataset.cat){saveZiel(t.dataset.cat,t.value);}else if(t.id.indexOf("new_en_")===0){var c=t.id.slice(7),mi=$("#new_meter_"+c);if(mi)mi.style.display=t.checked?"":"none";}});
   $("#accountBody").addEventListener("keydown",function(e){if(!e.target)return;if(e.key==="Enter"&&e.target.id==="hhNewName"){e.preventDefault();createHouseholdUI();}else if(e.key==="Enter"&&e.target.id==="hhJoinCode"){e.preventDefault();joinUI();}else if(e.target.id==="hhRenameInp"){if(e.key==="Enter"){e.preventDefault();saveRenameHousehold();}else if(e.key==="Escape"){e.preventDefault();cancelRenameHousehold();}}});
   $("#notifBody").addEventListener("click",function(e){
     var b=e.target.closest("[data-action]");if(!b)return;
@@ -2924,6 +3186,9 @@ function init(){
   if("serviceWorker" in navigator && location.protocol.indexOf("http")===0 && !IS_NATIVE){
     navigator.serviceWorker.register("sw.js").catch(function(){});
   }
+  window.addEventListener("online",function(){setNetState(true);toast("Wieder online ✅");if(currentUser){loadFromDB().then(function(){renderApp();if(document.body.classList.contains("settings-open"))renderAccount();}).catch(function(){});}});
+  window.addEventListener("offline",function(){setNetState(false);});
+  setNetState(!isOffline());
   initNative();
   /* PWA-Installation: Knopf anzeigen, wenn das Geraet die Installation anbietet */
   (function(){
