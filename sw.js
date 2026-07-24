@@ -1,4 +1,4 @@
-/* Verbrauchs-Tracker Service Worker
+/* AllTrack Service Worker
    Strategie: network-first (online immer aktuell), Offline-Fallback auf die App-Hülle.
    Supabase-Anfragen (Daten/Anmeldung) gehen IMMER direkt ins Netz – nie aus dem Cache. */
 var CACHE = 'vt-shell-v2';

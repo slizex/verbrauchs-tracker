@@ -1,6 +1,6 @@
 {
   "appId": "de.verbrauchstracker.app",
-  "appName": "Verbrauchs-Tracker",
+  "appName": "AllTrack",
   "webDir": "www",
   "android": {
     "allowMixedContent": false

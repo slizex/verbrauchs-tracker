@@ -107,33 +107,33 @@ jobs:
         run: |
           REL="mobile/android/app/build/outputs/apk/release/app-release.apk"
           DBG="mobile/android/app/build/outputs/apk/debug/app-debug.apk"
-          if [ -f "$REL" ]; then cp "$REL" verbrauchs-tracker.apk
-          elif [ -f "$DBG" ]; then cp "$DBG" verbrauchs-tracker.apk
+          if [ -f "$REL" ]; then cp "$REL" alltrack.apk
+          elif [ -f "$DBG" ]; then cp "$DBG" alltrack.apk
           else
             echo "Keine APK gefunden:"; ls -R mobile/android/app/build/outputs/apk || true; exit 1
           fi
           rm -f "$GITHUB_WORKSPACE/release.p12"
-          ls -l verbrauchs-tracker.apk
+          ls -l alltrack.apk
 
       - name: APK als Download bereitstellen
         uses: actions/upload-artifact@v4
         with:
-          name: verbrauchs-tracker-apk
-          path: verbrauchs-tracker.apk
+          name: alltrack-apk
+          path: alltrack.apk
 
       - name: Release aktualisieren (feste Adresse fuer den Download)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-latest
-          name: Verbrauchs-Tracker (Android-App)
+          name: AllTrack (Android-App)
           prerelease: true
-          files: verbrauchs-tracker.apk
+          files: alltrack.apk
           body: |
             Automatisch gebaute Android-App – aktualisiert sich bei jeder Aenderung an der App.
             Immer mit demselben Schluessel signiert, daher ohne Deinstallation aktualisierbar.
 
             **Installation / Update auf dem Handy:**
-            1. Datei `verbrauchs-tracker.apk` unten antippen und herunterladen.
+            1. Datei `alltrack.apk` unten antippen und herunterladen.
             2. In der heruntergeladenen Datei auf "Installieren" (bzw. "Aktualisieren") tippen.
             3. Beim allerersten Mal ggf. "Installation aus unbekannten Quellen" fuer den Browser/Dateimanager erlauben.
 

@@ -1,4 +1,4 @@
-# Verbrauchs-Tracker – native Android-App (Capacitor)
+# AllTrack – native Android-App (Capacitor)
 
 Dieser Ordner verpackt die vorhandene Web-App (`../index.html`) als echte
 Android-App. Der Build läuft automatisch in der GitHub-Cloud – **auf dem eigenen
@@ -9,7 +9,7 @@ PC muss nichts installiert werden.**
 1. Auf GitHub → Reiter **Actions** → Workflow **„Android-APK bauen"** → **Run workflow**.
    (Läuft auch automatisch, sobald sich etwas in diesem `mobile/`-Ordner ändert.)
 2. Nach ein paar Minuten liegt die fertige App unter **Releases** → Tag `apk-latest`
-   als Datei `verbrauchs-tracker.apk`.
+   als Datei `alltrack.apk`.
 3. Diese Datei auf dem Handy herunterladen und antippen → installieren.
    (Einmalig „Installation aus unbekannten Quellen" erlauben.)
 

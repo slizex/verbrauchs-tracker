@@ -1,4 +1,4 @@
-# 📊 Verbrauchs-Tracker
+# 📊 AllTrack
 
 Eine einfache, mobil- und desktoptaugliche Web-App zum Erfassen von **Strom-, Wasser- und Gas-Verbrauch** – mit Tarifverwaltung, monatlicher Differenz (Guthaben/Nachzahlung), Jahresabrechnung und Verlauf.
 

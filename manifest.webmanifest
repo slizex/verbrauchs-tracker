@@ -1,6 +1,6 @@
 {
-  "name": "Verbrauchs-Tracker",
-  "short_name": "Verbrauch",
+  "name": "AllTrack",
+  "short_name": "AllTrack",
   "description": "Strom, Wasser und Gas im Blick – Verbrauch und Kosten einfach erfassen.",
   "lang": "de",
   "start_url": ".",

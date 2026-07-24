@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
 <meta name="theme-color" content="#f59e0b">
-<title>Verbrauchs-Tracker</title>
+<title>AllTrack</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
@@ -12,10 +12,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Verbrauch">
+<meta name="apple-mobile-web-app-title" content="AllTrack">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-/* ===== Verbrauchs-Tracker V2 — Clean / Minimal (Inter, Sidebar-Dashboard) ===== */
+/* ===== AllTrack V2 — Clean / Minimal (Inter, Sidebar-Dashboard) ===== */
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 :root{
@@ -457,7 +457,7 @@ body.settings-open #wizardView,body.docs-open #wizardView{display:none}
   <div class="authblobs" aria-hidden="true"><span></span><span></span><span></span></div>
   <div class="authcard">
     <div class="authlogo" aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="12" width="4.2" height="8" rx="1.3" fill="currentColor" opacity=".72"/><rect x="9.9" y="7" width="4.2" height="13" rx="1.3" fill="currentColor"/><rect x="16.8" y="4" width="4.2" height="16" rx="1.3" fill="currentColor" opacity=".86"/></svg></div>
-    <h1>Verbrauchs-Tracker</h1>
+    <h1>AllTrack</h1>
     <p class="authsub" id="auth_sub">Bitte melde dich an, um deine Verbräuche zu sehen.</p>
     <div id="auth_msg" class="authmsg" hidden></div>
     <div id="auth_login_panel">
@@ -477,7 +477,7 @@ body.settings-open #wizardView,body.docs-open #wizardView{display:none}
 
 <div class="shell">
   <aside class="sidebar">
-    <div class="brand"><span class="blogo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="12" width="4.2" height="8" rx="1.3" fill="currentColor" opacity=".72"/><rect x="9.9" y="7" width="4.2" height="13" rx="1.3" fill="currentColor"/><rect x="16.8" y="4" width="4.2" height="16" rx="1.3" fill="currentColor" opacity=".88"/></svg></span>Verbrauch</div>
+    <div class="brand"><span class="blogo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="12" width="4.2" height="8" rx="1.3" fill="currentColor" opacity=".72"/><rect x="9.9" y="7" width="4.2" height="13" rx="1.3" fill="currentColor"/><rect x="16.8" y="4" width="4.2" height="16" rx="1.3" fill="currentColor" opacity=".88"/></svg></span>AllTrack</div>
     <div class="navlabel">Bereiche</div>
     <nav class="nav" id="tabs">
       <button class="tab" data-cat="overview"><span class="tcon">📊</span>Übersicht</button>
@@ -517,7 +517,7 @@ body.settings-open #wizardView,body.docs-open #wizardView{display:none}
 
     <section class="card installcard" id="installSection">
       <h3 class="insth">📲 Als App installieren</h3>
-      <p class="insthint">Lege den Verbrauchs-Tracker wie eine echte App auf deinen Startbildschirm – schneller Start, Vollbild und auch offline nutzbar.</p>
+      <p class="insthint">Lege AllTrack wie eine echte App auf deinen Startbildschirm – schneller Start, Vollbild und auch offline nutzbar.</p>
       <button id="installBtn" class="btn" hidden>📲 Jetzt installieren</button>
       <p class="insthint iosonly" hidden>Auf dem iPhone/iPad: unten auf <b>Teilen</b> tippen und <b>„Zum Home-Bildschirm"</b> wählen.</p>
     </section>
@@ -702,13 +702,13 @@ async function scheduleMonthlySummary(){
     var body=due.length?("Bitte ablesen: "+due.map(function(c){return CATS[c].label;}).join(", ")+"."):"Zählerstände für diesen Monat eintragen.";
     if(an.length){var a0=an[0];body+=" Auffällig: "+CATS[a0.cat].label+" "+(a0.dir==="up"?"höher":"niedriger")+" als sonst.";}
     try{await LN.cancel({notifications:[{id:4211}]});}catch(e){}
-    await LN.schedule({notifications:[{id:4211,title:"Verbrauch: Monats-Check",body:body,schedule:{on:{day:1,hour:9,minute:0},allowWhileIdle:true}}]});
+    await LN.schedule({notifications:[{id:4211,title:"AllTrack: Monats-Check",body:body,schedule:{on:{day:1,hour:9,minute:0},allowWhileIdle:true}}]});
   }catch(e){}
 }
 /* Fingerabdruck / Gesicht (optional, kann nie aussperren – Passwort bleibt Ausweg). */
 function bioLockOn(){try{return localStorage.getItem("vt_biolock")==="1";}catch(e){return false;}}
 async function bioAvailable(){var NB=capPlugin("NativeBiometric");if(!NB)return false;try{var r=await NB.isAvailable();return !!(r&&r.isAvailable);}catch(e){return false;}}
-async function bioVerify(){var NB=capPlugin("NativeBiometric");if(!NB)return false;try{await NB.verifyIdentity({reason:"Bitte entsperren",title:"Verbrauchs-Tracker",subtitle:"Mit Fingerabdruck oder Gesicht entsperren",description:""});return true;}catch(e){return false;}}
+async function bioVerify(){var NB=capPlugin("NativeBiometric");if(!NB)return false;try{await NB.verifyIdentity({reason:"Bitte entsperren",title:"AllTrack",subtitle:"Mit Fingerabdruck oder Gesicht entsperren",description:""});return true;}catch(e){return false;}}
 function removeLock(){var d=document.getElementById("vtLock");if(d&&d.parentNode)d.parentNode.removeChild(d);}
 async function tryUnlock(){if(await bioVerify())removeLock();}
 function showLockOverlay(){
@@ -716,7 +716,7 @@ function showLockOverlay(){
   var d=document.createElement("div");d.id="vtLock";
   d.setAttribute("style","position:fixed;inset:0;z-index:99999;background:#09090b;color:#fafafa;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px;font-family:Inter,system-ui,sans-serif");
   d.innerHTML='<div style="font-size:3rem">🔒</div>'
-    +'<div style="font-size:1.15rem;font-weight:600">Verbrauchs-Tracker ist gesperrt</div>'
+    +'<div style="font-size:1.15rem;font-weight:600">AllTrack ist gesperrt</div>'
     +'<button id="vtUnlock" style="background:#f59e0b;color:#111;border:none;border-radius:10px;padding:13px 22px;font-size:1rem;font-weight:600;cursor:pointer">🔓 Entsperren</button>'
     +'<button id="vtUnlockPw" style="background:none;border:none;color:#a1a1aa;font-size:.92rem;text-decoration:underline;cursor:pointer">Mit Passwort anmelden</button>';
   document.body.appendChild(d);
@@ -2564,7 +2564,7 @@ function renderBackups(){
 }
 /* ---------- Backup / Export / Import ---------- */
 function exportData(){
-  saveOrShare("verbrauchs-tracker-sicherung-"+todayISO()+".json","application/json",JSON.stringify(STATE,null,2));
+  saveOrShare("alltrack-sicherung-"+todayISO()+".json","application/json",JSON.stringify(STATE,null,2));
 }
 function csvEsc(s){s=String(s);if(/[";\n\r]/.test(s)){return '"'+s.replace(/"/g,'""')+'"';}return s;}
 function exportCSV(){
@@ -2588,14 +2588,14 @@ function exportCSV(){
     lines.push(arr.map(csvEsc).join(sep));
   });
   var csv="﻿"+lines.join("\r\n");
-  saveOrShare(cat+"-tracker-tabelle-"+todayISO()+".csv","text/csv;charset=utf-8",csv);
+  saveOrShare(cat+"-alltrack-tabelle-"+todayISO()+".csv","text/csv;charset=utf-8",csv);
   toast("Tabelle exportiert ✅");
 }
 /* ---------- PDF-Bericht (druckbare Ansicht -> „Als PDF speichern") ---------- */
 function buildReportHtml(){
   var cats=householdCats(),hhName=activeHouseholdName()||"Haushalt",today=deDate(todayISO());
   var css="body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:24px;font-size:12px}h1{font-size:20px;margin:0 0 2px}h2{font-size:15px;margin:22px 0 6px;border-bottom:2px solid #333;padding-bottom:3px}table{border-collapse:collapse;width:100%;margin:6px 0}th,td{border:1px solid #ccc;padding:4px 6px;text-align:right}th{background:#f0f0f0}td:first-child,th:first-child{text-align:left}.muted{color:#666}.pos{color:#15803d}.neg{color:#b91c1c}.sum{font-weight:bold;background:#fafafa}@media print{@page{margin:14mm}}";
-  var body='<h1>Verbrauchs-Tracker – Bericht</h1><div class="muted">'+escapeHtml(hhName)+' · Stand '+today+'</div>';
+  var body='<h1>AllTrack – Bericht</h1><div class="muted">'+escapeHtml(hhName)+' · Stand '+today+'</div>';
   var totalSaldo=0;
   cats.forEach(function(cat){
     var c=CATS[cat],cur=tariffForDate(cat,todayISO());
@@ -2612,7 +2612,7 @@ function buildReportHtml(){
     }else{body+='<div class="muted">Noch keine abgerechneten Monate.</div>';}
   });
   body+='<h2>Gesamt</h2><div>Gesamt-Saldo laufende Tarife: <b>'+(totalSaldo>=0?"+":"")+eur(totalSaldo)+'</b> ('+(totalSaldo>=0?"Guthaben":"Nachzahlung")+')</div>';
-  return '<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Verbrauchs-Tracker Bericht '+today+'</title><style>'+css+'</style></head><body>'+body+'</body></html>';
+  return '<!doctype html><html lang="de"><head><meta charset="utf-8"><title>AllTrack Bericht '+today+'</title><style>'+css+'</style></head><body>'+body+'</body></html>';
 }
 function exportPdf(){
   var html=buildReportHtml();
@@ -3115,7 +3115,7 @@ function renderEnvSwitch(){
   if(note){note.innerHTML=IS_TEST?'Du bist in der <b style="color:#7c3aed">Testumgebung</b> – ein getrennter Spielplatz. Deine echten Daten bleiben unberührt.':'Du bist in der <b>Live-Umgebung</b> mit deinen echten Daten.';}
 }
 function init(){
-  if(IS_TEST){document.body.classList.add("test-env");document.title="🧪 TEST · Verbrauchs-Tracker";}
+  if(IS_TEST){document.body.classList.add("test-env");document.title="🧪 TEST · AllTrack";}
   renderEnvSwitch();
   var savedTheme="";try{savedTheme=localStorage.getItem("vtV2Theme")||"";}catch(e){}
   if(!savedTheme)savedTheme=(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";
