@@ -277,6 +277,51 @@ body.v2dark .mcflag{color:#fcd34d}
 .acclabel{font-weight:600;font-size:.9rem;margin-bottom:9px}
 .accsep{margin-top:24px}
 .insth{margin:0 0 6px;font-size:1.02rem}
+/* ---- Einstellungen: Menüliste + Unterseiten ---- */
+.setmenu{display:flex;flex-direction:column;gap:8px}
+.setrow{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;font:inherit;color:var(--fg);cursor:pointer;box-shadow:var(--shadow-sm);transition:background .12s,border-color .12s,transform .06s}
+.setrow:hover{background:var(--panel2);border-color:var(--border2)}
+.setrow:active{transform:translateY(1px)}
+.seticon{flex:none;width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-size:1.25rem;background:color-mix(in srgb,var(--accent) 13%,transparent)}
+.setmain{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.setlabel{font-weight:600;font-size:.97rem}
+.setdesc{font-size:.82rem;color:var(--muted);line-height:1.35}
+.setchev{flex:none;color:var(--muted2);font-size:1.3rem;line-height:1}
+.setbadge{flex:none;font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:99px;background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
+/* ---- Mitglieder & Rechte ---- */
+.memrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.memrow:last-child{border-bottom:none}
+.memav{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 16%,transparent);font-size:1.05rem}
+.memmain{flex:1;min-width:0}
+.memmail{font-weight:500;font-size:.92rem;word-break:break-all}
+.memtag{font-size:.78rem;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:2px}
+.memadmin{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
+.memacts{display:flex;gap:6px;flex-wrap:wrap;width:100%}
+.memacts .hhaddbtn{flex:1;min-width:120px}
+/* ---- Benachrichtigungs-Einstellungen ---- */
+.nsrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--border)}
+.nsrow:last-of-type{border-bottom:none}
+.nsmain{min-width:0}
+.nstitle{font-weight:600;font-size:.94rem;display:flex;align-items:center;gap:7px}
+.nsdesc{font-size:.81rem;color:var(--muted);margin-top:2px;line-height:1.35}
+.nssw{flex:none;position:relative;width:46px;height:26px;border-radius:99px;border:none;background:var(--border2);cursor:pointer;transition:background .15s}
+.nssw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.nssw.on{background:var(--accent)}
+.nssw.on::after{transform:translateX(20px)}
+.nsopts{display:flex;flex-wrap:wrap;gap:10px;padding:0 0 14px}
+.nsfield{display:flex;flex-direction:column;gap:5px;flex:1;min-width:120px}
+.nsfield label{font-size:.8rem;color:var(--muted);font-weight:500}
+.nsfield select,.nsfield input{padding:9px 11px;font:inherit;font-size:.92rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel);color:var(--fg)}
+/* ---- Speichern + Foto-KI nebeneinander ---- */
+.saverow{display:flex;gap:10px;align-items:stretch;margin-bottom:2px}
+.saverow .btn{flex:1;width:auto}
+.camsq{flex:none;width:58px;padding:0;display:grid;place-items:center;gap:0;position:relative;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel);color:var(--fg);cursor:pointer}
+.camsq:hover{background:var(--panel2)}
+.camsq:disabled{opacity:.55;cursor:default}
+.camsq .cambadge{position:absolute;right:4px;bottom:3px;font-size:.58rem;font-weight:700;letter-spacing:.02em;color:var(--accent);background:var(--panel);padding:0 3px;border-radius:4px}
+.camhint{font-size:.78rem;color:var(--muted);margin:7px 0 0;display:flex;align-items:center;gap:6px}
+.ico{flex:none;vertical-align:-.18em}
+.btn .ico{vertical-align:-.2em}
 .insthint{color:var(--muted);font-size:.9rem;margin:6px 0 0}
 .installcard .btn{margin-top:12px}
 .biorow{display:flex;align-items:center;gap:11px;cursor:pointer;font-size:.94rem;margin-top:12px;color:var(--fg)}
@@ -416,7 +461,8 @@ body.settings-open #wizardView,body.docs-open #wizardView{display:none}
 .wzlast{color:var(--muted);font-size:.8rem}
 .wzin{display:flex;gap:8px;align-items:stretch}
 .wzin input{flex:1;min-width:0}
-.wzcam{flex:none;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel);color:var(--fg);cursor:pointer;font-size:1.15rem;padding:0 13px}
+.wzcam{flex:none;position:relative;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel);color:var(--fg);cursor:pointer;font-size:1.15rem;padding:0 14px;display:grid;place-items:center}
+.wzcam .cambadge{position:absolute;right:3px;bottom:2px;font-size:.55rem;font-weight:700;color:var(--accent);background:var(--panel);padding:0 2px;border-radius:3px}
 .wzcam:hover{background:var(--panel2)}
 .wzprev{font-size:.86rem;margin-top:9px;min-height:1.1em;color:var(--muted)}
 .wzprev b.pos{color:var(--pos)}.wzprev b.neg{color:var(--neg)}
@@ -505,42 +551,68 @@ body.settings-open #wizardView,body.docs-open #wizardView{display:none}
   <div class="wrap" id="app"></div>
   <div class="wrap" id="settingsView">
     <button class="backbtn" id="settingsBack" type="button">← Zurück zur App</button>
-    <h2 class="settitle">👤 Mein Konto &amp; Einstellungen</h2>
+    <h2 class="settitle" id="setTitle">👤 Konto &amp; Einstellungen</h2>
 
-    <section class="card accountcard"><div id="accountBody"></div></section>
+    <div id="setMenu" class="setmenu"></div>
 
-    <section class="card notifcard" id="notifSection">
-      <h3 class="insth">🔔 Ausgeblendete Benachrichtigungen</h3>
-      <p class="insthint">Verbrauchs-Warnungen, die du oben mit ✕ geschlossen hast. Sie tauchen nicht erneut auf – hier kannst du sie nachlesen und dauerhaft löschen.</p>
-      <div id="notifBody"></div>
-    </section>
+    <div class="setpage" data-page="konto" hidden>
+      <section class="card"><div id="kontoBody"></div></section>
+    </div>
 
-    <section class="card installcard" id="installSection">
-      <h3 class="insth">📲 Als App installieren</h3>
-      <p class="insthint">Lege AllTrack wie eine echte App auf deinen Startbildschirm – schneller Start, Vollbild und auch offline nutzbar.</p>
-      <button id="installBtn" class="btn" hidden>📲 Jetzt installieren</button>
-      <p class="insthint iosonly" hidden>Auf dem iPhone/iPad: unten auf <b>Teilen</b> tippen und <b>„Zum Home-Bildschirm"</b> wählen.</p>
-    </section>
+    <div class="setpage" data-page="haushalt" hidden>
+      <section class="card accountcard"><div id="accountBody"></div></section>
+    </div>
 
-    <section class="card installcard" id="nativeSettings" hidden>
-      <h3 class="insth">🔒 App-Schutz</h3>
-      <p class="insthint">Sichere die App beim Öffnen zusätzlich mit Fingerabdruck oder Gesichtserkennung.</p>
-      <label class="biorow"><input type="checkbox" id="bioToggle"><span id="bioToggleLabel">Beim Öffnen nach Fingerabdruck / Gesicht fragen</span></label>
-    </section>
+    <div class="setpage" data-page="mitglieder" hidden>
+      <section class="card"><div id="membersBody"></div></section>
+    </div>
 
-    <section class="card installcard" id="aiSettings">
-      <h3 class="insth">🤖 KI-Erkennung von Dokumenten</h3>
-      <p class="insthint">Legt fest, wie gründlich Tarife und Jahresabrechnungen aus hochgeladenen Dokumenten ausgelesen werden.</p>
-      <select id="aiLevelSel" class="hhfull">
-        <option value="basic">Einfach – schnell &amp; günstig (Standard)</option>
-        <option value="advanced">Fortgeschritten – gründlicher, bessere Ergebnisse</option>
-      </select>
-      <p class="insthint" id="aiLevelHint"></p>
-    </section>
+    <div class="setpage" data-page="bereiche" hidden>
+      <section class="card"><div id="bereicheBody"></div></section>
+    </div>
 
-    <details class="foot">
-      <summary>📄 Daten &amp; Sicherung</summary>
-      <div class="footbody">
+    <div class="setpage" data-page="benachrichtigungen" hidden>
+      <section class="card">
+        <h3 class="insth">⏰ Erinnerungen</h3>
+        <p class="insthint">Lass dich automatisch daran erinnern, deine Zählerstände einzutragen.</p>
+        <div id="notifSetBody"></div>
+      </section>
+      <section class="card notifcard" id="notifSection">
+        <h3 class="insth">🔕 Ausgeblendete Benachrichtigungen</h3>
+        <p class="insthint">Verbrauchs-Warnungen, die du oben mit ✕ geschlossen hast. Sie tauchen nicht erneut auf – hier kannst du sie nachlesen und dauerhaft löschen.</p>
+        <div id="notifBody"></div>
+      </section>
+    </div>
+
+    <div class="setpage" data-page="sicherheit" hidden>
+      <section class="card installcard" id="nativeSettings" hidden>
+        <h3 class="insth">🔒 App-Schutz</h3>
+        <p class="insthint">Sichere die App beim Öffnen zusätzlich mit Fingerabdruck oder Gesichtserkennung.</p>
+        <label class="biorow"><input type="checkbox" id="bioToggle"><span id="bioToggleLabel">Beim Öffnen nach Fingerabdruck / Gesicht fragen</span></label>
+      </section>
+      <section class="card installcard" id="installSection">
+        <h3 class="insth">📲 Als App installieren</h3>
+        <p class="insthint">Lege AllTrack wie eine echte App auf deinen Startbildschirm – schneller Start, Vollbild und auch offline nutzbar.</p>
+        <button id="installBtn" class="btn" hidden>📲 Jetzt installieren</button>
+        <p class="insthint iosonly" hidden>Auf dem iPhone/iPad: unten auf <b>Teilen</b> tippen und <b>„Zum Home-Bildschirm"</b> wählen.</p>
+      </section>
+    </div>
+
+    <div class="setpage" data-page="ki" hidden>
+      <section class="card installcard" id="aiSettings">
+        <h3 class="insth">🤖 KI-Erkennung von Dokumenten</h3>
+        <p class="insthint">Legt fest, wie gründlich Tarife und Jahresabrechnungen aus hochgeladenen Dokumenten ausgelesen werden.</p>
+        <select id="aiLevelSel" class="hhfull">
+          <option value="basic">Einfach – schnell &amp; günstig (Standard)</option>
+          <option value="advanced">Fortgeschritten – gründlicher, bessere Ergebnisse</option>
+        </select>
+        <p class="insthint" id="aiLevelHint"></p>
+      </section>
+    </div>
+
+    <div class="setpage" data-page="daten" hidden>
+      <section class="card">
+        <h3 class="insth">📄 Export &amp; Import</h3>
         <div class="backup">
           <button id="csvExportBtn">⬇️ Tabelle exportieren (Excel)</button>
           <button id="csvImportBtn">⬆️ Tabelle importieren (CSV)</button>
@@ -554,24 +626,21 @@ body.settings-open #wizardView,body.docs-open #wizardView{display:none}
         </div>
         <input type="file" id="importFile" accept="application/json" hidden>
         <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
-        <p>Tabelle exportieren/importieren bezieht sich auf den gerade gewählten Bereich. Die Komplett-Sicherung (JSON) enthält alle Bereiche. Deine Daten werden sicher in deiner Datenbank gespeichert und sind auf allen Geräten verfügbar.</p>
-      </div>
-    </details>
-
-    <details class="foot">
-      <summary>☁️ Automatische Cloud-Backups</summary>
-      <div class="footbody">
+        <p class="insthint">Tabelle exportieren/importieren bezieht sich auf den gerade gewählten Bereich. Die Komplett-Sicherung (JSON) enthält alle Bereiche.</p>
+      </section>
+      <section class="card">
+        <h3 class="insth">☁️ Automatische Cloud-Backups</h3>
         <div class="backup">
           <button id="autoBackupBtn">☁️ Jetzt in der Cloud sichern</button>
         </div>
         <div id="backupList" class="backuplist"></div>
-        <p>Die App legt ab Monatsmitte automatisch ein Backup an. Es werden die letzten <b>3</b> Backups behalten (das älteste fällt weg). Du kannst jederzeit ein Backup wiederherstellen.</p>
-      </div>
-    </details>
+        <p class="insthint">Die App legt ab Monatsmitte automatisch ein Backup an. Es werden die letzten <b>3</b> Backups behalten (das älteste fällt weg). Vor jedem Import/Wiederherstellen wird zusätzlich automatisch gesichert.</p>
+      </section>
+    </div>
 
-    <details class="foot">
-      <summary>ℹ️ Wie wird gerechnet?</summary>
-      <div class="footbody">
+    <div class="setpage" data-page="info" hidden>
+      <section class="card">
+        <h3 class="insth">🧮 Wie wird gerechnet?</h3>
         <ul class="calclist">
           <li><b>Verbrauch</b> = aktueller Zählerstand − letzter Zählerstand</li>
           <li><b>Grundkosten</b> = Grundpreis pro Jahr ÷ 12 <span class="cnote">(bei Wasser inkl. Niederschlag)</span></li>
@@ -581,18 +650,13 @@ body.settings-open #wizardView,body.docs-open #wizardView{display:none}
           <li><b>Differenz</b> = Abschlag − Gesamtkosten · <span class="pos">Plus = Guthaben</span>, <span class="neg">Minus = Nachzahlung</span></li>
           <li><b>Tarif-Saldo</b> je Tarif; nach je 12 Monaten eine <b>Jahresabrechnung</b>.</li>
         </ul>
-      </div>
-    </details>
-
-    <details class="foot">
-      <summary>🔁 Umgebung wechseln</summary>
-      <div class="footbody">
+      </section>
+      <section class="card">
+        <h3 class="insth">🔁 Umgebung wechseln</h3>
         <div class="envswitch" id="envswitch"></div>
         <p id="envnote">Du bist in der <b>Live-Umgebung</b> mit deinen echten Daten.</p>
-      </div>
-    </details>
-
-    <button id="logoutBtn" class="logoutbtn-wide" type="button">↩︎ Abmelden</button>
+      </section>
+    </div>
   </div>
   <div class="wrap" id="docsView">
     <button class="backbtn" id="docsBack" type="button">← Zurück zur App</button>
@@ -654,57 +718,7 @@ async function saveOrShare(filename,mime,text){
   a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
   return true;
 }
-/* Monatliche Erinnerung ans Ablesen (lokale Benachrichtigung, kein Server nötig). */
-async function scheduleMonthlyReminder(){
-  var LN=capPlugin("LocalNotifications");if(!LN)return;
-  try{
-    var perm=await LN.requestPermissions();
-    if(perm&&perm.display&&perm.display!=="granted")return;
-    try{await LN.cancel({notifications:[{id:4211}]});}catch(e){}
-    await LN.schedule({notifications:[{
-      id:4211,
-      title:"Zählerstände ablesen",
-      body:"Trag diesen Monat deine Zählerstände für Strom, Wasser und Gas ein.",
-      schedule:{on:{day:1,hour:9,minute:0},allowWhileIdle:true}
-    }]});
-  }catch(e){}
-}
-/* Proaktive Erinnerung an Kündigungsfristen (eine lokale Benachrichtigung ~14 Tage vorher). */
-async function scheduleTariffDeadlineNotifs(){
-  if(!IS_NATIVE)return;
-  var LN=capPlugin("LocalNotifications");if(!LN)return;
-  try{
-    var perm=await LN.requestPermissions();
-    if(perm&&perm.display&&perm.display!=="granted")return;
-    var notifs=[];
-    householdCats().forEach(function(c,i){
-      var cur=tariffForDate(c,todayISO());if(!cur)return;
-      var ki=kuendigungInfo(cur);
-      if(!ki||ki.kind!=="fixed")return;
-      var at=new Date(addDays(ki.deadline,-14)+"T09:00:00");
-      if(at.getTime()<=Date.now())return; /* liegt in der Vergangenheit -> deckt der In-App-Banner ab */
-      notifs.push({id:4300+i,title:"Kündigungsfrist läuft ab",body:CATS[c].label+"-Tarif ("+(cur.anbieter||"")+") ist nur noch bis "+deDate(ki.deadline)+" kündbar.",schedule:{at:at,allowWhileIdle:true}});
-    });
-    try{await LN.cancel({notifications:[{id:4300},{id:4301},{id:4302}]});}catch(e){}
-    if(notifs.length)await LN.schedule({notifications:notifs});
-  }catch(e){}
-}
-/* Monats-Push mit dynamischer Kurz-Zusammenfassung (fällige Ablesung + auffälliger Verbrauch),
-   bei jedem App-Start anhand des aktuellen Datenstands neu terminiert. Ersetzt den generischen Reminder (id 4211). */
-async function scheduleMonthlySummary(){
-  if(!IS_NATIVE)return;
-  var LN=capPlugin("LocalNotifications");if(!LN)return;
-  try{
-    var perm=await LN.requestPermissions();
-    if(perm&&perm.display&&perm.display!=="granted")return;
-    var due=readingsDue(),an=[];
-    try{an=consumptionAnomalies().filter(function(a){return !isNotifDismissed(anomalyKey(a));});}catch(e){}
-    var body=due.length?("Bitte ablesen: "+due.map(function(c){return CATS[c].label;}).join(", ")+"."):"Zählerstände für diesen Monat eintragen.";
-    if(an.length){var a0=an[0];body+=" Auffällig: "+CATS[a0.cat].label+" "+(a0.dir==="up"?"höher":"niedriger")+" als sonst.";}
-    try{await LN.cancel({notifications:[{id:4211}]});}catch(e){}
-    await LN.schedule({notifications:[{id:4211,title:"AllTrack: Monats-Check",body:body,schedule:{on:{day:1,hour:9,minute:0},allowWhileIdle:true}}]});
-  }catch(e){}
-}
+/* Alle Erinnerungen werden zentral in applyNotifSchedule() geplant (Einstellungen -> Benachrichtigungen). */
 /* Fingerabdruck / Gesicht (optional, kann nie aussperren – Passwort bleibt Ausweg). */
 function bioLockOn(){try{return localStorage.getItem("vt_biolock")==="1";}catch(e){return false;}}
 async function bioAvailable(){var NB=capPlugin("NativeBiometric");if(!NB)return false;try{var r=await NB.isAvailable();return !!(r&&r.isAvailable);}catch(e){return false;}}
@@ -744,7 +758,6 @@ async function initNative(){
       });
     }
   }
-  scheduleMonthlyReminder();
   if(bioLockOn()&&await bioAvailable()){showLockOverlay();tryUnlock();}
 }
 var currentUser=null,enteredUserId=null;
@@ -792,7 +805,7 @@ var CATS={
   }
 };
 var STATE=defaults();
-var activeCat="strom";
+var activeCat="overview";  /* Start auf der Gesamt-Übersicht */
 var catPane="erfassen";   /* aktive Unterseite je Kategorie: erfassen | verlauf | tarif */
 var tSec={};              /* welche Aufklapp-Bereiche im Tarif-Reiter offen sind */
 var expandedGroups={};
@@ -867,6 +880,21 @@ function csvVal(cat,n){var s=Number(n).toFixed(CATS[cat].valDec);if(s.indexOf(".
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 /* Für gespeicherte Benachrichtigungstexte: alles escapen, nur das von uns erzeugte <b> wieder zulassen. */
 function sanitizeNotif(s){return escapeHtml(s==null?"":s).replace(/&lt;(\/?)b&gt;/g,"<$1b>");}
+
+/* ---------- Kleine Inline-Icons (erben die Textfarbe, skalieren mit der Schrift) ---------- */
+function svgIco(inner,size){return '<svg class="ico" width="'+(size||18)+'" height="'+(size||18)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+inner+'</svg>';}
+function icoCam(){return svgIco('<path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2.2l1.1-1.8a1 1 0 0 1 .86-.5h6.68a1 1 0 0 1 .86.5L17.3 7h2.2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.4"/>',22);}
+function icoSpark(){return svgIco('<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/><path d="M18.5 15.5l.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7z"/>',16);}
+function icoSave(){return svgIco('<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>');}
+function icoBell(){return svgIco('<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>');}
+function icoUser(){return svgIco('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>');}
+function icoShield(){return svgIco('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>');}
+function icoTrash(){return svgIco('<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>',16);}
+function icoCheck(){return svgIco('<path d="m20 6-11 11-5-5"/>',16);}
+function icoClock(){return svgIco('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',16);}
+function icoEdit(){return svgIco('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>');}
+/* Beschriftung des Speichern-Knopfes (Icon bleibt erhalten) */
+function setSaveBtn(editing){var b=$('[data-action="save-reading"]');if(b)b.innerHTML=editing?(icoEdit()+" Änderung speichern"):(icoSave()+" Ablesung speichern");}
 
 /* ---------- Persistence ---------- */
 function defConv(){return {wandelfaktor:1,zustandszahl:0.9546,brennwert:11.552};}
@@ -1389,7 +1417,7 @@ function topBanners(){return reminderHtml()+cancelReminderHtml()+anomalyHtml();}
 function renderApp(){
   editingId=null;
   document.body.setAttribute("data-cat",activeCat);
-  document.querySelectorAll(".tab").forEach(function(b){b.classList.toggle("active",b.dataset.cat===activeCat);});
+  updateNavActive();
   updatePageTitle();renderHhTop();
   var app=$("#app"),banners=topBanners();
   if(activeCat==="overview"){app.innerHTML=banners+renderOverview();return;}
@@ -1423,9 +1451,12 @@ function categoryShell(cat){
     '<h2 class="sect">'+c.icon+' Neue Ablesung</h2>'+meterLine+
     '<div class="field"><label for="ablesedatum">Ablesedatum</label><input type="date" id="ablesedatum" value="'+todayISO()+'"></div>'+
     '<div class="field"><label for="zaehlerstand">Zählerstand ('+u+')</label><input type="text" inputmode="decimal" id="zaehlerstand" placeholder="z. B. '+(cat==="wasser"?"204,45":"12345")+'"></div>'+
-    '<button type="button" class="ghostbtn" data-action="cam-reading" style="margin-bottom:12px">📷 Zählerstand fotografieren (KI liest die Zahl)</button>'+
     '<input type="file" id="camFile" accept="image/*" capture="environment" hidden>'+
-    '<button class="btn big" data-action="save-reading">Ablesung speichern</button>'+
+    '<div class="saverow">'+
+      '<button class="btn big" data-action="save-reading">'+icoSave()+' Ablesung speichern</button>'+
+      '<button type="button" class="camsq" data-action="cam-reading" title="Zählerstand fotografieren – die KI liest die Zahl" aria-label="Zählerstand fotografieren, die KI liest die Zahl">'+icoCam()+'<span class="cambadge">KI</span></button>'+
+    '</div>'+
+    '<p class="camhint">'+icoSpark()+' Tipp: Mit dem Kamera-Knopf liest die KI den Zählerstand aus einem Foto.</p>'+
     '<div id="result" class="result"></div>'+
     '<details class="metchange"><summary>🔧 Neuer Zähler eingebaut?</summary><div class="field"><label for="startwert">Anfangsstand des neuen Zählers ('+u+')</label><input type="text" inputmode="decimal" id="startwert" placeholder="z. B. 0"></div><div class="field"><label for="startmeterno">Neue Zähler-Nummer (optional)</label><input type="text" id="startmeterno" placeholder="steht auf dem neuen Zähler" autocomplete="off"></div><p class="hint">Nur ausfüllen, wenn seit der letzten Ablesung ein neuer Zähler eingebaut wurde – der Verbrauch wird dann ab diesem Anfangsstand gerechnet. Die Zähler-Nummer merken wir uns für diesen Bereich.</p></details>'+
   '</section></div>'+
@@ -1893,7 +1924,7 @@ function queueReadingOffline(cat,iso,z,sw){
   saveQueue(q);
   applyLocalReading(cat,iso,z,sw);
   editingId=null;
-  var sbtn=$('[data-action="save-reading"]');if(sbtn)sbtn.textContent="Ablesung speichern";
+  var sbtn=$('[data-action="save-reading"]');if(sbtn)setSaveBtn(false);
   var swEl=$("#startwert");if(swEl)swEl.value="";var mnEl=$("#startmeterno");if(mnEl)mnEl.value="";
   renderVerlauf();renderTarife();updateResult();
   toast("📴 Offline gespeichert – wird automatisch übertragen, sobald du online bist.");
@@ -1966,7 +1997,7 @@ async function saveReading(){
     /* Zählerwechsel: neue Zähler-Nummer (optional) im Haushalt hinterlegen */
     var mnEl=$("#startmeterno"),mn=(isFinite(sw)&&mnEl)?(mnEl.value||"").trim():"";
     editingId=null;
-    var sbtn=$('[data-action="save-reading"]');if(sbtn)sbtn.textContent="Ablesung speichern";
+    var sbtn=$('[data-action="save-reading"]');if(sbtn)setSaveBtn(false);
     if(mn){saveMeter(cat,mn);renderApp();}
     else{renderVerlauf();renderTarife();updateResult();if(swEl)swEl.value="";if(mnEl)mnEl.value="";}
     toast("Ablesung gespeichert ✅");
@@ -1987,7 +2018,7 @@ function editReading(id){
   editingId=id;
   $("#ablesedatum").value=r.datum;$("#zaehlerstand").value=String(r.zaehlerstand).replace(".",",");
   var swEl=$("#startwert");if(swEl)swEl.value=(r.startwert!=null?String(r.startwert).replace(".",","):"");
-  var b=$('[data-action="save-reading"]');if(b)b.textContent="✏️ Änderung speichern";
+  var b=$('[data-action="save-reading"]');if(b)setSaveBtn(true);
   catPane="erfassen";applyPane(); /* das Formular liegt im Eintragen-Reiter */
   updateResult();window.scrollTo({top:0,behavior:"smooth"});toast("Werte geladen – ändern und dann speichern.");
 }
@@ -1997,7 +2028,7 @@ function cancelEdit(){
   var z=$("#zaehlerstand");if(z)z.value="";
   var s=$("#startwert");if(s)s.value="";
   var m=$("#startmeterno");if(m)m.value="";
-  var b=$('[data-action="save-reading"]');if(b)b.textContent="Ablesung speichern";
+  var b=$('[data-action="save-reading"]');if(b)setSaveBtn(false);
   updateResult();
 }
 /* Berechneten Monat durch echte Ablesung ersetzen: Eintragen-Formular mit dem Monatsdatum vorbelegen */
@@ -2007,7 +2038,7 @@ function fillReading(datum){
   var d=$("#ablesedatum");if(d)d.value=datum;
   var z=$("#zaehlerstand");if(z)z.value="";
   var s=$("#startwert");if(s)s.value="";
-  var b=$('[data-action="save-reading"]');if(b)b.textContent="Ablesung speichern";
+  var b=$('[data-action="save-reading"]');if(b)setSaveBtn(false);
   updateResult();
   window.scrollTo({top:0,behavior:"smooth"});
   if(z)setTimeout(function(){try{z.focus({preventScroll:true});}catch(e){}},220);
@@ -2066,12 +2097,12 @@ async function loadDocs(){
 function openDocsRaw(){
   document.body.classList.remove("settings-open");
   document.body.classList.add("docs-open");
-  updatePageTitle();
+  updateNavActive();updatePageTitle();
   var b=$("#docsBody");if(b)b.innerHTML='<p class="muted">Lädt …</p>';
   window.scrollTo({top:0,behavior:"smooth"});
   loadDocs().then(function(){renderDocs();}).catch(function(){});
 }
-function closeDocsRaw(){document.body.classList.remove("docs-open");updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
+function closeDocsRaw(){document.body.classList.remove("docs-open");updateNavActive();updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
 function openDocs(){if(!currentUser)return;openDocsRaw();pushNav();}
 function closeDocs(){closeDocsRaw();}
 function toggleDocs(){if(document.body.classList.contains("docs-open"))window.history.back();else openDocs();}
@@ -2080,9 +2111,9 @@ function toggleDocs(){if(document.body.classList.contains("docs-open"))window.hi
 function openWizardRaw(){
   document.body.classList.remove("settings-open");document.body.classList.remove("docs-open");
   document.body.classList.add("wizard-open");
-  updatePageTitle();renderWizard();window.scrollTo({top:0,behavior:"smooth"});
+  updateNavActive();updatePageTitle();renderWizard();window.scrollTo({top:0,behavior:"smooth"});
 }
-function closeWizardRaw(){document.body.classList.remove("wizard-open");updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
+function closeWizardRaw(){document.body.classList.remove("wizard-open");updateNavActive();updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
 function openWizard(){if(!currentUser)return;wizardDate=todayISO();openWizardRaw();pushNav();}
 function renderWizard(){
   var body=$("#wizardBody");if(!body)return;
@@ -2098,7 +2129,7 @@ function renderWizard(){
     var val=existing?String(existing.zaehlerstand).replace(".",","):"";
     return '<div class="wzrow" data-cat="'+cat+'">'+
       '<div class="wzhead"><span class="wzname">'+c.icon+' '+c.label+'</span><span class="wzlast">'+lastTxt+'</span></div>'+
-      '<div class="wzin"><input type="text" inputmode="decimal" id="wzin_'+cat+'" placeholder="Zählerstand ('+c.unit+')" value="'+val+'"><button type="button" class="wzcam" data-action="wz-cam" data-cat="'+cat+'" title="Zählerstand fotografieren" aria-label="Zählerstand fotografieren">📷</button></div>'+
+      '<div class="wzin"><input type="text" inputmode="decimal" id="wzin_'+cat+'" placeholder="Zählerstand ('+c.unit+')" value="'+val+'"><button type="button" class="wzcam" data-action="wz-cam" data-cat="'+cat+'" title="Zählerstand fotografieren – die KI liest die Zahl" aria-label="Zählerstand fotografieren, die KI liest die Zahl">'+icoCam()+'<span class="cambadge">KI</span></button></div>'+
       '<input type="file" id="wzfile_'+cat+'" accept="image/*" capture="environment" hidden>'+
       '<div class="wzprev" id="wzprev_'+cat+'"></div>'+exNote+
     '</div>';
@@ -2107,7 +2138,7 @@ function renderWizard(){
     '<p class="muted" style="margin:-6px 0 14px">Einmal im Monat alle Zählerstände auf einen Schlag eintragen. Das Ablesedatum gilt für alle Bereiche.</p>'+
     '<div class="wzdate field"><label for="wzDate">Ablesedatum (für alle Zähler)</label><input type="date" id="wzDate" value="'+wizardDate+'"></div>'+
     (rows||'<div class="notice">In diesem Haushalt ist kein Bereich aktiv.</div>')+
-    '<button class="btn big" data-action="wz-save">Alle Ablesungen speichern</button>';
+    '<button class="btn big" data-action="wz-save">'+icoSave()+' Alle Ablesungen speichern</button>';
   cats.forEach(function(cat){wizardUpdateRow(cat);});
 }
 function wizardUpdateRow(cat){
@@ -2195,8 +2226,8 @@ function triggerMeterPhoto(cat,inputEl,afterFn,btn,fileInput){
   else{toast("Kamera hier nicht verfügbar – bitte Wert eintippen.",true);}
 }
 async function meterPhotoToInput(cat,inputEl,afterFn,btn,file){
-  var oldTxt=btn?btn.textContent:"";
-  if(btn){btn.disabled=true;btn.textContent="📷 …";}
+  var oldTxt=btn?btn.innerHTML:"";
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="camwait">…</span>';}
   toast("Zähler-Foto wird gelesen …");
   try{
     var b64,mime;
@@ -2214,7 +2245,7 @@ async function meterPhotoToInput(cat,inputEl,afterFn,btn,file){
     if(inputEl){inputEl.value=String(val).replace(".",",");if(afterFn)afterFn();}
     toast("Erkannt: "+String(val).replace(".",",")+(z.hinweise?" ("+z.hinweise+")":"")+" – bitte prüfen ✅");
   }catch(err){var m=errMsg(err);if(/cancel/i.test(m))return;toast("Foto-Erkennung fehlgeschlagen: "+m,true);}
-  finally{if(btn){btn.disabled=false;btn.textContent=oldTxt||"📷";}}
+  finally{if(btn){btn.disabled=false;btn.innerHTML=oldTxt||icoCam();}}
 }
 function onCamReadingFile(e){
   var f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
@@ -2756,16 +2787,16 @@ function applyV2Theme(dark){
 }
 /* ---------- Auth ---------- */
 function showAuth(show){document.body.classList.toggle("app-hidden",show);if(show){document.body.classList.remove("settings-open");document.body.classList.remove("docs-open");document.body.classList.remove("wizard-open");}var a=$("#authscreen");if(a)a.hidden=!show;var ab=$("#accountBtn");if(ab)ab.hidden=show;var db=$("#docsBtn");if(db)db.hidden=show;if(show){var hw=$("#hhTopWrap");if(hw)hw.hidden=true;var hm=$("#hhTopMenu");if(hm)hm.hidden=true;}}
-function openSettingsRaw(){renderAccount();document.body.classList.add("settings-open");updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
-function closeSettingsRaw(){document.body.classList.remove("settings-open");updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
-function openSettings(){if(!currentUser)return;openSettingsRaw();pushNav();}
+function openSettingsRaw(){renderSettings();document.body.classList.add("settings-open");updateNavActive();updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
+function closeSettingsRaw(){document.body.classList.remove("settings-open");updateNavActive();updatePageTitle();window.scrollTo({top:0,behavior:"smooth"});}
+function openSettings(){if(!currentUser)return;settingsPage=null;openSettingsRaw();pushNav();}
 function closeSettings(){closeSettingsRaw();}
 function toggleSettings(){if(document.body.classList.contains("settings-open"))window.history.back();else openSettings();}
 
 /* ================= Navigations-Verlauf (Browser-Zurück + Android-Geste) ================= */
 var navReady=false,navApplying=false;
-function currentNavState(){var v="main";if(document.body.classList.contains("settings-open"))v="settings";else if(document.body.classList.contains("docs-open"))v="docs";else if(document.body.classList.contains("wizard-open"))v="wizard";return {view:v,cat:activeCat,pane:catPane};}
-function navStateEq(a,b){return !!a&&!!b&&a.view===b.view&&a.cat===b.cat&&a.pane===b.pane;}
+function currentNavState(){var v="main";if(document.body.classList.contains("settings-open"))v="settings";else if(document.body.classList.contains("docs-open"))v="docs";else if(document.body.classList.contains("wizard-open"))v="wizard";return {view:v,cat:activeCat,pane:catPane,sp:settingsPage};}
+function navStateEq(a,b){return !!a&&!!b&&a.view===b.view&&a.cat===b.cat&&a.pane===b.pane&&(a.sp||null)===(b.sp||null);}
 /* Aktuellen Zustand als neuen Verlaufseintrag ablegen (nur bei echter Änderung). */
 function pushNav(){
   if(!navReady||navApplying)return;
@@ -2785,7 +2816,7 @@ function applyNavState(s){
     var setOpen=document.body.classList.contains("settings-open");
     var docOpen=document.body.classList.contains("docs-open");
     var wizOpen=document.body.classList.contains("wizard-open");
-    if(s.view==="settings"){if(docOpen)closeDocsRaw();if(wizOpen)closeWizardRaw();if(!setOpen)openSettingsRaw();}
+    if(s.view==="settings"){if(docOpen)closeDocsRaw();if(wizOpen)closeWizardRaw();settingsPage=s.sp||null;if(!setOpen)openSettingsRaw();else applySettingsPage();}
     else if(s.view==="docs"){if(setOpen)closeSettingsRaw();if(wizOpen)closeWizardRaw();if(!docOpen)openDocsRaw();}
     else if(s.view==="wizard"){if(setOpen)closeSettingsRaw();if(docOpen)closeDocsRaw();if(!wizOpen)openWizardRaw();}
     else{if(setOpen)closeSettingsRaw();if(docOpen)closeDocsRaw();if(wizOpen)closeWizardRaw();}
@@ -2878,14 +2909,25 @@ function householdCats(){var cfg=householdConfig();if(!cfg)return ["strom","wass
 function householdMeter(cat){var cfg=householdConfig();return (cfg&&cfg[cat]&&cfg[cat].meter)?cfg[cat].meter:"";}
 /* Optionales Monats-Verbrauchsziel je Bereich (in der Abrechnungseinheit). */
 function householdZiel(cat){var cfg=householdConfig();return (cfg&&cfg[cat]&&isFinite(cfg[cat].ziel)&&cfg[cat].ziel>0)?cfg[cat].ziel:null;}
-function navItem(cat,label,icon){return '<button class="tab'+(cat===activeCat?" active":"")+'" data-cat="'+cat+'"><span class="tcon">'+icon+'</span>'+label+'</button>';}
+function navItem(cat,label,icon){return '<button class="tab" data-cat="'+cat+'"><span class="tcon">'+icon+'</span>'+label+'</button>';}
+/* Liegt gerade eine Unterseite (Einstellungen/Dokumente/Monatsablesung) über der App? */
+function inSubView(){var c=document.body.classList;return c.contains("settings-open")||c.contains("docs-open")||c.contains("wizard-open");}
+/* EINE Stelle für den aktiven Reiter: entweder Konto (Einstellungen offen) ODER die Kategorie –
+   nie beides gleichzeitig, sonst leuchten unten zwei Einträge. */
+function updateNavActive(){
+  var setOpen=document.body.classList.contains("settings-open"),sub=inSubView();
+  document.querySelectorAll(".tab").forEach(function(b){
+    if(b.id==="accountBtnM"||b.id==="accountBtn")b.classList.toggle("active",setOpen);
+    else b.classList.toggle("active",!sub&&b.dataset.cat===activeCat);
+  });
+}
 function renderTabs(){
   var cats=householdCats();
   if(activeCat!=="overview"&&cats.indexOf(activeCat)<0)activeCat=cats[0]||"overview";
   var items=navItem("overview","Übersicht","📊")+cats.map(function(c){return navItem(c,CATS[c].label,CATS[c].icon);}).join("");
   var nav=$("#tabs");if(nav)nav.innerHTML=items;
   var navm=$("#tabsMobile");if(navm)navm.innerHTML=items+'<button class="tab" id="accountBtnM"><span class="tcon">👤</span>Konto</button>';
-  updatePageTitle();
+  updateNavActive();updatePageTitle();
 }
 function updatePageTitle(){
   var el=$("#pageTitle");if(!el)return;
@@ -2958,40 +3000,264 @@ function renderNotifHistory(){
     '<div class="notifclearwrap"><button class="linkbtn linkdanger" data-action="notif-clear">🗑️ Alle löschen</button>'+
     '<span class="notifconfirm" hidden>Alle '+list.length+' löschen? <button class="hhaddbtn" data-action="notif-clear-yes">Ja, alle löschen</button> <button class="hhaddbtn" data-action="notif-clear-no">Abbrechen</button></span></div>';
 }
-function renderAccount(){
+/* ================= Einstellungen: Menü + Unterseiten ================= */
+var SET_PAGES=[
+  {key:"konto",           icon:"👤", label:"Mein Konto",              desc:"E-Mail, Darstellung, Abmelden"},
+  {key:"haushalt",        icon:"🏠", label:"Haushalt",                desc:"Wechseln, anlegen, umbenennen, einladen"},
+  {key:"mitglieder",      icon:"👥", label:"Mitglieder & Rechte",     desc:"Wer darf mitpflegen – Admins verwalten"},
+  {key:"bereiche",        icon:"⚙️", label:"Bereiche & Ziele",        desc:"Strom/Wasser/Gas, Zähler-Nr., Monatsziel"},
+  {key:"benachrichtigungen",icon:"🔔",label:"Benachrichtigungen",     desc:"Erinnerungen, Zeitpunkt, Warnungen"},
+  {key:"sicherheit",      icon:"🔒", label:"Sicherheit & App",        desc:"Fingerabdruck, Installation"},
+  {key:"ki",              icon:"🤖", label:"KI-Erkennung",            desc:"Wie gründlich Dokumente gelesen werden"},
+  {key:"daten",           icon:"💾", label:"Daten & Sicherung",       desc:"Export, Import, Cloud-Backups, PDF"},
+  {key:"info",            icon:"ℹ️", label:"Info & Umgebung",         desc:"Rechenwege, Test-/Live-Umgebung"}
+];
+var settingsPage=null; /* null = Menü, sonst Schlüssel aus SET_PAGES */
+function setPageMeta(k){return SET_PAGES.find(function(p){return p.key===k;})||null;}
+function renderSetMenu(){
+  var el=$("#setMenu");if(!el)return;
+  el.innerHTML=SET_PAGES.map(function(p){
+    var badge="";
+    if(p.key==="mitglieder"&&MEMBERS.length>1)badge='<span class="setbadge">'+MEMBERS.length+'</span>';
+    if(p.key==="haushalt"&&HOUSEHOLDS.length>1)badge='<span class="setbadge">'+HOUSEHOLDS.length+'</span>';
+    return '<button class="setrow" data-action="set-page" data-page="'+p.key+'">'+
+      '<span class="seticon">'+p.icon+'</span>'+
+      '<span class="setmain"><span class="setlabel">'+p.label+'</span><span class="setdesc">'+p.desc+'</span></span>'+
+      badge+'<span class="setchev">›</span></button>';
+  }).join("");
+}
+/* Unterseite öffnen (mit eigenem Verlaufseintrag, damit Zurück zum Menü führt) */
+function openSetPage(k){settingsPage=k;applySettingsPage();window.scrollTo({top:0,behavior:"smooth"});pushNav();}
+function applySettingsPage(){
+  var menu=$("#setMenu");if(menu)menu.hidden=!!settingsPage;
+  document.querySelectorAll(".setpage").forEach(function(el){el.hidden=(el.dataset.page!==settingsPage);});
+  var t=$("#setTitle"),meta=setPageMeta(settingsPage);
+  if(t)t.textContent=meta?(meta.icon+" "+meta.label):"👤 Konto & Einstellungen";
+  var bb=$("#settingsBack");if(bb)bb.textContent=settingsPage?"← Zurück zur Übersicht":"← Zurück zur App";
+  if(settingsPage==="konto")renderKonto();
+  else if(settingsPage==="haushalt")renderHaushaltPage();
+  else if(settingsPage==="mitglieder"){renderMembers();fetchMembers().then(renderMembers).catch(function(){});}
+  else if(settingsPage==="bereiche")renderBereiche();
+  else if(settingsPage==="benachrichtigungen"){renderNotifSettings();renderNotifHistory();}
+  else if(settingsPage==="daten")renderBackups();
+}
+/* Kompletter Aufbau des Einstellungs-Bereichs (Name bleibt renderAccount, damit alle Aufrufer weiter passen) */
+function renderSettings(){
   renderHhTop();
-  renderNotifHistory();
+  if(!currentUser)return;
+  renderSetMenu();
+  applySettingsPage();
+}
+function renderAccount(){renderSettings();}
+function renderKonto(){
+  var el=$("#kontoBody");if(!el||!currentUser)return;
+  var dark=document.body.classList.contains("v2dark");
+  el.innerHTML=
+    '<div class="memrow"><span class="memav">'+icoUser()+'</span><span class="memmain"><span class="memmail">'+escapeHtml(currentUser.email||"")+'</span><span class="memtag">Angemeldet</span></span></div>'+
+    '<div class="nsrow"><div class="nsmain"><div class="nstitle">🌙 Dunkles Design</div><div class="nsdesc">Gilt auf allen deinen Geräten.</div></div>'+
+      '<button class="nssw'+(dark?" on":"")+'" role="switch" aria-checked="'+(dark?"true":"false")+'" data-action="theme-toggle" aria-label="Dunkles Design umschalten"></button></div>'+
+    '<button class="logoutbtn-wide" data-action="logout" style="margin-top:16px">↩︎ Abmelden</button>';
+}
+function renderHaushaltPage(){
   var body=$("#accountBody");if(!body)return;
   if(!currentUser){body.innerHTML="";return;}
-  var email=escapeHtml(currentUser.email||"");
+  var admin=IAM_ADMIN;
   var opts=HOUSEHOLDS.map(function(h){
     var active=(h.id===activeHousehold);
     return '<button class="hhopt'+(active?" active":"")+'" data-action="hh-switch" data-id="'+h.id+'"><span class="hhname">'+escapeHtml(h.name||"Haushalt")+'</span><span class="hhtag">'+(active?"✓ aktiv":"wechseln")+'</span></button>';
   }).join("");
   body.innerHTML=
-    '<p class="accemail">Angemeldet als <b>'+email+'</b></p>'+
     '<div class="acclabel">'+(HOUSEHOLDS.length>1?"Deine Haushalte":"Dein Haushalt")+'</div>'+
     '<div class="hhlist">'+opts+'</div>'+
     '<p class="hhmeta" id="hhMeta"></p>'+
-    '<div class="acclabel accsep">Was wird in „'+escapeHtml(activeHouseholdName())+'" erfasst?</div>'+
-    '<div class="catcfg">'+catCfgEditorActive()+'</div>'+
-    '<p class="ovhint" style="text-align:left;margin:10px 0 0">Tippe an/aus, was du in diesem Haushalt verfolgen möchtest. Die Zähler-Nummer ist optional (nur zur Info).</p>'+
     (hhRenaming
       ? '<div class="hhadd" style="margin-top:16px"><input id="hhRenameInp" type="text" maxlength="60" value="'+escapeHtml(activeHouseholdName())+'"><button class="hhaddbtn" data-action="hh-rename-save">Speichern</button><button class="hhaddbtn" data-action="hh-rename-cancel">Abbrechen</button></div>'
-      : '<button class="linkbtn" data-action="hh-rename" style="margin-top:16px">✏️ Aktuellen Haushalt umbenennen</button>')+
+      : (admin?'<button class="linkbtn" data-action="hh-rename" style="margin-top:16px">✏️ Aktuellen Haushalt umbenennen</button>':""))+
     (HOUSEHOLDS.length>1?'<button class="linkbtn linkdanger" data-action="hh-leave" style="margin-top:10px">🚪 Diesen Haushalt verlassen</button>':"")+
+    (admin?"":'<div class="notice" style="margin-top:14px">'+icoShield()+' Du bist <b>Mitglied</b> in „'+escapeHtml(activeHouseholdName())+'". Umbenennen, Bereiche ändern und Einladen darf nur ein <b>Admin</b>.</div>')+
     '<div class="acclabel accsep">➕ Neuen Haushalt anlegen</div>'+
     '<input id="hhNewName" class="hhfull" type="text" maxlength="60" placeholder="Name (z. B. Ferienwohnung)">'+
     '<div class="catnewlabel">Was möchtest du dort erfassen?</div>'+
     '<div class="catcfg">'+catCfgEditorNew()+'</div>'+
-    '<button class="hhwide" style="margin-top:12px" data-action="hh-create">Haushalt anlegen</button>'+
-    '<div class="acclabel accsep">👥 Person zu „'+escapeHtml(activeHouseholdName())+'" einladen</div>'+
-    '<button class="hhwide" data-action="hh-invite">Einladungs-Code erstellen</button>'+
-    '<div id="inviteOut" class="inviteout" hidden></div>'+
+    '<button class="hhwide" style="margin-top:12px" data-action="hh-create">🏠 Haushalt anlegen</button>'+
+    (admin?
+      '<div class="acclabel accsep">👥 Person zu „'+escapeHtml(activeHouseholdName())+'" einladen</div>'+
+      '<button class="hhwide" data-action="hh-invite">✉️ Einladungs-Code erstellen</button>'+
+      '<div id="inviteOut" class="inviteout" hidden></div>':"")+
     '<div class="acclabel accsep">Einer Einladung beitreten</div>'+
     '<div class="hhadd"><input id="hhJoinCode" type="text" maxlength="12" placeholder="Code eingeben (z. B. 197C1111)"><button class="hhaddbtn" data-action="hh-join">Beitreten</button></div>'+
     '<p class="ovhint" style="text-align:left;margin-top:14px">Mehrere Haushalte sind praktisch, z. B. für Haupt- und Ferienwohnung – jeder hat eigene Zähler und Daten. Wen du einlädst, sieht dieselben Werte und kann mitpflegen.</p>';
   refreshHhMeta();
+}
+function renderBereiche(){
+  var el=$("#bereicheBody");if(!el)return;
+  if(!IAM_ADMIN){
+    el.innerHTML='<div class="notice">'+icoShield()+' Nur ein <b>Admin</b> von „'+escapeHtml(activeHouseholdName())+'" kann Bereiche, Zähler-Nummern und Ziele ändern.</div>'+
+      '<div class="catcfg" style="margin-top:12px;opacity:.6;pointer-events:none">'+catCfgEditorActive()+'</div>';
+    return;
+  }
+  el.innerHTML=
+    '<div class="acclabel">Was wird in „'+escapeHtml(activeHouseholdName())+'" erfasst?</div>'+
+    '<div class="catcfg">'+catCfgEditorActive()+'</div>'+
+    '<p class="ovhint" style="text-align:left;margin:10px 0 0">Tippe an/aus, was du verfolgen möchtest. <b>Zähler-Nr.</b> ist optional (nur zur Info). Beim <b>Ziel</b> trägst du deinen Wunsch-Verbrauch pro Monat ein – die App warnt dich beim Überschreiten.</p>';
+}
+/* ---------- Mitglieder & Rechte ---------- */
+var MEMBERS=[],IAM_ADMIN=false;
+async function fetchMembers(){
+  if(!activeHousehold||!currentUser){MEMBERS=[];IAM_ADMIN=false;return;}
+  try{
+    var r=await sbPub.rpc("household_members_info",{p_household_id:activeHousehold});
+    MEMBERS=(r&&!r.error&&Array.isArray(r.data))?r.data:[];
+  }catch(e){MEMBERS=[];}
+  IAM_ADMIN=MEMBERS.some(function(m){return m.user_id===currentUser.id&&m.is_admin;});
+}
+function renderMembers(){
+  var el=$("#membersBody");if(!el)return;
+  if(!MEMBERS.length){el.innerHTML='<div class="notice">Lädt …</div>';return;}
+  var me=currentUser?currentUser.id:"";
+  var admins=MEMBERS.filter(function(m){return m.is_admin;}).length;
+  var rows=MEMBERS.map(function(m){
+    var self=(m.user_id===me);
+    var acts="";
+    if(IAM_ADMIN&&!self){
+      acts='<span class="memacts">'+
+        (m.is_admin
+          ? '<button class="hhaddbtn" data-action="mem-demote" data-id="'+m.user_id+'"'+(admins<=1?" disabled":"")+'>Admin-Rechte entziehen</button>'
+          : '<button class="hhaddbtn" data-action="mem-promote" data-id="'+m.user_id+'">'+icoShield()+' Zum Admin machen</button>')+
+        '<button class="hhaddbtn" data-action="mem-remove" data-id="'+m.user_id+'" data-mail="'+escapeHtml(m.email||"")+'">'+icoTrash()+' Entfernen</button>'+
+      '</span>';
+    }
+    return '<div class="memrow">'+
+      '<span class="memav">'+(m.is_admin?icoShield():icoUser())+'</span>'+
+      '<span class="memmain"><span class="memmail">'+escapeHtml(m.email||"—")+(self?' <span class="muted">(du)</span>':"")+'</span>'+
+      '<span class="memtag">'+(m.is_admin?'<span class="memadmin">'+icoCheck()+' Admin</span>':'Mitglied')+'</span></span>'+
+      acts+'</div>';
+  }).join("");
+  el.innerHTML='<div class="acclabel">Mitglieder von „'+escapeHtml(activeHouseholdName())+'"</div>'+rows+
+    (IAM_ADMIN
+      ? '<p class="ovhint" style="text-align:left;margin-top:14px">'+icoShield()+' Du bist <b>Admin</b>: Du kannst Mitglieder entfernen und Admin-Rechte vergeben. Der <b>letzte Admin</b> kann seine Rechte nicht abgeben – mach vorher jemand anderen zum Admin.</p>'
+      : '<p class="ovhint" style="text-align:left;margin-top:14px">Nur ein <b>Admin</b> kann Mitglieder verwalten. Alle Mitglieder sehen und pflegen dieselben Daten.</p>');
+}
+async function setMemberAdmin(uid,mk){
+  try{
+    var r=await sbPub.rpc("set_member_admin",{p_household_id:activeHousehold,p_user_id:uid,p_is_admin:!!mk});
+    if(r.error)throw r.error;
+  }catch(e){
+    var m=errMsg(e);
+    if(/last_admin/i.test(m))m="Das ist der letzte Admin – mach zuerst jemand anderen zum Admin.";
+    else if(/not_admin/i.test(m))m="Nur Admins dürfen Rechte vergeben.";
+    toast(m,true);return;
+  }
+  await fetchMembers();renderMembers();renderSetMenu();
+  toast(mk?"Ist jetzt Admin ✅":"Admin-Rechte entzogen ✅");
+}
+async function removeMember(uid,mail){
+  if(!confirm('„'+(mail||"Dieses Mitglied")+'" wirklich aus dem Haushalt entfernen? Die Person sieht die Daten dann nicht mehr.'))return;
+  try{
+    var r=await sbPub.rpc("remove_household_member",{p_household_id:activeHousehold,p_user_id:uid});
+    if(r.error)throw r.error;
+  }catch(e){
+    var m=errMsg(e);
+    if(/last_admin/i.test(m))m="Das ist der letzte Admin – erst jemand anderen zum Admin machen.";
+    else if(/cannot_remove_self/i.test(m))m="Dich selbst entfernst du über „Haushalt verlassen“.";
+    else if(/not_admin/i.test(m))m="Nur Admins dürfen Mitglieder entfernen.";
+    toast(m,true);return;
+  }
+  await fetchMembers();renderMembers();renderSetMenu();toast("Mitglied entfernt ✅");
+}
+/* ---------- Benachrichtigungen (gerätelokal – Push wird auf DIESEM Gerät geplant) ---------- */
+var NOTIF_KEY="vt_notif";
+var WEEKDAYS=[["1","Sonntag"],["2","Montag"],["3","Dienstag"],["4","Mittwoch"],["5","Donnerstag"],["6","Freitag"],["7","Samstag"]];
+function notifDefaults(){return {read:{on:true,mode:"monthly",day:1,weekday:"2",hour:9,min:0},cancel:{on:true,lead:14},anom:{on:true}};}
+function notifCfg(){
+  var d=notifDefaults();
+  try{
+    var c=JSON.parse(localStorage.getItem(NOTIF_KEY)||"null");
+    if(!c)return d;
+    return {read:Object.assign(d.read,c.read||{}),cancel:Object.assign(d.cancel,c.cancel||{}),anom:Object.assign(d.anom,c.anom||{})};
+  }catch(e){return d;}
+}
+function saveNotifCfg(c){try{localStorage.setItem(NOTIF_KEY,JSON.stringify(c));}catch(e){}applyNotifSchedule();}
+function two(n){return String(n).padStart(2,"0");}
+/* Plant ALLE Erinnerungen anhand der Einstellungen neu (löscht vorher die alten). */
+async function applyNotifSchedule(){
+  if(!IS_NATIVE)return;
+  var LN=capPlugin("LocalNotifications");if(!LN)return;
+  var c=notifCfg();
+  try{
+    var perm=await LN.requestPermissions();
+    if(perm&&perm.display&&perm.display!=="granted")return;
+    try{await LN.cancel({notifications:[{id:4211},{id:4300},{id:4301},{id:4302},{id:4310}]});}catch(e){}
+    var list=[],h=Number(c.read.hour)||0,mi=Number(c.read.min)||0;
+    if(c.read.on){
+      var due=[],an=[];
+      try{due=readingsDue();}catch(e){}
+      try{an=consumptionAnomalies().filter(function(a){return !isNotifDismissed(anomalyKey(a));});}catch(e){}
+      var body=due.length?("Bitte ablesen: "+due.map(function(x){return CATS[x].label;}).join(", ")+"."):"Zählerstände für diesen Monat eintragen.";
+      if(c.anom.on&&an.length)body+=" Auffällig: "+CATS[an[0].cat].label+" "+(an[0].dir==="up"?"höher":"niedriger")+" als sonst.";
+      var sch=(c.read.mode==="weekly")
+        ? {on:{weekday:Number(c.read.weekday)||2,hour:h,minute:mi},allowWhileIdle:true}
+        : {on:{day:Number(c.read.day)||1,hour:h,minute:mi},allowWhileIdle:true};
+      list.push({id:4211,title:"AllTrack: Zählerstände ablesen",body:body,schedule:sch});
+    }
+    if(c.cancel.on){
+      var lead=Number(c.cancel.lead)||14;
+      householdCats().forEach(function(cat,i){
+        if(i>2)return;
+        var cur=tariffForDate(cat,todayISO());if(!cur)return;
+        var ki=kuendigungInfo(cur);if(!ki||ki.kind!=="fixed")return;
+        var at=new Date(addDays(ki.deadline,-lead)+"T09:00:00");
+        if(at.getTime()<=Date.now())return;
+        list.push({id:4300+i,title:"Kündigungsfrist läuft ab",body:CATS[cat].label+"-Tarif ("+(cur.anbieter||"")+") ist nur noch bis "+deDate(ki.deadline)+" kündbar.",schedule:{at:at,allowWhileIdle:true}});
+      });
+    }
+    if(list.length)await LN.schedule({notifications:list});
+  }catch(e){}
+}
+async function testNotif(){
+  if(!IS_NATIVE){toast("Test-Benachrichtigungen gibt es nur in der Android-App.",true);return;}
+  var LN=capPlugin("LocalNotifications");if(!LN){toast("Benachrichtigungen sind hier nicht verfügbar.",true);return;}
+  try{
+    var perm=await LN.requestPermissions();
+    if(perm&&perm.display&&perm.display!=="granted"){toast("Benachrichtigungen sind für AllTrack nicht erlaubt.",true);return;}
+    await LN.schedule({notifications:[{id:4399,title:"AllTrack: Test",body:"So sieht deine Erinnerung aus. 👍",schedule:{at:new Date(Date.now()+5000)}}]});
+    toast("Test-Benachrichtigung kommt in 5 Sekunden ⏱️");
+  }catch(e){toast("Test fehlgeschlagen: "+errMsg(e),true);}
+}
+function renderNotifSettings(){
+  var el=$("#notifSetBody");if(!el)return;
+  if(!IS_NATIVE){
+    el.innerHTML='<div class="notice">📱 Push-Erinnerungen funktionieren nur in der <b>Android-App</b> (APK). Im Browser zeigt dir AllTrack stattdessen oben ein Hinweis-Banner, sobald eine Ablesung fällig ist.</div>';
+    return;
+  }
+  var c=notifCfg();
+  var days="";for(var d=1;d<=28;d++)days+='<option value="'+d+'"'+(Number(c.read.day)===d?" selected":"")+'>'+d+'.</option>';
+  var wds=WEEKDAYS.map(function(w){return '<option value="'+w[0]+'"'+(String(c.read.weekday)===w[0]?" selected":"")+'>'+w[1]+'</option>';}).join("");
+  var leads=[7,14,21,30,45].map(function(n){return '<option value="'+n+'"'+(Number(c.cancel.lead)===n?" selected":"")+'>'+n+' Tage vorher</option>';}).join("");
+  el.innerHTML=
+    '<div class="nsrow"><div class="nsmain"><div class="nstitle">'+icoBell()+' Ablese-Erinnerung</div>'+
+      '<div class="nsdesc">Erinnert dich regelmäßig daran, die Zählerstände einzutragen.</div></div>'+
+      '<button class="nssw'+(c.read.on?" on":"")+'" role="switch" aria-checked="'+(c.read.on?"true":"false")+'" data-action="ns-read" aria-label="Ablese-Erinnerung an oder aus"></button></div>'+
+    (c.read.on?
+      '<div class="nsopts">'+
+        '<div class="nsfield"><label for="ns_mode">Wiederholung</label><select id="ns_mode">'+
+          '<option value="monthly"'+(c.read.mode!=="weekly"?" selected":"")+'>Monatlich</option>'+
+          '<option value="weekly"'+(c.read.mode==="weekly"?" selected":"")+'>Wöchentlich</option>'+
+        '</select></div>'+
+        (c.read.mode==="weekly"
+          ? '<div class="nsfield"><label for="ns_weekday">Wochentag</label><select id="ns_weekday">'+wds+'</select></div>'
+          : '<div class="nsfield"><label for="ns_day">Tag im Monat</label><select id="ns_day">'+days+'</select></div>')+
+        '<div class="nsfield"><label for="ns_time">Uhrzeit</label><input type="time" id="ns_time" value="'+two(c.read.hour)+':'+two(c.read.min)+'"></div>'+
+      '</div>':"")+
+    '<div class="nsrow"><div class="nsmain"><div class="nstitle">'+icoClock()+' Kündigungsfrist-Warnung</div>'+
+      '<div class="nsdesc">Meldet sich, bevor die Frist eines laufenden Tarifs abläuft.</div></div>'+
+      '<button class="nssw'+(c.cancel.on?" on":"")+'" role="switch" aria-checked="'+(c.cancel.on?"true":"false")+'" data-action="ns-cancel" aria-label="Kündigungsfrist-Warnung an oder aus"></button></div>'+
+    (c.cancel.on?'<div class="nsopts"><div class="nsfield"><label for="ns_lead">Vorlauf</label><select id="ns_lead">'+leads+'</select></div></div>':"")+
+    '<div class="nsrow"><div class="nsmain"><div class="nstitle">📈 Verbrauchs-Warnung</div>'+
+      '<div class="nsdesc">Weist in der Erinnerung darauf hin, wenn ein Verbrauch auffällig abweicht.</div></div>'+
+      '<button class="nssw'+(c.anom.on?" on":"")+'" role="switch" aria-checked="'+(c.anom.on?"true":"false")+'" data-action="ns-anom" aria-label="Verbrauchs-Warnung an oder aus"></button></div>'+
+    '<button class="hhwide" data-action="ns-test" style="margin-top:14px">🔔 Test-Benachrichtigung senden</button>'+
+    '<p class="ovhint" style="text-align:left;margin-top:12px">Diese Einstellungen gelten für <b>dieses Gerät</b> – Erinnerungen werden direkt hier geplant und brauchen kein Internet.</p>';
 }
 async function refreshHhMeta(){
   var el=$("#hhMeta");if(!el)return;if(!activeHousehold){el.textContent="";return;}
@@ -3023,7 +3289,9 @@ async function leaveHouseholdUI(){
 async function switchHousehold(hid){
   if(!hid||hid===activeHousehold)return;
   hhRenaming=false;
-  activeHousehold=hid;saveActiveHousehold();renderAccount();
+  activeHousehold=hid;saveActiveHousehold();
+  try{await fetchMembers();}catch(e){}
+  renderAccount();
   try{await loadFromDB();}catch(e){toast("Daten konnten nicht geladen werden: "+errMsg(e),true);}
   renderTabs();renderApp();
   try{await loadBackups();renderBackups();}catch(e){}
@@ -3098,14 +3366,14 @@ async function enterApp(session){
   renderTabs();renderApp();renderAccount();navInit();
   try{flushQueue();}catch(e){}
   try{await loadBackups();renderBackups();await maybeAutoBackup();}catch(e){}
-  try{scheduleTariffDeadlineNotifs();}catch(e){}
-  try{scheduleMonthlySummary();}catch(e){}
+  try{await fetchMembers();}catch(e){}
+  try{applyNotifSchedule();}catch(e){}
 }
 function handleSession(session){
   if(session&&session.user){
     if(enteredUserId===session.user.id){currentUser=session.user;return;}
     enteredUserId=session.user.id;enterApp(session);
-  }else{try{unsubscribeRealtime();}catch(e){}navReady=false;enteredUserId=null;currentUser=null;BACKUPS=[];HOUSEHOLDS=[];DISMISSED_NOTIFS=[];USER_PREFS=null;activeHousehold=null;var app=$("#app");if(app)app.innerHTML="";var bl=$("#backupList");if(bl)bl.innerHTML="";var ab=$("#accountBody");if(ab)ab.innerHTML="";var nb=$("#notifBody");if(nb)nb.innerHTML="";showAuth(true);}
+  }else{try{unsubscribeRealtime();}catch(e){}navReady=false;enteredUserId=null;currentUser=null;BACKUPS=[];HOUSEHOLDS=[];DISMISSED_NOTIFS=[];USER_PREFS=null;MEMBERS=[];IAM_ADMIN=false;settingsPage=null;activeHousehold=null;var app=$("#app");if(app)app.innerHTML="";var bl=$("#backupList");if(bl)bl.innerHTML="";var ab=$("#accountBody");if(ab)ab.innerHTML="";var nb=$("#notifBody");if(nb)nb.innerHTML="";var sm=$("#setMenu");if(sm)sm.innerHTML="";var mb=$("#membersBody");if(mb)mb.innerHTML="";var kb=$("#kontoBody");if(kb)kb.innerHTML="";showAuth(true);}
 }
 function renderEnvSwitch(){
   var el=$("#envswitch"),note=$("#envnote");
@@ -3149,9 +3417,42 @@ function init(){
   $("#csvFile").addEventListener("change",onCSVImport);
   $("#autoBackupBtn").addEventListener("click",manualBackup);
   $("#backupList").addEventListener("click",function(e){var b=e.target.closest("[data-action='restore-backup']");if(b)restoreBackup(b.dataset.id);});
-  $("#accountBody").addEventListener("click",function(e){var b=e.target.closest("[data-action]");if(!b)return;var a=b.dataset.action;if(a==="hh-switch")switchHousehold(b.dataset.id);else if(a==="hh-create")createHouseholdUI();else if(a==="hh-rename")startRenameHousehold();else if(a==="hh-rename-save")saveRenameHousehold();else if(a==="hh-rename-cancel")cancelRenameHousehold();else if(a==="hh-invite")inviteUI();else if(a==="hh-join")joinUI();else if(a==="hh-copy")copyInvite(b.dataset.code);else if(a==="cat-toggle")toggleCat(b.dataset.cat);else if(a==="hh-leave")leaveHouseholdUI();});
-  $("#accountBody").addEventListener("change",function(e){var t=e.target;if(!t||!t.id)return;if(t.id.indexOf("meter_")===0&&t.dataset.cat){saveMeter(t.dataset.cat,t.value);}else if(t.id.indexOf("ziel_")===0&&t.dataset.cat){saveZiel(t.dataset.cat,t.value);}else if(t.id.indexOf("new_en_")===0){var c=t.id.slice(7),mi=$("#new_meter_"+c);if(mi)mi.style.display=t.checked?"":"none";}});
-  $("#accountBody").addEventListener("keydown",function(e){if(!e.target)return;if(e.key==="Enter"&&e.target.id==="hhNewName"){e.preventDefault();createHouseholdUI();}else if(e.key==="Enter"&&e.target.id==="hhJoinCode"){e.preventDefault();joinUI();}else if(e.target.id==="hhRenameInp"){if(e.key==="Enter"){e.preventDefault();saveRenameHousehold();}else if(e.key==="Escape"){e.preventDefault();cancelRenameHousehold();}}});
+  /* Ein Delegations-Handler für den ganzen Einstellungs-Bereich (Menü + alle Unterseiten) */
+  $("#settingsView").addEventListener("click",function(e){
+    var b=e.target.closest("[data-action]");if(!b)return;var a=b.dataset.action;
+    if(a==="set-page")openSetPage(b.dataset.page);
+    else if(a==="logout")doLogout();
+    else if(a==="theme-toggle"){var dark=!document.body.classList.contains("v2dark");applyV2Theme(dark);saveUserPref({theme:dark?"dark":"light"});renderKonto();}
+    else if(a==="hh-switch")switchHousehold(b.dataset.id);
+    else if(a==="hh-create")createHouseholdUI();
+    else if(a==="hh-rename")startRenameHousehold();
+    else if(a==="hh-rename-save")saveRenameHousehold();
+    else if(a==="hh-rename-cancel")cancelRenameHousehold();
+    else if(a==="hh-invite")inviteUI();
+    else if(a==="hh-join")joinUI();
+    else if(a==="hh-copy")copyInvite(b.dataset.code);
+    else if(a==="cat-toggle")toggleCat(b.dataset.cat);
+    else if(a==="hh-leave")leaveHouseholdUI();
+    else if(a==="mem-promote")setMemberAdmin(b.dataset.id,true);
+    else if(a==="mem-demote")setMemberAdmin(b.dataset.id,false);
+    else if(a==="mem-remove")removeMember(b.dataset.id,b.dataset.mail);
+    else if(a==="ns-read"){var c1=notifCfg();c1.read.on=!c1.read.on;saveNotifCfg(c1);renderNotifSettings();}
+    else if(a==="ns-cancel"){var c2=notifCfg();c2.cancel.on=!c2.cancel.on;saveNotifCfg(c2);renderNotifSettings();}
+    else if(a==="ns-anom"){var c3=notifCfg();c3.anom.on=!c3.anom.on;saveNotifCfg(c3);renderNotifSettings();}
+    else if(a==="ns-test")testNotif();
+  });
+  $("#settingsView").addEventListener("change",function(e){
+    var t=e.target;if(!t||!t.id)return;
+    if(t.id.indexOf("meter_")===0&&t.dataset.cat){saveMeter(t.dataset.cat,t.value);}
+    else if(t.id.indexOf("ziel_")===0&&t.dataset.cat){saveZiel(t.dataset.cat,t.value);}
+    else if(t.id.indexOf("new_en_")===0){var c=t.id.slice(7),mi=$("#new_meter_"+c);if(mi)mi.style.display=t.checked?"":"none";}
+    else if(t.id==="ns_mode"){var a1=notifCfg();a1.read.mode=(t.value==="weekly")?"weekly":"monthly";saveNotifCfg(a1);renderNotifSettings();}
+    else if(t.id==="ns_day"){var a2=notifCfg();a2.read.day=Number(t.value)||1;saveNotifCfg(a2);}
+    else if(t.id==="ns_weekday"){var a3=notifCfg();a3.read.weekday=t.value;saveNotifCfg(a3);}
+    else if(t.id==="ns_time"){var p=(t.value||"09:00").split(":"),a4=notifCfg();a4.read.hour=Number(p[0])||0;a4.read.min=Number(p[1])||0;saveNotifCfg(a4);}
+    else if(t.id==="ns_lead"){var a5=notifCfg();a5.cancel.lead=Number(t.value)||14;saveNotifCfg(a5);}
+  });
+  $("#settingsView").addEventListener("keydown",function(e){if(!e.target)return;if(e.key==="Enter"&&e.target.id==="hhNewName"){e.preventDefault();createHouseholdUI();}else if(e.key==="Enter"&&e.target.id==="hhJoinCode"){e.preventDefault();joinUI();}else if(e.target.id==="hhRenameInp"){if(e.key==="Enter"){e.preventDefault();saveRenameHousehold();}else if(e.key==="Escape"){e.preventDefault();cancelRenameHousehold();}}});
   $("#notifBody").addEventListener("click",function(e){
     var b=e.target.closest("[data-action]");if(!b)return;
     var a=b.dataset.action;
@@ -3177,7 +3478,6 @@ function init(){
   $("#auth_forgot").addEventListener("click",doForgot);
   $("#auth_setpass").addEventListener("click",doSetPassword);
   $("#auth_newpass").addEventListener("keydown",function(e){if(e.key==="Enter")doSetPassword();});
-  $("#logoutBtn").addEventListener("click",doLogout);
   sb.auth.onAuthStateChange(function(evt,session){setTimeout(function(){
     if(evt==="PASSWORD_RECOVERY")pendingRecovery=true;
     if(pendingRecovery&&session&&session.user){enterRecovery(session);return;}
