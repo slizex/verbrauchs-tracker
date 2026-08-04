@@ -436,6 +436,11 @@ h3{font-size:.94rem;margin:18px 0 8px}
 #undotoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(60px);background:var(--fg);color:var(--bg);padding:9px 10px 9px 18px;border-radius:10px;font-weight:500;font-size:.9rem;opacity:0;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s;z-index:101;max-width:92%;display:none;align-items:center;gap:14px;box-shadow:var(--shadow-lg)}
 #undotoast.show{display:flex;opacity:1;transform:translateX(-50%) translateY(0)}
 .undobtn{background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;padding:7px 12px;font:inherit;font-weight:600;font-size:.85rem;cursor:pointer;white-space:nowrap}
+/* Hinweis, wenn auf dem Server eine neuere Fassung der App liegt */
+.updbar{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 10px 9px 18px;border-radius:10px;font-weight:500;font-size:.9rem;z-index:102;width:max-content;max-width:calc(100% - 28px);display:flex;align-items:center;gap:14px;box-shadow:var(--shadow-lg)}
+.updbar button{background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;padding:7px 12px;font:inherit;font-weight:600;font-size:.85rem;cursor:pointer;white-space:nowrap}
+.updbar button:disabled{opacity:.6;cursor:default}
+@media (max-width:860px){.updbar{bottom:calc(74px + env(safe-area-inset-bottom))}}
 
 /* test banner + visibility */
 .testbanner{display:none}
@@ -652,6 +657,11 @@ body.settings-open #wizardView,body.docs-open #wizardView{display:none}
         </ul>
       </section>
       <section class="card">
+        <h3 class="insth">🔄 App-Version &amp; Updates</h3>
+        <div id="verBody"></div>
+        <button class="btn ghostbtn" type="button" data-action="check-update" style="margin-top:12px">Nach Updates suchen</button>
+      </section>
+      <section class="card">
         <h3 class="insth">🔁 Umgebung wechseln</h3>
         <div class="envswitch" id="envswitch"></div>
         <p id="envnote">Du bist in der <b>Live-Umgebung</b> mit deinen echten Daten.</p>
@@ -740,7 +750,13 @@ function showLockOverlay(){
 async function initNative(){
   if(!IS_NATIVE)return;
   var App=capPlugin("App");
-  if(App&&App.addListener){try{App.addListener("backButton",onNativeBack);}catch(e){}}
+  if(App&&App.addListener){
+    try{App.addListener("backButton",onNativeBack);}catch(e){}
+    /* Beim Zurueckholen der App nachsehen, ob es auf dem Server etwas Neues gibt. */
+    try{App.addListener("appStateChange",function(st){
+      if(st&&st.isActive&&Date.now()-lastUpdCheck>30*60*1000)checkForUpdate(false);
+    });}catch(e){}
+  }
   var ns=$("#nativeSettings"),is=$("#installSection");
   if(is)is.hidden=true;              /* PWA-Installation ist in der App sinnlos */
   if(ns){
@@ -2340,7 +2356,7 @@ var USER_PREFS=null;
 async function fetchUserPrefs(){
   if(!currentUser){USER_PREFS=null;return;}
   try{
-    var r=await sb.from("user_prefs").select("ai_level,theme").eq("user_id",currentUser.id).maybeSingle();
+    var r=await sb.from("user_prefs").select("ai_level,theme,notif").eq("user_id",currentUser.id).maybeSingle();
     if(r.error)throw r.error;
     USER_PREFS=r.data||null;
   }catch(e){USER_PREFS=null;return;}
@@ -2353,23 +2369,32 @@ async function fetchUserPrefs(){
       try{localStorage.setItem("vt_ai_level",USER_PREFS.ai_level);}catch(_e){}
       applyAiLevelUi();
     }
+    /* Erinnerungs-Einstellungen kommen aus der Cloud – so ueberleben sie eine
+       Neuinstallation der App und gelten auf jedem Geraet des Nutzers. */
+    if(USER_PREFS.notif&&typeof USER_PREFS.notif==="object"){
+      try{localStorage.setItem(NOTIF_KEY,JSON.stringify(USER_PREFS.notif));}catch(_e){}
+      try{renderNotifSettings();}catch(_e){}
+      try{applyNotifSchedule();}catch(_e){}
+    }
   }else{
     /* Erstes Login nach Einführung: aktuelle lokale Werte in die Cloud übernehmen */
-    var lt="light",la="basic";
+    var lt="light",la="basic",ln=null;
     try{lt=localStorage.getItem("vtV2Theme")||(document.body.classList.contains("v2dark")?"dark":"light");}catch(_e){}
     try{la=localStorage.getItem("vt_ai_level")==="advanced"?"advanced":"basic";}catch(_e){}
+    try{ln=JSON.parse(localStorage.getItem(NOTIF_KEY)||"null");}catch(_e){ln=null;}
     if(lt!=="dark"&&lt!=="light")lt="light";
-    USER_PREFS={ai_level:la,theme:lt};
-    saveUserPref({ai_level:la,theme:lt});
+    USER_PREFS={ai_level:la,theme:lt,notif:ln};
+    saveUserPref({ai_level:la,theme:lt,notif:ln});
   }
 }
 function saveUserPref(patch){
   if(!currentUser)return;
-  if(USER_PREFS){if(patch.ai_level!=null)USER_PREFS.ai_level=patch.ai_level;if(patch.theme!=null)USER_PREFS.theme=patch.theme;}
+  if(USER_PREFS){if(patch.ai_level!=null)USER_PREFS.ai_level=patch.ai_level;if(patch.theme!=null)USER_PREFS.theme=patch.theme;if(patch.notif!=null)USER_PREFS.notif=patch.notif;}
   try{
     var row={user_id:currentUser.id,updated_at:new Date().toISOString()};
     if(patch.ai_level!=null)row.ai_level=patch.ai_level;
     if(patch.theme!=null)row.theme=patch.theme;
+    if(patch.notif!=null)row.notif=patch.notif;
     sb.from("user_prefs").upsert(row,{onConflict:"user_id"}).then(function(r){if(r&&r.error)toast("Einstellung konnte nicht synchronisiert werden.",true);},function(){});
   }catch(e){}
 }
@@ -2771,6 +2796,96 @@ async function restoreAbschlag(cat,a){
   }catch(e){toast("Wiederherstellen fehlgeschlagen: "+errMsg(e),true);}
 }
 
+/* ---------- Immer aktuell bleiben ----------
+   Die Android-App laedt die Web-App direkt von der echten Adresse (server.url in
+   capacitor.config.json) statt aus der APK. Dadurch ist jede Aenderung sofort auf dem
+   Handy – ohne neue APK. Der Service Worker legt eine Kopie an, damit die App auch
+   ohne Netz startet; hier wird zusaetzlich bemerkt, wenn auf dem Server etwas Neues liegt. */
+function swAllowed(){
+  if(!("serviceWorker" in navigator))return false;
+  if(location.protocol.indexOf("http")!==0)return false;
+  /* Lokale Vorschau und die alte Capacitor-Huelle brauchen keinen Service Worker. */
+  if(location.hostname==="localhost"||location.hostname==="127.0.0.1")return false;
+  /* Sehr alte WebViews koennen die Capacitor-Bruecke nicht zuverlaessig einspeisen,
+     wenn die Seite aus dem Cache kommt – dort lieber ohne Service Worker arbeiten. */
+  if(IS_NATIVE){var m=/Chrome\/(\d+)/.exec(navigator.userAgent||"");if(!m||Number(m[1])<83)return false;}
+  return true;
+}
+var APP_STAMP=null,UPD_READY=false,lastUpdCheck=0,updChecking=false;
+/* Zeitstempel der Fassung, die gerade laeuft (kommt aus dem Last-Modified-Header –
+   auch dann, wenn die Seite aus dem Offline-Speicher geladen wurde). */
+function loadedStampMs(){var t=Date.parse(document.lastModified||"");return isFinite(t)?t:0;}
+/* Was liegt gerade auf dem Server? { ms, tag } */
+async function fetchServerStamp(){
+  /* Abbruch nach 8 Sekunden – manche Netze (Hotspots, Portale) antworten nie. */
+  var ctl=(typeof AbortController!=="undefined")?new AbortController():null;
+  var t=ctl?setTimeout(function(){try{ctl.abort();}catch(e){}},8000):null;
+  var r;
+  try{r=await fetch(location.pathname.replace(/\/index\.html$/,"/"),{method:"HEAD",cache:"no-store",signal:ctl?ctl.signal:undefined});}
+  finally{if(t)clearTimeout(t);}
+  if(!r||!r.ok)return null;
+  var lm=r.headers.get("Last-Modified"),et=r.headers.get("ETag");
+  var ms=lm?Date.parse(lm):NaN;
+  if(!isFinite(ms))ms=0;
+  if(!ms&&!et)return null;
+  return {ms:ms,tag:et||lm||""};
+}
+async function checkForUpdate(manual){
+  if(updChecking)return false;
+  if(!manual&&(UPD_READY||isOffline()))return false;
+  updChecking=true;
+  var s=null;
+  try{s=await fetchServerStamp();}catch(e){s=null;}
+  updChecking=false;
+  if(!s){if(manual)toast("Keine Verbindung – Prüfung gerade nicht möglich.",true);return false;}
+  lastUpdCheck=Date.now();
+  var mine=loadedStampMs(),neuer;
+  if(s.ms&&mine){
+    /* Sauberster Weg: Datum der laufenden Fassung gegen das Datum auf dem Server. */
+    neuer=s.ms>mine+2000;
+  }else{
+    /* Notloesung ohne Datum: erste Antwort merken, spaetere Aenderung erkennen. */
+    if(!APP_STAMP){APP_STAMP=s.tag;neuer=false;}
+    else neuer=(s.tag!==APP_STAMP);
+  }
+  if(!neuer){if(manual)toast("AllTrack ist auf dem neuesten Stand ✅");return false;}
+  UPD_READY=true;showUpdateBar();return true;
+}
+function showUpdateBar(){
+  if($("#updBar"))return;
+  var d=document.createElement("div");
+  d.id="updBar";d.className="updbar";
+  d.innerHTML='<span>✨ Eine neuere Version ist da.</span><button type="button" id="updGo">Jetzt laden</button>';
+  document.body.appendChild(d);
+  var g=$("#updGo");if(g)g.addEventListener("click",applyUpdate);
+}
+async function applyUpdate(){
+  var b=$("#updGo");if(b){b.disabled=true;b.textContent="Lädt …";}
+  try{
+    if("serviceWorker" in navigator){
+      var regs=await navigator.serviceWorker.getRegistrations();
+      for(var i=0;i<regs.length;i++){try{await regs[i].update();}catch(e){}}
+    }
+  }catch(e){}
+  location.reload();
+}
+function scheduleUpdateChecks(){
+  if(location.protocol.indexOf("http")!==0)return;
+  setTimeout(function(){checkForUpdate(false);},4000);
+  setInterval(function(){checkForUpdate(false);},6*60*60*1000);
+  document.addEventListener("visibilitychange",function(){
+    if(document.visibilityState==="visible"&&Date.now()-lastUpdCheck>30*60*1000)checkForUpdate(false);
+  });
+}
+function renderVersionInfo(){
+  var el=$("#verBody");if(!el)return;
+  var ms=loadedStampMs(),stand=document.lastModified||"unbekannt";
+  if(ms){try{stand=new Date(ms).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})+" Uhr";}catch(e){}}
+  el.innerHTML='<p class="muted" style="margin:0 0 8px">Stand dieser Fassung: <b>'+stand+'</b></p>'+
+    (IS_NATIVE
+      ? '<p class="muted" style="margin:0">Die App holt sich den aktuellen Stand bei jedem Start direkt vom Server – neue Funktionen sind also sofort da, ganz ohne Installieren. Ohne Netz startet sie mit der zuletzt geladenen Fassung. Eine neue APK brauchst du nur, wenn sich am nativen Teil etwas ändert: Kamera, Benachrichtigungen, Fingerabdruck oder App-Symbol.</p>'
+      : '<p class="muted" style="margin:0">Im Browser lädst du ohnehin immer die neueste Fassung.</p>');
+}
 /* ---------- Netzwerk-Zustand ---------- */
 function isOffline(){return navigator.onLine===false;}
 function setNetState(on){
@@ -3177,7 +3292,7 @@ function notifCfg(){
     return {read:Object.assign(d.read,c.read||{}),cancel:Object.assign(d.cancel,c.cancel||{}),anom:Object.assign(d.anom,c.anom||{})};
   }catch(e){return d;}
 }
-function saveNotifCfg(c){try{localStorage.setItem(NOTIF_KEY,JSON.stringify(c));}catch(e){}applyNotifSchedule();}
+function saveNotifCfg(c){try{localStorage.setItem(NOTIF_KEY,JSON.stringify(c));}catch(e){}saveUserPref({notif:c});applyNotifSchedule();}
 function two(n){return String(n).padStart(2,"0");}
 /* Plant ALLE Erinnerungen anhand der Einstellungen neu (löscht vorher die alten). */
 async function applyNotifSchedule(){
@@ -3384,7 +3499,7 @@ function renderEnvSwitch(){
 }
 function init(){
   if(IS_TEST){document.body.classList.add("test-env");document.title="🧪 TEST · AllTrack";}
-  renderEnvSwitch();
+  renderEnvSwitch();renderVersionInfo();
   var savedTheme="";try{savedTheme=localStorage.getItem("vtV2Theme")||"";}catch(e){}
   if(!savedTheme)savedTheme=(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";
   applyV2Theme(savedTheme==="dark");
@@ -3440,6 +3555,7 @@ function init(){
     else if(a==="ns-cancel"){var c2=notifCfg();c2.cancel.on=!c2.cancel.on;saveNotifCfg(c2);renderNotifSettings();}
     else if(a==="ns-anom"){var c3=notifCfg();c3.anom.on=!c3.anom.on;saveNotifCfg(c3);renderNotifSettings();}
     else if(a==="ns-test")testNotif();
+    else if(a==="check-update")checkForUpdate(true);
   });
   $("#settingsView").addEventListener("change",function(e){
     var t=e.target;if(!t||!t.id)return;
@@ -3483,9 +3599,10 @@ function init(){
     if(pendingRecovery&&session&&session.user){enterRecovery(session);return;}
     handleSession(session);
   },0);});
-  if("serviceWorker" in navigator && location.protocol.indexOf("http")===0 && !IS_NATIVE){
+  if(swAllowed()){
     navigator.serviceWorker.register("sw.js").catch(function(){});
   }
+  scheduleUpdateChecks();
   window.addEventListener("online",function(){setNetState(true);toast("Wieder online ✅");if(currentUser){loadFromDB().then(function(){renderApp();if(document.body.classList.contains("settings-open"))renderAccount();}).catch(function(){});}});
   window.addEventListener("offline",function(){setNetState(false);});
   setNetState(!isOffline());

@@ -2,6 +2,10 @@
   "appId": "de.verbrauchstracker.app",
   "appName": "AllTrack",
   "webDir": "www",
+  "server": {
+    "url": "https://slizex.github.io/verbrauchs-tracker/",
+    "errorPath": "offline.html"
+  },
   "android": {
     "allowMixedContent": false
   }

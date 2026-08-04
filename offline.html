@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AllTrack – keine Verbindung</title>
+<style>
+  :root{--bg:#fafafa;--fg:#18181b;--muted:#71717a;--card:#fff;--line:#e4e4e7;--accent:#f97316}
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#09090b;--fg:#fafafa;--muted:#a1a1aa;--card:#18181b;--line:#27272a}
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    display:flex;align-items:center;justify-content:center;padding:24px}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:28px 24px;max-width:420px;width:100%;text-align:center;
+    box-shadow:0 10px 30px rgba(0,0,0,.06)}
+  .ico{font-size:44px;line-height:1;margin-bottom:14px}
+  h1{font-size:20px;margin:0 0 10px;font-weight:650}
+  p{margin:0 0 14px;color:var(--muted);font-size:15px;line-height:1.55}
+  button{width:100%;padding:14px 18px;border:0;border-radius:12px;background:var(--accent);
+    color:#fff;font-size:16px;font-weight:600;cursor:pointer}
+  button:disabled{opacity:.6;cursor:default}
+  .hint{font-size:13px;margin:14px 0 0}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="ico">📡</div>
+  <h1>Keine Verbindung</h1>
+  <p>AllTrack holt sich beim Start die neueste Version aus dem Netz.
+     Sobald du wieder online bist, geht es automatisch weiter.</p>
+  <button id="retry" type="button">Erneut versuchen</button>
+  <p class="hint" id="status">Warte auf eine Internet-Verbindung …</p>
+</div>
+<script>
+(function(){
+  "use strict";
+  var APP="https://slizex.github.io/verbrauchs-tracker/";
+  var btn=document.getElementById("retry"),st=document.getElementById("status"),busy=false;
+  function go(){
+    if(busy)return;busy=true;
+    btn.disabled=true;st.textContent="Verbinde …";
+    location.replace(APP);
+    /* Falls der Ladeversuch scheitert, landen wir wieder hier – Knopf wieder freigeben. */
+    setTimeout(function(){busy=false;btn.disabled=false;st.textContent="Warte auf eine Internet-Verbindung …";},4000);
+  }
+  btn.addEventListener("click",go);
+  window.addEventListener("online",go);
+  /* Alle 10 Sekunden still im Hintergrund erneut versuchen. */
+  setInterval(function(){if(navigator.onLine!==false)go();},10000);
+  if(navigator.onLine!==false)setTimeout(go,1200);
+})();
+</script>
+</body>
+</html>

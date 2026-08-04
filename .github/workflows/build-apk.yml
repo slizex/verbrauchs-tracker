@@ -1,16 +1,22 @@
 name: Android-APK bauen
 
 # Baut die native Android-App (Capacitor) und haengt die fertige .apk an ein Release.
-# Laeuft automatisch bei jeder Aenderung an der Web-App (index.html) oder am mobile/-Ordner,
-# sowie manuell ueber den "Run workflow"-Knopf. Die APK wird immer mit DEMSELBEN Schluessel
-# (mobile/android-signing.p12) signiert, damit neue Versionen ohne Deinstallation
-# ueber die alte druebergespielt werden koennen.
+#
+# WICHTIG: Die App laedt ihren Inhalt zur Laufzeit direkt von GitHub Pages
+# (server.url in mobile/capacitor.config.json). Aenderungen an index.html landen dadurch
+# SOFORT auf dem Handy – dafuer ist KEINE neue APK noetig. Deshalb loest index.html
+# hier auch keinen Build mehr aus. Ein neuer Build wird nur gebraucht, wenn sich am
+# nativen Teil etwas aendert: Plugins, Berechtigungen, App-Symbol/-Name oder die
+# Offline-Seite (offline.html), die als einzige Web-Datei wirklich in der APK steckt.
+#
+# Die APK wird immer mit DEMSELBEN Schluessel (mobile/android-signing.p12) signiert,
+# damit neue Versionen ohne Deinstallation ueber die alte druebergespielt werden koennen.
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
     paths:
-      - 'index.html'
+      - 'offline.html'
       - 'manifest.webmanifest'
       - 'icon-192.png'
       - 'icon-512.png'
@@ -129,7 +135,14 @@ jobs:
           prerelease: true
           files: alltrack.apk
           body: |
-            Automatisch gebaute Android-App – aktualisiert sich bei jeder Aenderung an der App.
+            Automatisch gebaute Android-App.
+
+            **Diese APK musst du nur selten neu installieren.** Die App holt sich ihren
+            Inhalt bei jedem Start direkt vom Server – neue Funktionen und Korrekturen
+            sind also sofort auf dem Handy, ohne dass du etwas tust. Eine neue APK ist nur
+            noetig, wenn sich am nativen Teil etwas aendert (Kamera, Benachrichtigungen,
+            Fingerabdruck, App-Symbol oder -Name).
+
             Immer mit demselben Schluessel signiert, daher ohne Deinstallation aktualisierbar.
 
             **Installation / Update auf dem Handy:**
