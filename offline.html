@@ -39,19 +39,33 @@
 (function(){
   "use strict";
   var APP="https://slizex.github.io/verbrauchs-tracker/";
+  var KEY="alltrack_offline_versuche";
   var btn=document.getElementById("retry"),st=document.getElementById("status"),busy=false;
+  /* Scheitert der Ladeversuch, landet die App wieder auf dieser Seite. Damit daraus
+     bei dauerhaft schlechtem Netz keine Endlosschleife wird, waechst der Abstand. */
+  function versuche(){var n=0;try{n=Number(sessionStorage.getItem(KEY)||"0");}catch(e){}return (isFinite(n)&&n>0)?n:0;}
+  function setVersuche(n){try{sessionStorage.setItem(KEY,String(n));}catch(e){}}
+  function wartezeit(){var d=[2,5,15,30,60];return d[Math.min(versuche(),d.length-1)];}
   function go(){
     if(busy)return;busy=true;
+    setVersuche(versuche()+1);
     btn.disabled=true;st.textContent="Verbinde …";
     location.replace(APP);
-    /* Falls der Ladeversuch scheitert, landen wir wieder hier – Knopf wieder freigeben. */
-    setTimeout(function(){busy=false;btn.disabled=false;st.textContent="Warte auf eine Internet-Verbindung …";},4000);
   }
-  btn.addEventListener("click",go);
-  window.addEventListener("online",go);
-  /* Alle 10 Sekunden still im Hintergrund erneut versuchen. */
-  setInterval(function(){if(navigator.onLine!==false)go();},10000);
-  if(navigator.onLine!==false)setTimeout(go,1200);
+  function sofort(){setVersuche(0);go();}
+  btn.addEventListener("click",sofort);
+  window.addEventListener("online",sofort);
+  if(navigator.onLine===false){
+    st.textContent="Warte auf eine Internet-Verbindung …";
+  }else{
+    var rest=wartezeit();
+    st.textContent="Neuer Versuch in "+rest+" Sekunden …";
+    setInterval(function(){
+      rest--;
+      if(rest<=0){st.textContent="Verbinde …";go();return;}
+      st.textContent="Neuer Versuch in "+rest+" Sekunde"+(rest===1?"":"n")+" …";
+    },1000);
+  }
 })();
 </script>
 </body>
