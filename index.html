@@ -430,10 +430,10 @@ h3{font-size:.94rem;margin:18px 0 8px}
 .authcard .ghostbtn{margin-top:2px}
 
 /* toast */
-#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(60px);background:var(--fg);color:var(--bg);padding:13px 18px;border-radius:10px;font-weight:500;font-size:.9rem;opacity:0;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s;z-index:100;max-width:92%;text-align:center;box-shadow:var(--shadow-lg);pointer-events:none}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(60px);background:var(--fg);color:var(--bg);padding:13px 18px;border-radius:10px;font-weight:500;font-size:.9rem;opacity:0;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s;z-index:100;width:max-content;max-width:calc(100% - 28px);text-align:center;box-shadow:var(--shadow-lg);pointer-events:none}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.err{background:var(--neg);color:#fff}
-#undotoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(60px);background:var(--fg);color:var(--bg);padding:9px 10px 9px 18px;border-radius:10px;font-weight:500;font-size:.9rem;opacity:0;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s;z-index:101;max-width:92%;display:none;align-items:center;gap:14px;box-shadow:var(--shadow-lg)}
+#undotoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(60px);background:var(--fg);color:var(--bg);padding:9px 10px 9px 18px;border-radius:10px;font-weight:500;font-size:.9rem;opacity:0;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s;z-index:101;width:max-content;max-width:calc(100% - 28px);display:none;align-items:center;gap:14px;box-shadow:var(--shadow-lg)}
 #undotoast.show{display:flex;opacity:1;transform:translateX(-50%) translateY(0)}
 .undobtn{background:var(--accent);color:var(--accent-fg);border:none;border-radius:8px;padding:7px 12px;font:inherit;font-weight:600;font-size:.85rem;cursor:pointer;white-space:nowrap}
 /* Hinweis, wenn auf dem Server eine neuere Fassung der App liegt */
