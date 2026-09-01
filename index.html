@@ -149,6 +149,7 @@ body.v2dark .notice.warn{color:#fcd34d}
 .estnote{color:var(--muted);font-size:.8rem;margin-top:4px;font-style:italic}
 .mcflag{display:inline-block;background:color-mix(in srgb,#f59e0b 18%,transparent);color:#b45309;font-size:.68rem;padding:1px 7px;border-radius:99px;font-weight:600;vertical-align:middle}
 body.v2dark .mcflag{color:#fcd34d}
+.futflag{display:inline-block;background:color-mix(in srgb,var(--neg) 15%,transparent);color:var(--neg);font-size:.68rem;padding:1px 7px;border-radius:99px;font-weight:600;vertical-align:middle;white-space:nowrap}
 
 /* tariff groups */
 .tgroup{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;background:var(--panel)}
@@ -1465,7 +1466,7 @@ function categoryShell(cat){
   '<div id="pane_e">'+onboardingHtml(cat)+
   '<section class="card">'+
     '<h2 class="sect">'+c.icon+' Neue Ablesung</h2>'+meterLine+
-    '<div class="field"><label for="ablesedatum">Ablesedatum</label><input type="date" id="ablesedatum" value="'+todayISO()+'"></div>'+
+    '<div class="field"><label for="ablesedatum">Ablesedatum</label><input type="date" id="ablesedatum" value="'+todayISO()+'" max="'+todayISO()+'"></div>'+
     '<div class="field"><label for="zaehlerstand">Zählerstand ('+u+')</label><input type="text" inputmode="decimal" id="zaehlerstand" placeholder="z. B. '+(cat==="wasser"?"204,45":"12345")+'"></div>'+
     '<input type="file" id="camFile" accept="image/*" capture="environment" hidden>'+
     '<div class="saverow">'+
@@ -1551,9 +1552,12 @@ function monthRow(r){
     return '<div class="vrow estim"><div class="vmain"><div class="vmonth">'+billLabel(iso)+' <span class="estflag">🔢 berechnet</span></div>'+sub+'<div class="estnote">Kein Zählerstand abgelesen – Wert automatisch berechnet. Mit ✏️ kannst du einen echten Stand nachtragen.</div></div><div class="vright"><div class="vdiff '+(pos?"plus":"minus")+'">'+(pos?"+":"")+eur(r.differenz)+'</div>'+fillAct+'</div></div>';
   }
   var mc=r.meterChange?' <span class="mcflag">neuer Zähler</span>':"";
+  /* Der abgelesene Zählerstand gehört zum Ablese-Ereignis und steht daher neben dem Datum – bei Gas der physische m³-Stand. */
+  var mv=r.reading.zaehlerstand,stand=(mv!=null&&isFinite(mv))?(' · '+fmtVal(cat,mv)+' '+CATS[cat].unit):"";
+  var fut=(iso>todayISO())?' <span class="futflag">⚠ Datum liegt in der Zukunft</span>':"";
   var gapNote=r.estimated?'<div class="estnote">≈ Verbrauch gleichmäßig über '+r.gapMonths+' Monate verteilt (berechnet)</div>':"";
   var act='<div class="vactions"><button class="iconbtn" data-action="edit-reading" data-id="'+r.reading.id+'" title="Bearbeiten">✏️</button><button class="iconbtn" data-action="del-reading" data-id="'+r.reading.id+'" title="Löschen">🗑️</button></div>';
-  return '<div class="vrow'+(r.estimated?' estanchor':'')+'"><div class="vmain"><div class="vmonth">'+billLabel(iso)+' <span class="vdate">(Ablesung '+deDate(iso)+')</span>'+mc+'</div>'+sub+gapNote+'</div><div class="vright"><div class="vdiff '+(pos?"plus":"minus")+'">'+(pos?"+":"")+eur(r.differenz)+'</div>'+act+'</div></div>';
+  return '<div class="vrow'+(r.estimated?' estanchor':'')+'"><div class="vmain"><div class="vmonth">'+billLabel(iso)+' <span class="vdate">(Ablesung '+deDate(iso)+stand+')</span>'+mc+fut+'</div>'+sub+gapNote+'</div><div class="vright"><div class="vdiff '+(pos?"plus":"minus")+'">'+(pos?"+":"")+eur(r.differenz)+'</div>'+act+'</div></div>';
 }
 function renderTariffCompact(g){
   var cat=activeCat;
@@ -1979,6 +1983,8 @@ async function saveReading(){
   var iso=$("#ablesedatum").value,z=parseMeterVal(cat,$("#zaehlerstand").value);
   var swEl=$("#startwert"),sw=swEl?parseMeterVal(cat,swEl.value):NaN;
   if(!iso){toast("Bitte ein Ablesedatum wählen.",true);return;}
+  /* Einen Zählerstand aus der Zukunft kann es nicht geben – gilt für neue wie für bearbeitete Ablesungen. */
+  if(iso>todayISO()){toast("Das Ablesedatum liegt in der Zukunft ("+deDate(iso)+"). Bitte heute oder einen früheren Tag wählen.",true);return;}
   if(!isFinite(z)){toast("Bitte einen gültigen Zählerstand eingeben.",true);return;}
   if(!tariffForDate(cat,iso)){toast("Bitte zuerst einen Tarif für dieses Datum hinterlegen.",true);catPane="tarif";tSec.neu=true;renderTarife();applyPane();return;}
   var mk=billKey(iso);
@@ -2707,7 +2713,8 @@ function parseReadingsCSV(text){
   for(var i=start;i<lines.length;i++){
     var ce=splitCSV(lines[i],sep);
     var iso=parseDateAny(ce[di]||""),z=parseNum(ce[zi]||"");
-    if(iso&&isFinite(z)&&String(ce[zi]).trim()!=="")rows.push({datum:iso,zaehler:z});
+    /* Zukunftsdaten werden wie ungültige Zeilen behandelt und mitgezählt. */
+    if(iso&&iso<=todayISO()&&isFinite(z)&&String(ce[zi]).trim()!=="")rows.push({datum:iso,zaehler:z});
     else skipped++;
   }
   return {rows:rows,skipped:skipped};
