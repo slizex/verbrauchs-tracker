@@ -778,6 +778,9 @@ async function initNative(){
   if(bioLockOn()&&await bioAvailable()){showLockOverlay();tryUnlock();}
 }
 var currentUser=null,enteredUserId=null;
+/* true, wenn Haushalte/Daten beim Start nicht geladen werden konnten (Server pausiert, Netz weg).
+   Dann zeigt die App nur einen Hinweis statt einer leeren Oberfläche und sichert nichts. */
+var LOAD_FAILED=false;
 var HOUSEHOLDS=[],activeHousehold=null;
 var BACKUPS=[],BACKUP_MAX=3;
 var CATS={
@@ -931,7 +934,9 @@ async function loadFromDB(){
   var st=defaults();
   var tq=sb.from("tariffs").select("*"),rq=sb.from("readings").select("*"),aq=sb.from("abschlag_changes").select("*");
   var cq=sb.from("gas_conversion").select("*");
-  if(activeHousehold){tq=tq.eq("household_id",activeHousehold);rq=rq.eq("household_id",activeHousehold);aq=aq.eq("household_id",activeHousehold);cq=cq.eq("household_id",activeHousehold);}
+  /* Ohne aktiven Haushalt würde RLS die Daten ALLER eigenen Haushalte gemischt liefern. */
+  if(!activeHousehold)throw new Error("Kein Haushalt ausgewählt.");
+  tq=tq.eq("household_id",activeHousehold);rq=rq.eq("household_id",activeHousehold);aq=aq.eq("household_id",activeHousehold);cq=cq.eq("household_id",activeHousehold);
   var res=await Promise.all([tq,rq,aq,cq.maybeSingle()]);
   var tRes=res[0],rRes=res[1],aRes=res[2],cRes=res[3];
   var err=tRes.error||rRes.error||aRes.error;if(err)throw err;
@@ -1430,13 +1435,21 @@ function anomalyHtml(){
   var btns=an.map(function(a){return '<button class="rembtn" data-action="anom-goto" data-cat="'+a.cat+'">'+CATS[a.cat].icon+' '+CATS[a.cat].label+' ansehen</button>';}).join("");
   return '<div class="rembanner warnb"><div class="remrow"><span class="remtxt">'+lines+'</span><button class="remclose" data-action="anom-dismiss" aria-label="Ausblenden">✕</button></div><div class="rembtns">'+btns+'</div></div>';
 }
-function topBanners(){return reminderHtml()+cancelReminderHtml()+anomalyHtml();}
+function loadFailedHtml(){
+  var txt=isOffline()
+    ?"📡 <b>Du bist offline.</b> Deine Daten werden geladen, sobald wieder Internet da ist."
+    :"⚠️ <b>Server gerade nicht erreichbar.</b> Deine Daten sind sicher gespeichert, werden aber im Moment nicht geladen.";
+  return '<div class="rembanner"><div class="remrow"><span class="remtxt">'+txt+'</span></div><div class="rembtns"><button class="rembtn" data-action="retry-load">🔄 Erneut versuchen</button></div></div>';
+}
+function topBanners(){return LOAD_FAILED?loadFailedHtml():(reminderHtml()+cancelReminderHtml()+anomalyHtml());}
 function renderApp(){
   editingId=null;
   document.body.setAttribute("data-cat",activeCat);
   updateNavActive();
   updatePageTitle();renderHhTop();
   var app=$("#app"),banners=topBanners();
+  /* Ohne geladene Daten keine leeren Ansichten oder Einrichtungs-Assistenten zeigen – das sähe nach Datenverlust aus. */
+  if(LOAD_FAILED){app.innerHTML=banners;return;}
   if(activeCat==="overview"){app.innerHTML=banners+renderOverview();return;}
   if(CATS[activeCat]&&CATS[activeCat].tariffFields){app.innerHTML=banners+categoryShell(activeCat);wireCategory();updateResult();renderVerlauf();renderTarife();applyPane();}
   else{app.innerHTML=banners+placeholder(activeCat);}
@@ -1893,6 +1906,7 @@ function onAppClick(e){
   else if(act==="onb-tariff"){catPane="tarif";tSec.neu=true;renderTarife();applyPane();var tf=$("#tarifForm");if(tf){tf.scrollIntoView({behavior:"smooth",block:"center"});var fa=$("#tf_anbieter");if(fa)setTimeout(function(){try{fa.focus({preventScroll:true});}catch(e){}},220);}}
   else if(act==="onb-reading"){var zi=$("#zaehlerstand");if(zi){zi.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){try{zi.focus({preventScroll:true});}catch(e){}},220);}}
   else if(act==="rem-dismiss"){reminderDismissed=true;renderApp();}
+  else if(act==="retry-load")retryLoad(btn);
   else if(act==="cancelrem-dismiss"){cancelRemDismissed=true;renderApp();}
   else if(act==="anom-dismiss"){dismissAnomalies();}
   else if(act==="anom-goto"){activeCat=btn.dataset.cat;catPane="verlauf";tSec={};expandedGroups={};renderApp();window.scrollTo({top:0,behavior:"smooth"});}
@@ -2494,7 +2508,7 @@ function periodAppSums(cat,von,bis){
 function showAbrResult(cat,a){
   var box=$("#abrResult");if(!box)return;
   box.style.display="";box.innerHTML="";
-  function dDe(iso){return iso?String(iso).slice(0,10).split("-").reverse().join("."):"?";}
+  function dDe(iso){return iso?escapeHtml(String(iso).slice(0,10).split("-").reverse().join(".")):"?";}
   var von=a.zeitraumVon||null,bis=a.zeitraumBis||null;
   var billErg=abrNum(a.ergebnisBetrag);
   if(billErg!=null)billErg=(a.ergebnisArt==="nachzahlung")?-Math.abs(billErg):Math.abs(billErg);
@@ -2588,6 +2602,9 @@ async function pruneBackups(){
   if(!r.error)BACKUPS=BACKUPS.slice(0,BACKUP_MAX);
 }
 async function createBackup(kind,period){
+  /* Nie leere Daten sichern: beim Aufräumen (max. 3) würde ein leeres Backup ein gutes verdrängen. */
+  if(LOAD_FAILED||!activeHousehold)throw new Error("Daten sind nicht geladen – Sicherung übersprungen.");
+  if(!["strom","wasser","gas"].some(function(c){return STATE[c]&&(STATE[c].readings.length||STATE[c].tariffs.length);}))throw new Error("Keine Daten zum Sichern.");
   var r=await sb.from("backups").insert({kind:kind||"manual",period:period||null,data:STATE,household_id:activeHousehold}).select("id,kind,period,created_at").single();
   if(r.error)throw r.error;
   BACKUPS.unshift(r.data);
@@ -3015,9 +3032,12 @@ function hhKey(){return "vt_active_hh_"+(currentUser?currentUser.id:"anon");}
 function loadActiveHousehold(){try{return localStorage.getItem(hhKey());}catch(e){return null;}}
 function saveActiveHousehold(){try{if(activeHousehold)localStorage.setItem(hhKey(),activeHousehold);}catch(e){}}
 function activeHouseholdName(){var h=HOUSEHOLDS.find(function(x){return x.id===activeHousehold;});return h?h.name:"";}
-async function fetchHouseholds(){var r=await sbPub.from("households").select("id,name,created_at,category_config").order("created_at",{ascending:true});HOUSEHOLDS=(r&&!r.error&&r.data)?r.data:[];}
+/* strict: Ladefehler werfen statt eine leere Liste vorzutäuschen. Ohne strict bleibt bei einem Fehler die bisherige Liste stehen. */
+async function fetchHouseholds(strict){var r=await sbPub.from("households").select("id,name,created_at,category_config").order("created_at",{ascending:true});if(!r||r.error||!r.data){if(strict)throw (r&&r.error)||new Error("Haushalte konnten nicht geladen werden.");return;}HOUSEHOLDS=r.data;}
 async function loadHouseholds(){
-  await fetchHouseholds();
+  /* Nur wenn die Liste WIRKLICH geladen wurde und leer ist, wird unten ein Haushalt angelegt –
+     ein Ladefehler darf nie zu einem neuen, leeren Haushalt führen. */
+  await fetchHouseholds(true);
   var saved=loadActiveHousehold();
   if(saved&&HOUSEHOLDS.some(function(h){return h.id===saved;}))activeHousehold=saved;
   else activeHousehold=HOUSEHOLDS.length?HOUSEHOLDS[0].id:null;
@@ -3399,9 +3419,8 @@ async function leaveHouseholdUI(){
     var r=await sbPub.rpc("leave_household",{p_household_id:activeHousehold});
     if(r.error)throw r.error;
     activeHousehold=null;
-    await loadHouseholds();
+    try{await loadHouseholds();await loadFromDB();LOAD_FAILED=false;}catch(e){LOAD_FAILED=true;}
     renderTabs();
-    try{await loadFromDB();}catch(e){}
     renderApp();
     try{await loadBackups();renderBackups();}catch(e){}
     renderAccount();
@@ -3414,8 +3433,10 @@ async function switchHousehold(hid){
   activeHousehold=hid;saveActiveHousehold();
   try{await fetchMembers();}catch(e){}
   renderAccount();
-  try{await loadFromDB();}catch(e){toast("Daten konnten nicht geladen werden: "+errMsg(e),true);}
+  /* Scheitert das Laden, bleiben sonst die Daten des ALTEN Haushalts unter dem neuen Namen stehen. */
+  try{await loadFromDB();LOAD_FAILED=false;}catch(e){LOAD_FAILED=true;}
   renderTabs();renderApp();
+  if(LOAD_FAILED)return;
   try{await loadBackups();renderBackups();}catch(e){}
   toast("Haushalt gewechselt: "+activeHouseholdName()+" ✅");
 }
@@ -3435,7 +3456,7 @@ async function createHouseholdUI(){
     if(r.error)throw r.error;
     var up=await sbPub.from("households").update({category_config:cfg}).eq("id",r.data);
     if(up.error)throw up.error;
-    await loadHouseholds();
+    try{await loadHouseholds();}catch(e){}
     await switchHousehold(r.data);
     renderAccount();
     toast('Haushalt „'+name+'" angelegt ✅');
@@ -3455,7 +3476,7 @@ async function saveRenameHousehold(){
     var r=await sbPub.from("households").update({name:name}).eq("id",activeHousehold);
     if(r.error)throw r.error;
     hhRenaming=false;
-    await loadHouseholds();renderAccount();toast("Haushalt umbenannt ✅");
+    try{await loadHouseholds();}catch(e){}renderAccount();toast("Haushalt umbenannt ✅");
   }catch(e){toast("Umbenennen fehlgeschlagen: "+errMsg(e),true);}
 }
 async function inviteUI(){
@@ -3475,7 +3496,7 @@ async function joinUI(){
   try{
     var r=await sbPub.rpc("redeem_invite",{p_code:code});
     if(r.error)throw r.error;
-    await loadHouseholds();
+    try{await loadHouseholds();}catch(e){}
     await switchHousehold(r.data);
     renderAccount();
     toast("Haushalt beigetreten ✅ – ihr teilt euch jetzt die Daten.");
@@ -3483,13 +3504,26 @@ async function joinUI(){
 }
 async function enterApp(session){
   currentUser=session.user;showAuth(false);
-  try{await loadHouseholds();}catch(e){}
-  try{await loadFromDB();}catch(e){toast("Daten konnten nicht geladen werden: "+errMsg(e),true);}
+  try{await loadHouseholds();await loadFromDB();LOAD_FAILED=false;}catch(e){LOAD_FAILED=true;}
   renderTabs();renderApp();renderAccount();navInit();
+  if(!LOAD_FAILED)afterDataLoaded();
+}
+/* Alles, was geladene Daten voraussetzt (Backup, Erinnerungen, Warteschlange). */
+async function afterDataLoaded(){
   try{flushQueue();}catch(e){}
   try{await loadBackups();renderBackups();await maybeAutoBackup();}catch(e){}
   try{await fetchMembers();}catch(e){}
   try{applyNotifSchedule();}catch(e){}
+}
+var retrying=false;
+async function retryLoad(btn){
+  if(retrying||!currentUser)return;retrying=true;
+  if(btn){btn.disabled=true;btn.textContent="Lädt …";}
+  try{await loadHouseholds();await loadFromDB();LOAD_FAILED=false;}catch(e){LOAD_FAILED=true;}
+  retrying=false;
+  renderTabs();renderApp();renderAccount();
+  if(LOAD_FAILED){if(btn)toast("Server weiterhin nicht erreichbar – bitte später noch einmal.",true);return;}
+  toast("Daten geladen ✅");afterDataLoaded();
 }
 function handleSession(session){
   if(session&&session.user){
@@ -3610,8 +3644,9 @@ function init(){
     navigator.serviceWorker.register("sw.js").catch(function(){});
   }
   scheduleUpdateChecks();
-  window.addEventListener("online",function(){setNetState(true);toast("Wieder online ✅");if(currentUser){loadFromDB().then(function(){renderApp();if(document.body.classList.contains("settings-open"))renderAccount();}).catch(function(){});}});
+  window.addEventListener("online",function(){setNetState(true);toast("Wieder online ✅");if(currentUser&&LOAD_FAILED){retryLoad(null);}else if(currentUser){loadFromDB().then(function(){renderApp();if(document.body.classList.contains("settings-open"))renderAccount();}).catch(function(){});}});
   window.addEventListener("offline",function(){setNetState(false);});
+  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&LOAD_FAILED&&currentUser)retryLoad(null);});
   setNetState(!isOffline());
   initNative();
   /* PWA-Installation: Knopf anzeigen, wenn das Geraet die Installation anbietet */
