@@ -206,6 +206,9 @@ a{color:inherit;text-decoration:none}
 #toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 18px + env(safe-area-inset-bottom));transform:translate(-50%,20px);z-index:90;width:max-content;max-width:calc(100% - 28px);background:var(--ink);color:var(--ink-fg);padding:12px 16px;border-radius:16px;font-weight:800;box-shadow:var(--sh-3);opacity:0;pointer-events:none;transition:opacity .2s,transform .25s var(--ease);display:flex;align-items:center;gap:12px}
 #toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 #toast.err{background:var(--neg);color:#fff}
+/* bei offenem Fenster oben, damit keine Knoepfe verdeckt werden */
+#toast.top{bottom:auto;top:calc(14px + env(safe-area-inset-top));transform:translate(-50%,-20px)}
+#toast.top.on{transform:translate(-50%,0)}
 #toast button{font-weight:900;text-decoration:underline;text-underline-offset:3px}
 @media (min-width:900px){#toast{bottom:28px}}
 
@@ -308,6 +311,40 @@ a{color:inherit;text-decoration:none}
 .chk{display:flex;align-items:center;gap:10px;font-weight:800;margin:4px 4px 12px}
 .chk input{width:20px;height:20px}
 .ferr{margin-top:6px;padding:12px 14px;border-radius:14px;background:var(--neg-bg);color:var(--neg);font-weight:800}
+
+/* ================= Vertraege ================= */
+@media (min-width:900px){.vgrid2{grid-template-columns:1fr 1fr;align-items:start}}
+.vcard{padding:18px}
+.vcard.focus{border-color:var(--line-2);box-shadow:var(--sh-2)}
+.vch{display:flex;align-items:center;gap:12px}
+.vch .nm{font-weight:900;font-size:1.1rem}.vch .mt{color:var(--muted);font-weight:700;font-size:.86rem}
+.vch .ibtn{margin-left:auto}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.kv>div{background:var(--surface-2);border-radius:14px;padding:10px 12px;display:grid;gap:2px;min-width:0}
+.kv span{color:var(--muted);font-weight:700;font-size:.8rem}.kv b{font-weight:900}
+.vlines{display:grid;gap:6px;margin-top:12px}
+.vline{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;font-weight:800;font-size:.88rem;text-align:left;width:100%}
+.vline.info{background:var(--info-bg);color:var(--info)}.vline.good{background:var(--pos-bg);color:var(--pos)}.vline.warn{background:var(--warn-bg);color:var(--warn)}
+.vline span{flex:1;color:var(--text)}
+.vline b{margin-left:auto;text-decoration:underline;text-underline-offset:3px}
+.drow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.dchip{display:flex;align-items:center;gap:8px;max-width:100%;padding:8px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);text-align:left;color:var(--muted)}
+.dchip span{display:grid;min-width:0}.dchip b{font-size:.84rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}.dchip small{font-weight:700;font-size:.74rem}
+.dchip.more{font-weight:800}
+.vact{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.vpast{display:flex;align-items:center;gap:6px;margin-top:14px;font-weight:800;color:var(--muted)}
+.vplist{display:grid;gap:6px;margin-top:8px}
+.vprow{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:14px;background:var(--surface-2)}
+.vprow span{display:grid;min-width:0}.vprow small{color:var(--muted);font-weight:700;font-size:.8rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two .fld{min-width:0}
+details.more{margin:4px 0 8px}
+details.more summary{cursor:pointer;font-weight:800;color:var(--muted);padding:8px 2px}
+.drow2{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.dopen{display:flex;align-items:center;gap:10px;flex:1;text-align:left;padding:6px 2px;min-width:0}
+.dopen span{display:grid;min-width:0}.dopen b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dopen small{color:var(--muted);font-weight:700;font-size:.8rem}
+.ytab.abr th{text-align:left}
+select.inp{padding-right:10px}
 
 /* Baustellen-Hinweis fuer noch nicht fertige Bereiche */
 .wip{text-align:center;padding:40px 20px}
@@ -758,8 +795,9 @@ function periodAppSums(cat,von,bis){
   rows.forEach(function(r){
     if(r.baseline)return;
     var dt=r.reading&&r.reading.datum;if(!dt)return;
-    if(von&&dt<=von)return;
-    if(bis&&dt>bis)return;
+    /* nach Abrechnungsmonat abgrenzen (Ablesung am 1. zaehlt zum Vormonat) – sonst fehlt der letzte Monat */
+    if(von&&billISO(dt)<von)return;
+    if(bis&&billISO(dt)>bis)return;
     if(isFinite(r.verbrauch))v+=r.verbrauch;
     if(isFinite(r.gesamtkosten))k+=r.gesamtkosten;
     if(isFinite(r.abschlag))ab+=r.abschlag;
@@ -1321,7 +1359,7 @@ function toast(msg,err,undo){
   var t=$("#toast");t.innerHTML="";
   var s=document.createElement("span");s.textContent=msg;t.appendChild(s);
   if(undo){var b=document.createElement("button");b.textContent="Rückgängig";b.onclick=function(){t.className="";undo();};t.appendChild(b);}
-  t.className="on"+(err?" err":"");clearTimeout(toastT);toastT=setTimeout(function(){t.className="";},undo?6000:3200);
+  t.className="on"+(err?" err":"")+(sheetEl?" top":"");clearTimeout(toastT);toastT=setTimeout(function(){t.className="";},undo?6000:3200);
 }
 var sheetEl=null,scrimEl=null;
 function openSheet(html){
@@ -1332,7 +1370,8 @@ function openSheet(html){
   /* Klicks im Fenster nur hier verarbeiten – sonst liefe jede Aktion ein zweites Mal ueber document. */
   sheetEl.addEventListener("click",function(e){onAction(e);e.stopPropagation();});
   document.body.appendChild(scrimEl);document.body.appendChild(sheetEl);
-  requestAnimationFrame(function(){scrimEl.classList.add("on");sheetEl.classList.add("on");});
+  /* an genau dieses Fenster binden – es kann vor dem naechsten Bild schon wieder ersetzt sein */
+  var s0=sheetEl,c0=scrimEl;requestAnimationFrame(function(){c0.classList.add("on");s0.classList.add("on");});
 }
 function closeSheet(now){
   var s=sheetEl,c=scrimEl;sheetEl=null;scrimEl=null;if(!s)return;
@@ -1351,7 +1390,7 @@ function route(){
   return {name:name,params:params};
 }
 function go(hash){if(location.hash===hash)render();else location.hash=hash;}
-window.addEventListener("hashchange",function(){closeSheet(true);if(FLOW&&FLOW.done&&route().name!=="ablesen")FLOW=null;render();window.scrollTo(0,0);if(route().name==="ablesen")focusFlow();});
+window.addEventListener("hashchange",function(){closeSheet(true);if(FLOW&&FLOW.done&&route().name!=="ablesen")FLOW=null;render();window.scrollTo(0,0);var rr=route();if(rr.name==="ablesen")focusFlow();if(rr.name==="vertraege"&&rr.params.cat){var vc=document.getElementById("vt_"+rr.params.cat);if(vc)vc.scrollIntoView({block:"start"});}});
 
 /* ---- Rahmen: Seitenleiste (Desktop) + untere Leiste (Handy) ---- */
 var NAV=[["start","home","Start"],["verlauf","chart","Verlauf"],["ablesen","gauge","Ablesen"],["vertraege","doc","Verträge"],["mehr","more","Mehr"]];
@@ -1836,6 +1875,387 @@ async function restoreReading(cat,r){
   }catch(e){toast("Wiederherstellen fehlgeschlagen: "+errMsg(e),true);}
 }
 
+
+/* ---- Verträge & Dokumente ---- */
+/* Status eines Dokuments (unverändert aus dem klassischen Design) */
+function docStatus(d){
+  if(d.kind==="beleg")return {t:"📄 Beleg",col:"#64748b"};
+  if(d.kind==="abrechnung")return {t:"📋 Abrechnung",col:"#4f46e5"};
+  if(!d.tariff_id)return {t:"⚠️ kein Tarif gespeichert",col:"#b45309"};
+  var t=(STATE[d.category]&&STATE[d.category].tariffs)?STATE[d.category].tariffs.find(function(x){return x.id===d.tariff_id;}):null;
+  if(!t)return {t:"⏳ Tarif gelöscht",col:"#64748b"};
+  var cur=tariffForDate(d.category,todayISO());
+  if(cur&&cur.id===d.tariff_id)return {t:"✅ Gültig",col:"#15803d"};
+  return {t:"⏳ Ersetzt",col:"#b45309"};
+}
+var LZ_LABEL={"flex":"Monatlich kündbar","12":"12 Monate (1 Jahr)","24":"24 Monate (2 Jahre)"};
+var VT={open:{},form:null,pick:null,docsHH:null,menuCat:null,abr:null,abDel:null};
+function ctFmt(v){return new Intl.NumberFormat("de-DE",{maximumFractionDigits:3}).format(v*100);}
+function num4(v){return new Intl.NumberFormat("de-DE",{maximumFractionDigits:4}).format(v);}
+function priceLabel(cat){return cat==="wasser"?"Wasser + Kanal":"Arbeitspreis";}
+function priceText(cat,t){return cat==="wasser"?num4(t.wasserKanal||0)+" €/m³":ctFmt(t.arbeitspreis||0)+" ct/kWh";}
+function docsFor(cat){return (documentsCache||[]).filter(function(d){return d.category===cat;});}
+async function ensureDocs(force){
+  if(!force&&VT.docsHH===activeHousehold)return;
+  VT.docsHH=activeHousehold;
+  try{await loadDocs();}catch(e){}
+  if(route().name==="vertraege")render();
+}
+
+/* Tarif speichern (neu oder bearbeiten). Neue Tarife lösen den vorherigen über das Gültig-ab-Datum ab. */
+async function saveTariffData(cat,obj,editId){
+  if(editId){
+    var patch={anbieter:obj.anbieter,grundpreis_jahr:obj.grundpreisJahr,abschlag:obj.abschlag,gueltig_ab:obj.gueltigAb,
+      laufzeit:obj.laufzeit||null,kuendigungsfrist:obj.kuendigungsfrist||null,vertragsstart:obj.vertragsstart||null,kundennummer:obj.kundennummer||null};
+    if(cat==="wasser")patch.wasser_kanal=obj.wasserKanal;else patch.arbeitspreis=obj.arbeitspreis;
+    var ru=await sb.from("tariffs").update(patch).eq("id",editId).select().single();
+    if(ru.error)throw ru.error;
+    var ix=STATE[cat].tariffs.findIndex(function(t){return t.id===editId;});STATE[cat].tariffs[ix]=rowToTariff(ru.data);
+  }else{
+    obj.erstelltAm=new Date().toISOString();
+    var ri=await sb.from("tariffs").insert(tariffToCols(cat,obj)).select().single();
+    if(ri.error)throw ri.error;
+    STATE[cat].tariffs.push(rowToTariff(ri.data));
+    if(VT.form&&VT.form.docId){sb.from("documents").update({tariff_id:ri.data.id}).eq("id",VT.form.docId).then(function(){ensureDocs(true);},function(){});}
+  }
+  _histMemo=null;_tgMemo=null;
+}
+async function deleteTariff(cat,id){
+  var t=STATE[cat].tariffs.find(function(x){return x.id===id;});if(!t)return;
+  try{
+    var d=await sb.from("tariffs").delete().eq("id",id);if(d.error)throw d.error;
+    STATE[cat].tariffs=STATE[cat].tariffs.filter(function(x){return x.id!==id;});_histMemo=null;_tgMemo=null;
+    closeSheet();render();
+    toast('Tarif „'+(t.anbieter||"")+'“ gelöscht',false,function(){restoreTariff(cat,t);});
+  }catch(e){toast("Löschen fehlgeschlagen: "+errMsg(e),true);}
+}
+async function restoreTariff(cat,t){
+  try{var r=await sb.from("tariffs").insert(tariffToCols(cat,t)).select().single();if(r.error)throw r.error;
+    STATE[cat].tariffs.push(rowToTariff(r.data));_histMemo=null;_tgMemo=null;render();toast("Wiederhergestellt");}
+  catch(e){toast("Wiederherstellen fehlgeschlagen: "+errMsg(e),true);}
+}
+async function saveAbschlagData(cat,betrag,iso){
+  if(!isFinite(betrag)||betrag<0)throw new Error("Bitte einen gültigen Betrag eingeben.");
+  if(!iso)throw new Error("Bitte ein Datum wählen.");
+  if(!tariffForDate(cat,iso))throw new Error("Für dieses Datum gibt es noch keinen Tarif.");
+  var r=await sb.from("abschlag_changes").insert(abschlagToCols(cat,{betrag:betrag,gueltigAb:iso})).select().single();
+  if(r.error)throw r.error;
+  STATE[cat].abschlagChanges.push(rowToAbschlag(r.data));_histMemo=null;_tgMemo=null;
+}
+async function deleteAbschlag(cat,id){
+  var a=(STATE[cat].abschlagChanges||[]).find(function(x){return x.id===id;});if(!a)return;
+  try{
+    var d=await sb.from("abschlag_changes").delete().eq("id",id);if(d.error)throw d.error;
+    STATE[cat].abschlagChanges=STATE[cat].abschlagChanges.filter(function(x){return x.id!==id;});_histMemo=null;_tgMemo=null;
+    VT.abDel=null;abschlagSheet(cat);render();
+    toast("Abschlag-Änderung gelöscht",false,function(){restoreAbschlag(cat,a);});
+  }catch(e){toast("Löschen fehlgeschlagen: "+errMsg(e),true);}
+}
+async function restoreAbschlag(cat,a){
+  try{var r=await sb.from("abschlag_changes").insert(abschlagToCols(cat,a)).select().single();if(r.error)throw r.error;
+    STATE[cat].abschlagChanges.push(rowToAbschlag(r.data));_histMemo=null;_tgMemo=null;render();toast("Wiederhergestellt");}
+  catch(e){toast("Wiederherstellen fehlgeschlagen: "+errMsg(e),true);}
+}
+async function saveConversion(wf,zz,bw){
+  if(!isFinite(wf)||!isFinite(zz)||!isFinite(bw)||wf<=0||zz<=0||bw<=0)throw new Error("Bitte alle drei Werte gültig eingeben.");
+  var r=await sb.from("gas_conversion").upsert({household_id:activeHousehold,user_id:currentUser.id,wandelfaktor:wf,zustandszahl:zz,brennwert:bw,updated_at:new Date().toISOString()},{onConflict:"household_id"});
+  if(r.error)throw r.error;
+  STATE.gas.conversion={wandelfaktor:wf,zustandszahl:zz,brennwert:bw};_histMemo=null;_tgMemo=null;
+}
+/* Dokumente */
+async function docOpen(id){
+  var d=(documentsCache||[]).find(function(x){return String(x.id)===String(id);});if(!d)return;
+  var w=window.open("","_blank");
+  try{var r=await sb.storage.from("documents").createSignedUrl(d.storage_path,120);if(r.error)throw r.error;
+    if(w)w.location=r.data.signedUrl;else location.href=r.data.signedUrl;}
+  catch(e){if(w)w.close();toast("Konnte Dokument nicht öffnen: "+errMsg(e),true);}
+}
+async function docDelete(id){
+  var d=(documentsCache||[]).find(function(x){return String(x.id)===String(id);});if(!d)return;
+  try{
+    await sb.storage.from("documents").remove([d.storage_path]);
+    var del=await sb.from("documents").delete().eq("id",d.id);if(del.error)throw del.error;
+    documentsCache=documentsCache.filter(function(x){return x.id!==d.id;});VT.docDel=null;
+    docsSheet(d.category);render();toast("Dokument gelöscht");
+  }catch(e){toast("Löschen fehlgeschlagen: "+errMsg(e),true);}
+}
+async function uploadBeleg(cat,file){
+  if(file.size>20*1024*1024){toast("Die Datei ist zu groß (max. 20 MB).",true);return;}
+  toast("Wird hochgeladen …");
+  try{var path=await uploadDocFile(cat,file);await addDocRecord(cat,file,path,"beleg",null,null);await ensureDocs(true);toast("Dokument gespeichert");}
+  catch(e){toast("Upload fehlgeschlagen: "+errMsg(e),true);}
+}
+/* Datei für die KI vorbereiten: Fotos verkleinern, PDFs unverändert (max. ~6 MB). */
+async function aiPayload(file){
+  if(/^image\//.test(file.type||""))return await photoB64(file);
+  if(file.size>6.5*1024*1024)throw new Error("Das PDF ist zu groß für die KI (max. ca. 6 MB).");
+  return {b64:await fileToBase64(file),mime:file.type||"application/pdf"};
+}
+async function aiExtract(cat,file,mode){
+  var docId=null;
+  try{var path=await uploadDocFile(cat,file);var rec=await addDocRecord(cat,file,path,mode==="abrechnung"?"abrechnung":"tarif",null,null);docId=rec.id;}catch(e){}
+  var p=await aiPayload(file);
+  var body={fileBase64:p.b64,mimeType:p.mime,category:cat,level:aiLevel()};if(mode==="abrechnung")body.mode="abrechnung";
+  var resp=await sb.functions.invoke("tarif-extract",{body:body});
+  if(resp.error)throw resp.error;
+  var data=resp.data||{};if(data.error)throw new Error(data.error);
+  var out=mode==="abrechnung"?(data.abrechnung||{}):(data.tarif||{});
+  if(docId){sb.from("documents").update({extracted:out}).eq("id",docId).then(function(){},function(){});}
+  ensureDocs(true);
+  return {data:out,docId:docId};
+}
+
+/* ---- Bildschirm ---- */
+function kuendigungLine(cat,t){
+  var ki=kuendigungInfo(t);if(!ki)return "";
+  var cls="info",icon="calendar",txt;
+  if(ki.kind==="fixed"){
+    if(ki.ended){cls="good";icon="check";txt="Mindestlaufzeit vorbei – monatlich kündbar";}
+    else if(ki.days<0){cls="warn";icon="clock";txt="Frist verpasst – verlängert sich zum "+deDate(addDays(ki.end,1));}
+    else if(ki.days<=60){cls="warn";icon="clock";txt="Kündbar bis "+deDate(ki.deadline)+" – noch "+ki.days+" Tag"+(ki.days===1?"":"e");}
+    else txt="Kündbar bis "+deDate(ki.deadline)+" · Vertragsende "+deDate(ki.end);
+  }else if(ki.kind==="fixed-nostart"){cls="warn";icon="calendar";txt=ki.months+" Monate Laufzeit – Vertragsbeginn fehlt";
+    return '<button class="vline '+cls+'" data-a="vt-edit" data-cat="'+cat+'" data-id="'+esc(t.id)+'">'+ic(icon,16)+'<span>'+txt+'</span><b>Ergänzen</b></button>';}
+  else if(ki.kind==="flex"){cls="good";icon="check";txt="Monatlich kündbar"+(ki.frist&&ki.frist!=="keine"?" · Frist "+kfLabel(ki.frist):"");}
+  else txt="Kündigungsfrist "+kfLabel(ki.frist);
+  return '<div class="vline '+cls+'">'+ic(icon,16)+'<span>'+esc(txt)+'</span></div>';
+}
+function docChip(d){
+  var s=docStatus(d),pdf=d.mime_type==="application/pdf",st=s.t.replace(/^[^\wÄÖÜäöü]+\s*/,"");
+  return '<button class="dchip" data-a="doc-open" data-id="'+esc(d.id)+'">'+ic("doc",16)+'<span><b>'+esc(d.filename||"Dokument")+'</b><small>'+esc(st)+'</small></span></button>';
+}
+function screenVertraege(p){
+  if(LOADING)return '<h1 class="pt">Verträge</h1><div class="sk" style="height:260px"></div>';
+  if(LOAD_FAILED)return '<h1 class="pt">Verträge</h1>'+loadFailedNote();
+  ensureDocs(false);
+  var cats=householdCats(),focus=p.cat;
+  return '<h1 class="pt">Verträge</h1><input type="file" id="vtFile" accept="application/pdf,image/*" hidden>'+
+    '<div class="grid vgrid2">'+cats.map(function(cat){return contractCard(cat,cat===focus);}).join("")+'</div>';
+}
+function contractCard(cat,focus){
+  var c=CATS[cat],today=todayISO(),t=tariffForDate(cat,today),past=tariffsAsc(cat).filter(function(x){return !t||x.id!==t.id;}).reverse();
+  var head='<div class="vch">'+catBadge(cat)+'<div><div class="nm">'+c.label+'</div><div class="mt">'+(t?esc(t.anbieter||"Tarif")+" · seit "+deDate(t.gueltigAb):"Noch kein Tarif")+'</div></div>'+
+    (t?'<button class="ibtn" data-a="vt-menu" data-cat="'+cat+'" aria-label="Weitere Aktionen">'+ic("more",22)+'</button>':"")+'</div>';
+  if(!t)return '<section class="card vcard'+(focus?" focus":"")+'" id="vt_'+cat+'">'+head+
+    '<p class="mut-t" style="margin:12px 0 14px;font-weight:700">Mit dem Tarif berechnet AllTrack Kosten und Abschlag.</p>'+
+    '<div class="vact"><button class="btn sm" data-a="vt-ai" data-cat="'+cat+'">'+ic("sparkles",16)+' Aus Dokument (KI)</button><button class="btn sm soft" data-a="vt-new" data-cat="'+cat+'">Selbst eingeben</button></div>'+
+    (past.length?pastList(cat,past):"")+'</section>';
+  var ab=abschlagForDate(cat,today),g=currentGroup(cat),sal=g?g.saldo:0;
+  var grid='<div class="kv">'+
+    '<div><span>'+priceLabel(cat)+'</span><b class="num">'+priceText(cat,t)+'</b></div>'+
+    '<div><span>Grundpreis</span><b class="num">'+eur(t.grundpreisJahr)+'/Jahr</b></div>'+
+    '<div><span>Abschlag</span><b class="num">'+(ab!=null?eur(ab):"–")+'/Monat</b></div>'+
+    '<div><span>Saldo seit Beginn</span><b class="num '+(sal>=0?"pos-t":"neg-t")+'">'+signed(sal)+'</b></div></div>';
+  var lines="";
+  if(smartOn("geld")){
+    var need=monthlyNeed(cat);
+    if(need!=null&&ab>0){var diff=ab-need,lim=Math.max(5,ab*0.08);
+      if(diff>lim)lines+='<div class="vline good">'+ic("wallet",16)+'<span>Ø Bedarf '+eur(need)+' – '+eur(Math.ceil(need))+' Abschlag würden reichen</span></div>';
+      else if(-diff>lim)lines+='<div class="vline warn">'+ic("alert",16)+'<span>Ø Bedarf '+eur(need)+' – Abschlag zu niedrig, Nachzahlung droht</span></div>';}
+  }
+  lines+=kuendigungLine(cat,t);
+  if(smartOn("vertraege")){
+    var ts=tariffsAsc(cat),i=ts.findIndex(function(x){return x.id===t.id;});
+    if(i>0){var a=yearCostWith(ts[i-1],cat),b=yearCostWith(t,cat);if(a!=null&&b!=null&&Math.abs(b-a)>=10)lines+='<div class="vline '+(b>a?"warn":"good")+'">'+ic(b>a?"trendUp":"trendDown",16)+'<span>Gegenüber '+esc(ts[i-1].anbieter||"Vortarif")+': '+(b>a?"+":"−")+eur(Math.abs(b-a))+' pro Jahr</span></div>';}
+  }
+  var docs=docsFor(cat);
+  var docRow=docs.length?'<div class="drow">'+docs.slice(0,3).map(docChip).join("")+(docs.length>3?'<button class="dchip more" data-a="vt-docs" data-cat="'+cat+'">Alle '+docs.length+'</button>':"")+'</div>':"";
+  return '<section class="card vcard'+(focus?" focus":"")+'" id="vt_'+cat+'">'+head+grid+(lines?'<div class="vlines">'+lines+'</div>':"")+docRow+
+    '<div class="vact"><button class="btn sm soft" data-a="vt-new-choice" data-cat="'+cat+'">Neuer Tarif</button><button class="btn sm soft" data-a="vt-ab" data-cat="'+cat+'">Abschlag</button><button class="btn sm soft" data-a="vt-docs" data-cat="'+cat+'">Dokumente'+(docs.length?" ("+docs.length+")":"")+'</button></div>'+
+    (past.length?pastList(cat,past):"")+'</section>';
+}
+function pastList(cat,past){
+  var open=!!VT.open[cat];
+  return '<button class="vpast" data-a="vt-past" data-cat="'+cat+'">'+ic(open?"down":"right",16)+past.length+' frühere'+(past.length===1?"r Tarif":" Tarife")+'</button>'+
+    (open?'<div class="vplist">'+past.map(function(t){var si=tariffSaldoInfo(cat,t.id),bis=validUntil(cat,t);
+      return '<button class="vprow" data-a="vt-tariff" data-cat="'+cat+'" data-id="'+esc(t.id)+'"><span><b>'+esc(t.anbieter||"Tarif")+'</b><small>'+deDate(t.gueltigAb)+(bis?" – "+deDate(bis):"")+' · '+priceText(cat,t)+'</small></span>'+
+        (si.months?'<b class="num '+(si.saldo>=0?"pos-t":"neg-t")+'">'+signed(si.saldo)+'</b>':"")+'</button>';}).join("")+'</div>':"");
+}
+
+/* ---- Fenster: Tarif-Formular (neu/bearbeiten, KI-vorausgefüllt) ---- */
+function tariffFormFrom(cat,t){
+  var v={anbieter:"",grund:"",preis:"",abschlag:"",gueltig:todayISO(),laufzeit:"",frist:"",start:"",kdnr:""};
+  if(t){v.anbieter=t.anbieter||"";v.grund=String(t.grundpreisJahr).replace(".",",");
+    v.preis=cat==="wasser"?String(t.wasserKanal||"").replace(".",","):ctFmt(t.arbeitspreis||0).replace(/\./g,"");
+    v.abschlag=String(t.abschlag).replace(".",",");v.gueltig=t.gueltigAb;v.laufzeit=t.laufzeit||"";v.frist=t.kuendigungsfrist||"";v.start=t.vertragsstart||"";v.kdnr=t.kundennummer||"";}
+  return v;
+}
+function openTariffForm(cat,editId){
+  var t=editId?STATE[cat].tariffs.find(function(x){return x.id===editId;}):null;
+  VT.form={cat:cat,editId:editId||null,v:tariffFormFrom(cat,t),err:null,busy:false,ai:null,docId:null};
+  drawTariffForm();
+}
+function readTariffForm(){
+  var f=VT.form;if(!f)return;
+  ["anbieter","grund","preis","abschlag","gueltig","laufzeit","frist","start","kdnr"].forEach(function(k){var el=document.getElementById("tf_"+k);if(el)f.v[k]=el.value;});
+}
+function drawTariffForm(){
+  var f=VT.form,cat=f.cat,c=CATS[cat],v=f.v,wasser=cat==="wasser";
+  if(f.busy){openSheet('<h3>Dokument wird gelesen …</h3><div style="display:grid;place-items:center;padding:28px"><span class="spin" style="width:40px;height:40px;border-width:4px"></span></div><p class="mut-t" style="text-align:center;font-weight:700">Die KI liest Anbieter, Preise und Laufzeit aus.</p>');return;}
+  function sel(id,cur,opts){return '<select class="inp" id="tf_'+id+'">'+opts.map(function(o){return '<option value="'+o[0]+'"'+(cur===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select>';}
+  var aiNote=f.ai?'<div class="note" style="background:var(--info-bg);margin-bottom:12px"><span class="ni" style="color:var(--info)">'+ic("sparkles")+'</span><div><b>Von der KI vorausgefüllt – bitte prüfen.</b>'+esc(f.ai.hint||"")+(f.ai.warn?'<div class="neg-t" style="margin-top:4px">'+esc(f.ai.warn)+'</div>':"")+'</div></div>':"";
+  openSheet('<h3>'+(f.editId?"Tarif bearbeiten":"Neuer "+c.label+"-Tarif")+'</h3>'+
+    (!f.editId&&!f.ai?'<button class="btn soft full" data-a="vt-ai-in-form" style="margin-bottom:14px">'+ic("sparkles",18)+' Aus Dokument lesen (KI)</button>':"")+aiNote+
+    '<form id="tariffForm" novalidate>'+
+    '<label class="fld"><span>Anbieter</span><input class="inp" id="tf_anbieter" value="'+esc(v.anbieter)+'" autocomplete="off"></label>'+
+    '<div class="two"><label class="fld"><span>'+(wasser?"Wasser + Kanal (€/m³)":"Arbeitspreis (ct/kWh)")+'</span><input class="inp" id="tf_preis" value="'+esc(v.preis)+'" inputmode="decimal"></label>'+
+    '<label class="fld"><span>Grundpreis (€/Jahr)</span><input class="inp" id="tf_grund" value="'+esc(v.grund)+'" inputmode="decimal"></label></div>'+
+    '<div class="two"><label class="fld"><span>Abschlag (€/Monat)</span><input class="inp" id="tf_abschlag" value="'+esc(v.abschlag)+'" inputmode="decimal"></label>'+
+    '<label class="fld"><span>Gültig ab</span><input class="inp" type="date" id="tf_gueltig" value="'+esc(v.gueltig)+'"></label></div>'+
+    '<details class="more"'+(v.laufzeit||v.frist||v.start||v.kdnr?" open":"")+'><summary>Laufzeit, Kündigung, Kundennummer</summary>'+
+      '<div class="two"><label class="fld"><span>Laufzeit</span>'+sel("laufzeit",v.laufzeit,[["","–"],["flex","Monatlich kündbar"],["12","12 Monate"],["24","24 Monate"]])+'</label>'+
+      '<label class="fld"><span>Kündigungsfrist</span>'+sel("frist",v.frist,[["","–"],["keine","keine / jederzeit"],["2wochen","2 Wochen"],["4wochen","4 Wochen"],["6wochen","6 Wochen"],["1monat","1 Monat"],["3monate","3 Monate"]])+'</label></div>'+
+      '<div class="two"><label class="fld"><span>Vertragsbeginn</span><input class="inp" type="date" id="tf_start" value="'+esc(v.start)+'"></label>'+
+      '<label class="fld"><span>Kundennummer</span><input class="inp" id="tf_kdnr" value="'+esc(v.kdnr)+'" autocomplete="off"></label></div></details>'+
+    (f.err?'<div class="ferr">'+esc(f.err)+'</div>':"")+
+    '<div class="factions"><button class="btn full" type="submit">'+(f.editId?"Änderungen speichern":"Tarif speichern")+'</button><button type="button" class="btn soft full" data-a="sheet-close">Abbrechen</button></div></form>');
+}
+async function submitTariffForm(){
+  var f=VT.form;if(!f||f.busy)return;readTariffForm();
+  var cat=f.cat,v=f.v,wasser=cat==="wasser";
+  var grund=parseNum(v.grund),preis=parseNum(v.preis),ab=parseNum(v.abschlag);
+  f.err=null;
+  if(!v.anbieter.trim())f.err="Bitte den Anbieter eintragen.";
+  else if(!isFinite(preis)||preis<0)f.err="Bitte einen gültigen "+(wasser?"Wasser-/Kanalpreis":"Arbeitspreis")+" eintragen.";
+  else if(!isFinite(grund)||grund<0)f.err="Bitte einen gültigen Grundpreis eintragen.";
+  else if(!isFinite(ab)||ab<0)f.err="Bitte einen gültigen Abschlag eintragen.";
+  else if(!v.gueltig)f.err="Bitte „Gültig ab“ wählen.";
+  if(f.err){drawTariffForm();return;}
+  /* ct/kWh -> €/kWh; Werte unter 2 sind offensichtlich schon in € eingegeben */
+  var obj={anbieter:v.anbieter.trim(),grundpreisJahr:grund,abschlag:ab,gueltigAb:v.gueltig,laufzeit:v.laufzeit||null,kuendigungsfrist:v.frist||null,vertragsstart:v.start||null,kundennummer:(v.kdnr||"").trim()||null};
+  if(wasser)obj.wasserKanal=preis;else obj.arbeitspreis=preis<2?preis:preis/100;
+  var had=!!tariffForDate(cat,todayISO());
+  try{await saveTariffData(cat,obj,f.editId);}catch(e){f.err=errMsg(e);drawTariffForm();return;}
+  var edited=!!f.editId;VT.form=null;closeSheet();render();
+  toast(edited?"Tarif gespeichert":(had?"Tarif gespeichert – der vorherige läuft zum "+deDate(addDays(obj.gueltigAb,-1))+" aus":"Tarif gespeichert"));
+}
+async function tariffFromAI(cat,file){
+  if(!VT.form||VT.form.cat!==cat)VT.form={cat:cat,editId:null,v:tariffFormFrom(cat,null),err:null,ai:null,docId:null};
+  VT.form.busy=true;drawTariffForm();
+  try{
+    var res=await aiExtract(cat,file,"tarif"),t=res.data,f=VT.form;if(!f)return;
+    f.docId=res.docId;
+    function s(x){return (x==null||x==="")?"":String(x);}
+    if(t.anbieter)f.v.anbieter=s(t.anbieter);
+    if(t.grundpreisJahr!=null)f.v.grund=s(t.grundpreisJahr).replace(".",",");
+    if(cat==="wasser"){if(t.wasserKanal!=null)f.v.preis=s(t.wasserKanal).replace(".",",");}
+    else if(t.arbeitspreis!=null&&isFinite(Number(t.arbeitspreis)))f.v.preis=ctFmt(Number(t.arbeitspreis)).replace(/\./g,"");
+    if(t.abschlag!=null)f.v.abschlag=s(t.abschlag).replace(".",",");
+    if(t.gueltigAb)f.v.gueltig=String(t.gueltigAb).slice(0,10);
+    if(["","flex","12","24"].indexOf(s(t.laufzeit))>=0)f.v.laufzeit=s(t.laufzeit);
+    if(["","keine","2wochen","4wochen","6wochen","1monat","3monate"].indexOf(s(t.kuendigungsfrist))>=0)f.v.frist=s(t.kuendigungsfrist);
+    if(t.vertragsstart)f.v.start=String(t.vertragsstart).slice(0,10);
+    if(t.kundennummer)f.v.kdnr=s(t.kundennummer);
+    var kk=s(t.kategorie).toLowerCase();
+    f.ai={hint:t.hinweise?" "+t.hinweise:"",warn:(kk&&CATS[kk]&&kk!==cat)?"Das Dokument sieht nach "+CATS[kk].label+" aus, du bist bei "+CATS[cat].label+".":""};
+  }catch(e){if(VT.form)VT.form.err="KI konnte das Dokument nicht lesen: "+errMsg(e);}
+  if(VT.form){VT.form.busy=false;drawTariffForm();}
+}
+
+/* ---- Fenster: Menü, früherer Tarif, Abschlag, Dokumente, Gas-Umrechnung, Abrechnung ---- */
+function vtMenu(cat){
+  var t=tariffForDate(cat,todayISO());
+  openSheet('<h3>'+CATS[cat].label+'</h3>'+
+    (t?'<button class="opt" data-a="vt-edit" data-cat="'+cat+'" data-id="'+esc(t.id)+'">'+ic("tool")+'Tarif bearbeiten</button>':"")+
+    '<button class="opt" data-a="vt-abr" data-cat="'+cat+'">'+ic("sparkles")+'Jahresabrechnung prüfen (KI)</button>'+
+    '<button class="opt" data-a="vt-beleg" data-cat="'+cat+'">'+ic("doc")+'Dokument hochladen</button>'+
+    (cat==="gas"?'<button class="opt" data-a="vt-conv">'+ic("gas")+'Gas-Umrechnung (m³ → kWh)</button>':"")+
+    (t?'<button class="opt" data-a="vt-tariff" data-cat="'+cat+'" data-id="'+esc(t.id)+'">'+ic("info")+'Alle Tarifdaten</button>':""));
+}
+function tariffSheet(cat,id){
+  var t=STATE[cat].tariffs.find(function(x){return String(x.id)===String(id);});if(!t)return;
+  var si=tariffSaldoInfo(cat,t.id),bis=validUntil(cat,t),L=[];
+  function row(a,b,cls){L.push('<div class="dl"><span>'+a+'</span><b class="num '+(cls||"")+'">'+b+'</b></div>');}
+  row("Gültig",deDate(t.gueltigAb)+(bis?" – "+deDate(bis):" – laufend"));
+  row(priceLabel(cat),priceText(cat,t));row("Grundpreis",eur(t.grundpreisJahr)+"/Jahr");row("Abschlag",eur(t.abschlag)+"/Monat");
+  if(t.laufzeit)row("Laufzeit",LZ_LABEL[t.laufzeit]||esc(t.laufzeit));
+  if(t.kuendigungsfrist)row("Kündigungsfrist",esc(kfLabel(t.kuendigungsfrist)||t.kuendigungsfrist));
+  if(t.vertragsstart)row("Vertragsbeginn",deDate(t.vertragsstart));
+  if(t.kundennummer)row("Kundennummer",esc(t.kundennummer));
+  if(si.months)row("Saldo ("+si.months+" Monate)",signed(si.saldo),si.saldo>=0?"pos-t":"neg-t");
+  var ask=VT.tDel===String(t.id);
+  openSheet('<h3>'+esc(t.anbieter||"Tarif")+'</h3>'+L.join("")+
+    '<div class="factions"><button class="btn full" data-a="vt-edit" data-cat="'+cat+'" data-id="'+esc(t.id)+'">'+ic("tool",18)+' Bearbeiten</button>'+
+    (ask?'<button class="btn full" style="background:var(--neg);color:#fff" data-a="vt-tdel-yes" data-cat="'+cat+'" data-id="'+esc(t.id)+'">Wirklich löschen – Monate werden neu berechnet</button>'
+        :'<button class="btn soft full" data-a="vt-tdel" data-cat="'+cat+'" data-id="'+esc(t.id)+'">'+ic("x",18)+' Tarif löschen</button>')+'</div>');
+}
+function abschlagSheet(cat,err){
+  VT.abCat=cat;
+  var cur=abschlagForDate(cat,todayISO()),list=(STATE[cat].abschlagChanges||[]).slice().sort(function(a,b){return a.gueltigAb<b.gueltigAb?1:-1;});
+  var need=monthlyNeed(cat);
+  openSheet('<h3>Abschlag '+CATS[cat].label+'</h3>'+
+    '<div class="dl"><span>Aktuell</span><b class="num">'+(cur!=null?eur(cur):"–")+'/Monat</b></div>'+
+    (need!=null&&smartOn("geld")?'<div class="dl"><span>Ø Bedarf (12 Monate)</span><b class="num">'+eur(need)+'</b></div>':"")+
+    '<form id="abForm" novalidate style="margin-top:14px"><div class="two"><label class="fld"><span>Neuer Abschlag (€)</span><input class="inp" id="ab_betrag" inputmode="decimal" value="'+(VT.abPrefill!=null?String(VT.abPrefill).replace(".",","):(need!=null&&smartOn("geld")?String(Math.ceil(need)):""))+'"></label>'+
+    '<label class="fld"><span>Gültig ab</span><input class="inp" type="date" id="ab_gueltig" value="'+firstOfMonthISO()+'"></label></div>'+
+    (err?'<div class="ferr">'+esc(err)+'</div>':"")+
+    '<button class="btn full" type="submit">Abschlag ändern</button></form>'+
+    (list.length?'<div class="sect" style="margin:20px 0 6px"><span>Bisherige Änderungen</span></div>'+list.map(function(a){
+      var ask=VT.abDel===String(a.id);
+      return '<div class="dl"><span>ab '+deDate(a.gueltigAb)+'</span><b class="num">'+eur(a.betrag)+'</b>'+
+        (ask?'<button class="lnk neg-t" data-a="vt-abdel-yes" data-cat="'+cat+'" data-id="'+esc(a.id)+'">löschen?</button>':'<button class="ibtn" data-a="vt-abdel" data-cat="'+cat+'" data-id="'+esc(a.id)+'" aria-label="Löschen">'+ic("x",16)+'</button>')+'</div>';}).join(""):""));
+}
+function docsSheet(cat){
+  var docs=docsFor(cat);
+  openSheet('<h3>Dokumente '+CATS[cat].label+'</h3>'+
+    (docs.length?docs.map(function(d){var s=docStatus(d),st=s.t.replace(/^[^\wÄÖÜäöü]+\s*/,""),ask=VT.docDel===String(d.id);
+      var dt=(d.created_at||"").slice(0,10).split("-").reverse().join("."),size=d.size_bytes?Math.round(d.size_bytes/1024)+" KB":"";
+      return '<div class="drow2"><button class="dopen" data-a="doc-open" data-id="'+esc(d.id)+'">'+ic("doc",20)+'<span><b>'+esc(d.filename||"Dokument")+'</b><small>'+dt+(size?" · "+size:"")+" · "+esc(st)+'</small></span></button>'+
+        (ask?'<button class="lnk neg-t" data-a="doc-del-yes" data-id="'+esc(d.id)+'">löschen?</button>':'<button class="ibtn" data-a="doc-del" data-cat="'+cat+'" data-id="'+esc(d.id)+'" aria-label="Löschen">'+ic("x",16)+'</button>')+'</div>';}).join("")
+      :'<p class="mut-t" style="font-weight:700">Noch keine Dokumente.</p>')+
+    '<div class="factions"><button class="btn full" data-a="vt-beleg" data-cat="'+cat+'">'+ic("doc",18)+' Dokument hochladen</button></div>');
+}
+function convSheet(err){
+  var cv=STATE.gas.conversion||defConv();
+  openSheet('<h3>Gas-Umrechnung</h3><p class="mut-t" style="font-weight:700;margin:0 0 12px">kWh = m³ × Wandelfaktor × Zustandszahl × Brennwert – die Werte stehen auf der Gasrechnung.</p>'+
+    '<form id="convForm" novalidate><div class="two"><label class="fld"><span>Wandelfaktor</span><input class="inp" id="cv_wf" inputmode="decimal" value="'+String(cv.wandelfaktor).replace(".",",")+'"></label>'+
+    '<label class="fld"><span>Zustandszahl</span><input class="inp" id="cv_zz" inputmode="decimal" value="'+String(cv.zustandszahl).replace(".",",")+'"></label></div>'+
+    '<label class="fld"><span>Brennwert (kWh/m³)</span><input class="inp" id="cv_bw" inputmode="decimal" value="'+String(cv.brennwert).replace(".",",")+'"></label>'+
+    '<div class="dl"><span>Ergibt</span><b class="num">1 m³ = '+num4(gasFactor())+' kWh</b></div>'+
+    (err?'<div class="ferr">'+esc(err)+'</div>':"")+'<div class="factions"><button class="btn full" type="submit">Speichern</button></div></form>');
+}
+async function abrFromAI(cat,file){
+  openSheet('<h3>Abrechnung wird geprüft …</h3><div style="display:grid;place-items:center;padding:28px"><span class="spin" style="width:40px;height:40px;border-width:4px"></span></div>');
+  try{var res=await aiExtract(cat,file,"abrechnung");VT.abr={cat:cat,a:res.data};abrSheet();}
+  catch(e){openSheet('<h3>Prüfung fehlgeschlagen</h3><div class="ferr">'+esc(errMsg(e))+'</div><div class="factions"><button class="btn soft full" data-a="sheet-close">Schließen</button></div>');}
+}
+function abrSheet(){
+  var cat=VT.abr.cat,a=VT.abr.a,c=CATS[cat],u=c.billUnit||c.unit;
+  var von=a.zeitraumVon?String(a.zeitraumVon).slice(0,10):null,bis=a.zeitraumBis?String(a.zeitraumBis).slice(0,10):null;
+  var erg=abrNum(a.ergebnisBetrag);if(erg!=null)erg=(a.ergebnisArt==="nachzahlung")?-Math.abs(erg):Math.abs(erg);
+  var app=periodAppSums(cat,von,bis),warns=0;
+  function cmp(label,billV,appV,kind){
+    var fmt=function(v){return v==null?"–":(kind==="verb"?fmtVerb(cat,v)+" "+u:eur(v));},badge='<span class="mut-t">–</span>';
+    if(billV!=null&&appV!=null){var diff=billV-appV,base=Math.max(Math.abs(billV),Math.abs(appV),1),tol=kind==="verb"?Math.max(base*0.02,5):Math.max(base*0.03,3);
+      if(Math.abs(diff)<=tol)badge='<span class="pill pos">'+ic("check",12)+' stimmt</span>';else{badge='<span class="pill neg">Δ '+(kind==="verb"?fmtVerb(cat,diff)+" "+u:eur(diff))+'</span>';warns++;}}
+    return '<tr><th>'+label+'</th><td class="num">'+fmt(billV)+'</td><td class="num mut-t">'+fmt(appV)+'</td><td>'+badge+'</td></tr>';
+  }
+  var ok=app.months>0;
+  var rows=cmp("Verbrauch",abrNum(a.verbrauch),ok?app.verbrauch:null,"verb")+cmp("Kosten",abrNum(a.gesamtkosten),ok?app.kosten:null,"eur")+
+    cmp("Abschläge",abrNum(a.summeAbschlaege),ok?app.abschlaege:null,"eur")+cmp("Ergebnis",erg,ok?app.ergebnis:null,"eur");
+  var na=abrNum(a.neuerAbschlag);
+  var verdict=!ok?'<div class="note">'+ic("info")+'<div>Für diesen Zeitraum gibt es keine erfassten Monate – nur die Belegwerte.</div></div>'
+    :warns?'<div class="note">'+ic("alert")+'<div><b>'+warns+' Abweichung'+(warns===1?"":"en")+'</b>zu deinen erfassten Daten ('+app.months+' Monate).</div></div>'
+    :'<div class="done">'+ic("check",20)+'<span>Alles stimmt<small>'+app.months+' Monate verglichen</small></span></div>';
+  openSheet('<h3>Jahresabrechnung '+c.label+'</h3><p class="mut-t" style="font-weight:700;margin:-6px 0 12px">'+esc(a.anbieter||"")+(von?" · "+deDate(von)+" – "+(bis?deDate(bis):"?"):"")+(a.rechnungsnummer?" · Nr. "+esc(String(a.rechnungsnummer)):"")+'</p>'+verdict+
+    '<div style="overflow-x:auto;margin-top:12px"><table class="ytab abr"><thead><tr><th></th><th>Beleg</th><th>App</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    (a.hinweise?'<p class="mut-t" style="font-size:.86rem;font-weight:700">KI: '+esc(a.hinweise)+'</p>':"")+
+    (na!=null?'<div class="factions"><button class="btn full" data-a="vt-abr-ab" data-cat="'+cat+'" data-v="'+na+'">Neuen Abschlag '+eur(na)+' übernehmen</button></div>':"")+
+    '<div class="factions" style="margin-top:10px"><button class="btn soft full" data-a="sheet-close">Schließen</button></div>');
+}
+function pickFile(cat,purpose){
+  VT.pick={cat:cat,purpose:purpose};
+  var inp=document.getElementById("vtFile");
+  if(!inp){inp=document.createElement("input");inp.type="file";inp.id="vtFile";inp.hidden=true;inp.accept="application/pdf,image/*";document.body.appendChild(inp);}
+  inp.click();
+}
+function onVtFile(file){
+  var p=VT.pick;VT.pick=null;if(!p||!file)return;
+  if(p.purpose==="tarif")tariffFromAI(p.cat,file);
+  else if(p.purpose==="abr")abrFromAI(p.cat,file);
+  else uploadBeleg(p.cat,file);
+}
+
 /* ---- Baustelle (Bereiche, die im neuen Design noch entstehen) ---- */
 function screenWip(title,what){
   return '<h1 class="pt">'+title+'</h1><div class="card wip"><div class="ei">'+ic("tool",30)+'</div><h2>Entsteht gerade</h2><p>'+what+'</p>'+
@@ -1878,7 +2298,7 @@ function render(){
   if(r.name==="start")c=screenStart();
   else if(r.name==="verlauf")c=screenVerlauf(r.params);
   else if(r.name==="ablesen")c=screenAblesen(r.params);
-  else if(r.name==="vertraege")c=screenWip("Verträge","Verträge und Dokumente kommen in Schritt 4.");
+  else if(r.name==="vertraege")c=screenVertraege(r.params);
   else c=screenMehr();
   root.innerHTML=shell(c,r.name,r.name==="ablesen"&&FLOW&&!FLOW.done&&FLOW.cats.length>0);
 }
@@ -1898,6 +2318,26 @@ function onAction(e){
   else if(a==="theme"){var d=!isDark();applyTheme(d);try{localStorage.setItem("vtV2Theme",d?"dark":"light");}catch(x){}saveUserPref({theme:d?"dark":"light"});render();}
   else if(a==="logout"){authLogout();}
   else if(a==="sheet-close"){closeSheet();}
+  else if(a==="vt-menu"){vtMenu(b.getAttribute("data-cat"));}
+  else if(a==="vt-new-choice"||a==="vt-new"){openTariffForm(b.getAttribute("data-cat"));}
+  else if(a==="vt-edit"){openTariffForm(b.getAttribute("data-cat"),b.getAttribute("data-id"));}
+  else if(a==="vt-ai"){VT.form=null;pickFile(b.getAttribute("data-cat"),"tarif");}
+  else if(a==="vt-ai-in-form"){readTariffForm();pickFile(VT.form.cat,"tarif");}
+  else if(a==="vt-ab"){VT.abDel=null;abschlagSheet(b.getAttribute("data-cat"));}
+  else if(a==="vt-abdel"){VT.abDel=b.getAttribute("data-id");abschlagSheet(b.getAttribute("data-cat"));}
+  else if(a==="vt-abdel-yes"){deleteAbschlag(b.getAttribute("data-cat"),b.getAttribute("data-id"));}
+  else if(a==="vt-docs"){VT.docDel=null;docsSheet(b.getAttribute("data-cat"));}
+  else if(a==="doc-open"){docOpen(b.getAttribute("data-id"));}
+  else if(a==="doc-del"){VT.docDel=b.getAttribute("data-id");docsSheet(b.getAttribute("data-cat"));}
+  else if(a==="doc-del-yes"){docDelete(b.getAttribute("data-id"));}
+  else if(a==="vt-beleg"){pickFile(b.getAttribute("data-cat"),"beleg");}
+  else if(a==="vt-abr"){pickFile(b.getAttribute("data-cat"),"abr");}
+  else if(a==="vt-abr-ab"){VT.abPrefill=Number(b.getAttribute("data-v"));VT.abDel=null;abschlagSheet(b.getAttribute("data-cat"));VT.abPrefill=null;}
+  else if(a==="vt-conv"){convSheet();}
+  else if(a==="vt-tariff"){VT.tDel=null;tariffSheet(b.getAttribute("data-cat"),b.getAttribute("data-id"));}
+  else if(a==="vt-tdel"){VT.tDel=b.getAttribute("data-id");tariffSheet(b.getAttribute("data-cat"),b.getAttribute("data-id"));}
+  else if(a==="vt-tdel-yes"){VT.tDel=null;deleteTariff(b.getAttribute("data-cat"),b.getAttribute("data-id"));}
+  else if(a==="vt-past"){var pc=b.getAttribute("data-cat");VT.open[pc]=!VT.open[pc];render();}
   else if(a==="vl-metric"){VL.metric=b.getAttribute("data-v");render();}
   else if(a==="vl-view"){VL.view=b.getAttribute("data-v");render();}
   else if(a==="vl-more"){VL.limit+=24;render();}
@@ -1934,6 +2374,11 @@ document.addEventListener("click",function(e){if(!sheetEl||!sheetEl.contains(e.t
 document.addEventListener("submit",function(e){
   if(e.target.id==="authForm"){e.preventDefault();var btn=e.target.querySelector("[data-mode]");doAuth(btn?btn.getAttribute("data-mode"):"login");}
   else if(e.target.id==="editForm"){e.preventDefault();submitEdit();}
+  else if(e.target.id==="tariffForm"){e.preventDefault();submitTariffForm();}
+  else if(e.target.id==="abForm"){e.preventDefault();(async function(){var cat=VT.abCat;var bt=parseNum(($("#ab_betrag")||{}).value),iso=($("#ab_gueltig")||{}).value;
+    try{await saveAbschlagData(cat,bt,iso);closeSheet();render();toast("Abschlag ab "+deDate(iso)+": "+eur(bt));}catch(x){abschlagSheet(cat,errMsg(x));}})();}
+  else if(e.target.id==="convForm"){e.preventDefault();(async function(){var wf=parseNum(($("#cv_wf")||{}).value),zz=parseNum(($("#cv_zz")||{}).value),bw=parseNum(($("#cv_bw")||{}).value);
+    try{await saveConversion(wf,zz,bw);closeSheet();render();toast("Umrechnung gespeichert");}catch(x){convSheet(errMsg(x));}})();}
   else if(e.target.id==="flowForm"){e.preventDefault();if(!FLOW.busy)flowNext(false);}
   else if(e.target.id==="flowAllForm"){e.preventDefault();if(!FLOW.busy)flowSaveAll(false);}
 });
@@ -1950,6 +2395,7 @@ document.addEventListener("input",function(e){
 document.addEventListener("change",function(e){
   var t=e.target;
   if(t.hasAttribute&&t.hasAttribute("data-vl-period")){VL.period=t.value;VL.sel=null;render();return;}
+  if(t.id==="vtFile"){var vf=t.files&&t.files[0];t.value="";if(vf)onVtFile(vf);return;}
   if(t.id==="e_mc"&&VL.edit){VL.edit.iso=($("#e_iso")||{}).value||VL.edit.iso;VL.edit.z=($("#e_z")||{}).value||"";VL.edit.mc=t.checked;VL.edit.warn=null;drawEdit();return;}
   if(!FLOW)return;
   if(t.hasAttribute("data-fdate")){var d=t.value;if(!d||d>todayISO()){toast("Das Datum darf nicht in der Zukunft liegen.",true);t.value=FLOW.iso;return;}FLOW.iso=d;render();}
