@@ -96,6 +96,8 @@ a{color:inherit;text-decoration:none}
 /* ================= Karten ================= */
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:18px}
 .grid{display:grid;gap:14px}
+/* Rasterzellen duerfen schrumpfen – sonst sprengt breiter Inhalt (Tabellen) die Seitenbreite */
+.grid>*{min-width:0}
 @media (min-width:900px){.grid-2{grid-template-columns:1.25fr 1fr;align-items:start}}
 .sect{display:flex;align-items:center;justify-content:space-between;margin:22px 4px 10px;font-weight:900;font-size:1.05rem}
 .sect .more{font-size:.86rem;font-weight:800;color:var(--muted)}
@@ -264,6 +266,48 @@ a{color:inherit;text-decoration:none}
 .sumrow{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
 .sumrow:last-child{border-bottom:0}
 .sumrow .v{margin-left:auto;text-align:right;display:grid;justify-items:end;gap:4px}
+
+/* ================= Verlauf ================= */
+.chips{display:flex;gap:8px;overflow-x:auto;margin:0 0 14px;padding:2px 0 4px;scrollbar-width:none}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:999px;background:var(--surface);border:1.5px solid var(--line);font-weight:800;white-space:nowrap;color:var(--muted)}
+.chip .ico{color:var(--c)}
+.chip.on{border-color:var(--c);color:var(--text);background:color-mix(in srgb,var(--c) 12%,var(--surface))}
+.chartcard{padding:16px 14px 14px}
+.crow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:999px;padding:4px;gap:2px}
+.seg button{padding:7px 14px;border-radius:999px;font-weight:800;font-size:.88rem;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:var(--sh-1)}
+.seg.wide{display:flex}.seg.wide button{flex:1}
+.sel{min-height:38px;border-radius:999px;border:1.5px solid var(--line-2);background:var(--surface);padding:0 12px;font-weight:800}
+.chart{display:block;width:100%;height:auto;margin-top:6px;overflow:visible}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;font-weight:700;color:var(--muted);margin:4px 2px 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg{display:inline-block;width:14px;height:10px;border-radius:3px}
+.lg.dash{height:0;border-top:2px dashed var(--muted);border-radius:0}
+.lg.dot{height:0;border-top:2.5px dotted var(--text);border-radius:0}
+.lg.fc{border:1.5px dashed;background:transparent}
+.cinfo{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-weight:800}
+.vlist2{display:grid;gap:6px}
+.vsep{display:flex;align-items:center;gap:8px;padding:12px 6px 4px;color:var(--muted);font-weight:800;font-size:.84rem}
+.vsep b{margin-left:auto}
+.vrow2{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;width:100%;text-align:left;padding:12px 14px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+.vrow2:hover{border-color:var(--line-2)}
+.vrow2 .vm{display:grid;min-width:0}.vrow2 .vm small{color:var(--muted);font-weight:700;font-size:.8rem}
+.vrow2 .vv{display:grid;justify-items:end;font-weight:800;font-size:.9rem}
+.vrow2.syn{background:transparent;border-style:dashed}
+.tag{display:inline-block;padding:0 7px;border-radius:7px;background:var(--surface-2);color:var(--muted);font-weight:800;font-size:.74rem}
+.dl{display:flex;justify-content:space-between;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line)}
+.dl span{color:var(--muted);font-weight:700}
+.ytab{width:100%;border-collapse:separate;border-spacing:0;font-size:.88rem}
+.ytab th,.ytab td{padding:8px;text-align:right;white-space:nowrap}
+.ytab thead th{color:var(--muted);font-weight:800}
+.ytab tbody th{text-align:left;color:var(--muted);font-weight:800}
+.ytab td{font-weight:800;border-radius:8px}
+.ytab td.na{color:var(--muted-2)}.ytab td.avg{color:var(--muted)}
+.ytab tr.sum th,.ytab tr.sum td{border-top:1px solid var(--line);font-weight:900}
+.chk{display:flex;align-items:center;gap:10px;font-weight:800;margin:4px 4px 12px}
+.chk input{width:20px;height:20px}
+.ferr{margin-top:6px;padding:12px 14px;border-radius:14px;background:var(--neg-bg);color:var(--neg);font-weight:800}
 
 /* Baustellen-Hinweis fuer noch nicht fertige Bereiche */
 .wip{text-align:center;padding:40px 20px}
@@ -1597,6 +1641,201 @@ async function onPhoto(cat,file){
   finally{v.cam=false;render();}
 }
 
+
+/* ---- Verlauf ---- */
+var VL={metric:"kosten",period:"12",sel:null,view:"monate",limit:18,editId:null,editWarn:null,delAsk:null};
+var MN=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+function mShort(key){return MN[Number(key.slice(5,7))-1]+" "+key.slice(2,4);}
+function vlCat(p){var cats=householdCats();return (p.cat&&cats.indexOf(p.cat)>=0)?p.cat:(VL.lastCat&&cats.indexOf(VL.lastCat)>=0?VL.lastCat:cats[0]);}
+function rowsByKey(cat){var m={};history(cat).forEach(function(r){if(!r.baseline)m[billKey(r.reading.datum)]=r;});return m;}
+function keyAdd(key,n){var y=Number(key.slice(0,4)),m=Number(key.slice(5,7))-1+n;y+=Math.floor(m/12);m=((m%12)+12)%12;return y+"-"+String(m+1).padStart(2,"0");}
+function metricVal(r,metric){if(!r)return null;var v=metric==="kosten"?r.gesamtkosten:r.verbrauch;return isFinite(v)?v:null;}
+function chartData(cat){
+  var byKey=rowsByKey(cat),keys=Object.keys(byKey).sort();if(!keys.length)return null;
+  var list;
+  if(VL.period==="12"){var last=keys[keys.length-1];list=[];for(var i=11;i>=0;i--)list.push(keyAdd(last,-i));}
+  else{list=[];for(var m=1;m<=12;m++)list.push(VL.period+"-"+String(m).padStart(2,"0"));}
+  var items=list.map(function(k){var r=byKey[k],p=byKey[keyAdd(k,-12)];
+    return {key:k,v:metricVal(r,VL.metric),prev:metricVal(p,VL.metric),ab:r&&isFinite(r.abschlag)?r.abschlag:null,syn:!!(r&&r.synthetic),row:r};});
+  if(VL.period==="12")forecastRows(cat,3).forEach(function(f){items.push({key:billKey(f.reading.datum),v:metricVal(f,VL.metric),prev:metricVal(byKey[keyAdd(billKey(f.reading.datum),-12)],VL.metric),ab:isFinite(f.abschlag)?f.abschlag:null,fc:true});});
+  return items;
+}
+function chartSvg(cat,items){
+  var W=640,H=250,pl=10,pr=10,pt=34,pb=38,n=items.length,slot=(W-pl-pr)/n,bw=Math.min(30,slot*0.6);
+  var vals=[];items.forEach(function(it){[it.v,it.prev,VL.metric==="kosten"?it.ab:null].forEach(function(x){if(x!=null)vals.push(x);});});
+  var mx=Math.max.apply(null,vals.concat([1]))*1.08,Y=function(v){return pt+(H-pt-pb)*(1-v/mx);},X=function(i){return pl+slot*i+slot/2;};
+  var col="var(--"+cat+")",out="";
+  out+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+(H-pb)+'" y2="'+(H-pb)+'" stroke="var(--line-2)"/>';
+  items.forEach(function(it,i){
+    var x=X(i),on=VL.sel===i;
+    if(it.v!=null){var y=Y(it.v),h=Math.max(2,H-pb-y);
+      out+='<rect x="'+(x-bw/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="'+Math.min(9,bw/2).toFixed(1)+'" fill="'+col+'" fill-opacity="'+(it.fc?0.14:it.syn?0.45:on?1:0.82)+'"'+(it.fc?' stroke="'+col+'" stroke-dasharray="4 4" stroke-width="1.5"':"")+'/>';}
+    out+='<rect x="'+(x-slot/2).toFixed(1)+'" y="'+pt+'" width="'+slot.toFixed(1)+'" height="'+(H-pt).toFixed(1)+'" fill="transparent" data-a="bar" data-i="'+i+'" style="cursor:pointer"/>';
+    var lb=MN[Number(it.key.slice(5,7))-1];
+    out+='<text x="'+x.toFixed(1)+'" y="'+(H-12)+'" text-anchor="middle" font-size="19" font-weight="'+(on?900:700)+'" fill="'+(on?"var(--text)":"var(--muted)")+'"'+(it.fc?' font-style="italic"':"")+'>'+lb+'</text>';
+  });
+  function line(get,dash,color,w){var pts=[];items.forEach(function(it,i){var v=get(it);if(v!=null)pts.push(X(i).toFixed(1)+","+Y(v).toFixed(1));else if(pts.length){out+=poly(pts);pts=[];}});out+=poly(pts);
+    function poly(p){return p.length>1?'<polyline points="'+p.join(" ")+'" fill="none" stroke="'+color+'" stroke-width="'+w+'" stroke-dasharray="'+dash+'" stroke-linecap="round" stroke-linejoin="round"/>':"";}}
+  line(function(it){return it.prev;},"5 6","var(--muted)",2);
+  if(VL.metric==="kosten")line(function(it){return it.ab;},"1 5","var(--text)",2.4);
+  if(VL.sel!=null&&items[VL.sel]&&items[VL.sel].v!=null){var s=items[VL.sel],sx=X(VL.sel),sy=Y(s.v)-8,txt=VL.metric==="kosten"?eur(s.v):fmtVerb(cat,s.v);
+    out+='<text x="'+Math.min(W-40,Math.max(40,sx)).toFixed(1)+'" y="'+Math.max(16,sy).toFixed(1)+'" text-anchor="middle" font-size="21" font-weight="900" fill="var(--text)">'+txt+'</text>';}
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Diagramm">'+out+'</svg>';
+}
+function chartInfo(cat,items){
+  var s=items[VL.sel];if(!s)return "";
+  var u=CATS[cat].billUnit||CATS[cat].unit,fmt=function(v){return v==null?"–":(VL.metric==="kosten"?eur(v):fmtVerb(cat,v)+" "+u);};
+  var d=(s.v!=null&&s.prev)?Math.round((s.v-s.prev)/s.prev*100):null;
+  return '<div class="cinfo"><b>'+monthName(s.key)+(s.fc?" · Prognose":s.syn?" · geschätzt":"")+'</b><span>'+fmt(s.v)+'</span>'+
+    '<span class="mut-t">Vorjahr '+fmt(s.prev)+(d!=null?' <b class="'+(d>0?"neg-t":"pos-t")+'">'+(d>0?"+":"")+d+' %</b>':"")+'</span>'+
+    (VL.metric==="kosten"&&s.ab!=null?'<span class="mut-t">Abschlag '+eur(s.ab)+'</span>':"")+'</div>';
+}
+function yearsOf(cat){var ys={};history(cat).forEach(function(r){if(!r.baseline)ys[billKey(r.reading.datum).slice(0,4)]=1;});return Object.keys(ys).sort().reverse();}
+function screenVerlauf(p){
+  if(LOADING)return '<h1 class="pt">Verlauf</h1><div class="sk" style="height:300px"></div>';
+  if(LOAD_FAILED)return '<h1 class="pt">Verlauf</h1>'+loadFailedNote();
+  var cats=householdCats(),cat=vlCat(p);VL.lastCat=cat;
+  var chips='<div class="chips">'+cats.map(function(c){return '<a class="chip'+(c===cat?" on":"")+'" href="#/verlauf?cat='+c+'" style="--c:var(--'+c+')">'+ic(c,16)+CATS[c].label+'</a>';}).join("")+'</div>';
+  var items=chartData(cat);
+  if(!items)return '<h1 class="pt">Verlauf</h1>'+chips+'<div class="card empty"><div class="ei">'+ic("chart",28)+'</div><h3>Noch kein Verlauf</h3><p>Nach der zweiten Ablesung erscheinen hier Verbrauch und Kosten.</p><a class="btn" href="#/ablesen?cat='+cat+'">'+CATS[cat].label+' ablesen</a></div>';
+  if(VL.sel==null||VL.sel>=items.length||VL.selCat!==cat||VL.selPeriod!==VL.period){var li=-1;items.forEach(function(it,i){if(!it.fc&&it.v!=null)li=i;});VL.sel=li;VL.selCat=cat;VL.selPeriod=VL.period;}
+  var years=yearsOf(cat);
+  var card='<section class="card chartcard"><div class="crow"><div class="seg" role="group" aria-label="Kennzahl">'+
+      '<button class="'+(VL.metric==="kosten"?"on":"")+'" data-a="vl-metric" data-v="kosten">Kosten</button><button class="'+(VL.metric==="verbrauch"?"on":"")+'" data-a="vl-metric" data-v="verbrauch">Verbrauch</button></div>'+
+      '<select class="sel" data-vl-period aria-label="Zeitraum"><option value="12"'+(VL.period==="12"?" selected":"")+'>12 Monate</option>'+years.map(function(y){return '<option value="'+y+'"'+(VL.period===y?" selected":"")+'>'+y+'</option>';}).join("")+'</select></div>'+
+    chartSvg(cat,items)+
+    '<div class="legend"><span><i class="lg bar" style="background:var(--'+cat+')"></i>'+(VL.metric==="kosten"?"Kosten":"Verbrauch")+'</span><span><i class="lg dash"></i>Vorjahr</span>'+(VL.metric==="kosten"?'<span><i class="lg dot"></i>Abschlag</span>':"")+(VL.period==="12"?'<span><i class="lg fc" style="border-color:var(--'+cat+')"></i>Prognose</span>':"")+'</div>'+
+    chartInfo(cat,items)+'</section>';
+  var tabs='<div class="seg wide" role="group" aria-label="Ansicht" style="margin:18px 0 12px"><button class="'+(VL.view==="monate"?"on":"")+'" data-a="vl-view" data-v="monate">Monate</button><button class="'+(VL.view==="jahre"?"on":"")+'" data-a="vl-view" data-v="jahre">Jahresvergleich</button></div>';
+  return '<h1 class="pt">Verlauf</h1>'+chips+'<div class="grid grid-2"><div>'+card+'</div><div>'+tabs+(VL.view==="jahre"?yearCompare(cat):monthList(cat))+'</div></div>';
+}
+function monthList(cat){
+  var c=CATS[cat],u=c.billUnit||c.unit,groups=tariffGroups(cat).slice().reverse(),out=[],count=0,more=false;
+  groups.forEach(function(g){
+    if(more)return;
+    var t=g.tariff,first=g.rows[0].reading.datum;
+    out.push('<div class="vsep">'+ic("doc",15)+'<span>'+(t?esc(t.anbieter||"Tarif"):"Ohne Tarif")+' · seit '+monthName(billKey(first))+'</span><b class="num '+(g.saldo>=0?"pos-t":"neg-t")+'">'+signed(g.saldo)+'</b></div>');
+    var ends={};g.years.forEach(function(y){if(y.complete)ends[billKey(y.end)]=y;});
+    g.rows.slice().reverse().forEach(function(r){
+      if(more)return;
+      if(count>=VL.limit){more=true;return;}
+      var k=billKey(r.reading.datum),ye=ends[k];
+      if(ye)out.push('<div class="vsep yr">'+ic("calendar",15)+'<span>Jahresabrechnung '+mShort(billKey(y0(ye)))+' – '+mShort(k)+'</span><b class="num '+(ye.sum>=0?"pos-t":"neg-t")+'">'+signed(ye.sum)+'</b></div>');
+      out.push(monthRowNeu(cat,r));count++;
+    });
+  });
+  var base=history(cat).filter(function(r){return r.baseline;})[0];
+  if(!more&&base)out.push('<button class="vrow2" data-a="vl-row" data-cat="'+cat+'" data-id="'+esc(base.reading.id)+'"><span class="vm"><b>Startwert</b><small>'+fmtVal(cat,base.reading.zaehlerstand)+' '+c.unit+' am '+deDate(base.reading.datum)+'</small></span></button>');
+  if(more)out.push('<button class="btn soft full" data-a="vl-more" style="margin-top:10px">Ältere Monate anzeigen</button>');
+  return '<div class="vlist2">'+out.join("")+'</div>';
+  function y0(y){return y.start;}
+}
+function monthRowNeu(cat,r){
+  var c=CATS[cat],u=c.billUnit||c.unit,k=billKey(r.reading.datum),d=r.differenz;
+  var sub=r.synthetic?'<span class="tag">geschätzt</span>':'Stand '+fmtVal(cat,r.reading.zaehlerstand)+' '+c.unit+' · '+deDate(r.reading.datum).slice(0,6)+(r.meterChange?' · <span class="tag">neuer Zähler</span>':"")+(r.estimated&&!r.synthetic?' · verteilt':"");
+  var attrs=r.synthetic?'data-a="vl-syn" data-cat="'+cat+'" data-datum="'+r.reading.datum+'"':'data-a="vl-row" data-cat="'+cat+'" data-id="'+esc(r.reading.id)+'"';
+  return '<button class="vrow2'+(r.synthetic?" syn":"")+'" '+attrs+'><span class="vm"><b>'+monthName(k)+'</b><small>'+sub+'</small></span>'+
+    '<span class="vv"><span class="num">'+fmtVerb(cat,r.verbrauch)+' '+u+'</span><span class="num mut-t">'+(isFinite(r.gesamtkosten)?eur(r.gesamtkosten):"–")+'</span></span>'+
+    (isFinite(d)?'<span class="pill '+(d>=0?"pos":"neg")+' num">'+signed(d)+'</span>':'<span></span>')+'</button>';
+}
+function yearCompare(cat){
+  var rows=history(cat).filter(function(r){return !r.baseline;}),data={},ys={};
+  rows.forEach(function(r){var k=billKey(r.reading.datum),y=k.slice(0,4),m=Number(k.slice(5,7))-1;ys[y]=1;(data[m]=data[m]||{})[y]=metricVal(r,VL.metric);});
+  var cur=Number(todayISO().slice(0,4)),years=Object.keys(ys).map(Number).filter(function(y){return y>=cur-2&&y<=cur;}).sort();
+  if(years.length<2)return '<div class="card empty"><h3>Noch zu wenig Daten</h3><p>Der Vergleich braucht mindestens zwei Jahre.</p></div>';
+  var u=CATS[cat].billUnit||CATS[cat].unit,fmt=function(v){return VL.metric==="kosten"?eur(v):fmtVerb(cat,v);};
+  var head='<tr><th></th>'+years.map(function(y){return '<th>'+y+'</th>';}).join("")+'<th>Ø</th></tr>';
+  var body="",tot=years.map(function(){return 0;});
+  for(var m=0;m<12;m++){
+    if(!data[m])continue;
+    var vs=years.map(function(y){return data[m][y];}),pr=vs.filter(function(v){return v!=null;});
+    if(!pr.length)continue;
+    var avg=pr.reduce(function(a,b){return a+b;},0)/pr.length;
+    body+='<tr><th>'+MN[m]+'</th>'+vs.map(function(v,i){if(v==null)return '<td class="na">–</td>';tot[i]+=v;
+      var st="";if(pr.length>=2&&avg){var dv=(v-avg)/Math.abs(avg),it=Math.min(1,Math.abs(dv)/0.4);if(it>0.05)st=' style="background:color-mix(in srgb,var(--'+(dv>0?"neg":"pos")+') '+Math.round(it*24)+'%,transparent)"';}
+      return '<td class="num"'+st+'>'+fmt(v)+'</td>';}).join("")+'<td class="num avg">'+fmt(avg)+'</td></tr>';
+  }
+  body+='<tr class="sum"><th>Σ</th>'+tot.map(function(t){return '<td class="num">'+fmt(t)+'</td>';}).join("")+'<td></td></tr>';
+  return '<div class="card" style="padding:8px;overflow-x:auto"><table class="ytab"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>'+
+    '<p class="mut-t" style="font-size:.84rem;margin:8px 4px">'+(VL.metric==="kosten"?"Kosten":"Verbrauch in "+u)+' · rot = über, grün = unter dem Ø des Monats</p>';
+}
+/* Details, Bearbeiten, Löschen */
+function findRow(cat,id){return history(cat).find(function(r){return r.reading&&String(r.reading.id)===String(id);});}
+function rowDetail(cat,id){
+  var r=findRow(cat,id);if(!r)return;
+  var c=CATS[cat],u=c.billUnit||c.unit,t=r.tariff,lines=[];
+  function L(a,b,cls){lines.push('<div class="dl"><span>'+a+'</span><b class="num '+(cls||"")+'">'+b+'</b></div>');}
+  if(r.baseline){L("Zählerstand",fmtVal(cat,r.reading.zaehlerstand)+" "+c.unit);L("Abgelesen",deDate(r.reading.datum));}
+  else{
+    L("Abgelesen am",deDate(r.reading.datum));
+    L("Zählerstand",fmtVal(cat,r.reading.zaehlerstand)+" "+c.unit+(r.meterChange?" (neuer Zähler)":""));
+    var pv=lastReadingBefore(cat,r.reading.datum),m3=(c.gas&&pv&&!r.meterChange)?r.reading.zaehlerstand-pv.zaehlerstand:null;
+    L("Verbrauch",fmtVerb(cat,r.verbrauch)+" "+u+(m3!=null&&r.gapMonths<=1?" ("+fmtVal(cat,m3)+" m³)":"")+(r.gapMonths>1?" · Ø von "+r.gapMonths+" Monaten":""));
+    if(isFinite(r.grundkosten))L(c.grundkostenLabel,eur(r.grundkosten));
+    if(isFinite(r.verbrauchskosten))L(c.verbrauchskostenLabel,eur(r.verbrauchskosten));
+    if(isFinite(r.gesamtkosten))L("Gesamtkosten",eur(r.gesamtkosten));
+    if(isFinite(r.abschlag))L("Abschlag",eur(r.abschlag));
+    if(isFinite(r.differenz))L(r.differenz>=0?"Guthaben":"Nachzahlung",signed(r.differenz),r.differenz>=0?"pos-t":"neg-t");
+    if(t)L("Tarif",esc(t.anbieter||"Tarif"));
+  }
+  var title=r.baseline?"Startwert":monthName(billKey(r.reading.datum));
+  var ask=VL.delAsk===String(id);
+  openSheet('<div class="mhead" style="margin-bottom:14px">'+catBadge(cat)+'<div><h3 style="margin:0">'+title+'</h3><div class="mmeta">'+c.label+'</div></div></div>'+lines.join("")+
+    '<div class="factions"><button class="btn full" data-a="vl-edit" data-cat="'+cat+'" data-id="'+esc(id)+'">'+ic("tool",18)+' Bearbeiten</button>'+
+    (ask?'<button class="btn full" style="background:var(--neg);color:#fff" data-a="vl-del-yes" data-cat="'+cat+'" data-id="'+esc(id)+'">Wirklich löschen</button>'
+        :'<button class="btn soft full" data-a="vl-del" data-cat="'+cat+'" data-id="'+esc(id)+'">'+ic("x",18)+' Löschen</button>')+'</div>');
+}
+function editSheet(cat,id){
+  var rd=STATE[cat].readings.find(function(x){return String(x.id)===String(id);});if(!rd)return;
+  VL.edit={cat:cat,id:rd.id,iso:rd.datum,z:String(rd.zaehlerstand).replace(".",","),mc:rd.startwert!=null&&isFinite(rd.startwert),sw:rd.startwert!=null?String(rd.startwert).replace(".",","):"",warn:null,err:null};
+  drawEdit();
+}
+function drawEdit(){
+  var e=VL.edit,c=CATS[e.cat];
+  openSheet('<h3>Ablesung bearbeiten</h3><form id="editForm" novalidate>'+
+    '<label class="fld"><span>Ablesedatum</span><input class="inp" type="date" id="e_iso" value="'+e.iso+'" max="'+todayISO()+'"></label>'+
+    '<label class="fld"><span>Zählerstand ('+c.unit+')</span><input class="inp" id="e_z" value="'+esc(e.z)+'" inputmode="decimal" autocomplete="off"></label>'+
+    '<label class="chk"><input type="checkbox" id="e_mc"'+(e.mc?" checked":"")+'> Neuer Zähler eingebaut</label>'+
+    (e.mc?'<label class="fld"><span>Anfangsstand des neuen Zählers</span><input class="inp" id="e_sw" value="'+esc(e.sw)+'" inputmode="decimal"></label>':"")+
+    (e.err?'<div class="ferr">'+esc(e.err)+'</div>':"")+(e.warn?'<div class="note" style="margin-top:6px"><span class="ni">'+ic("alert")+'</span><div>'+esc(e.warn)+'</div></div>':"")+
+    '<div class="factions"><button class="btn full" type="submit">'+(e.warn?"Trotzdem speichern":"Speichern")+'</button><button type="button" class="btn soft full" data-a="sheet-close">Abbrechen</button></div></form>');
+}
+async function submitEdit(){
+  var e=VL.edit;if(!e)return;
+  e.iso=($("#e_iso")||{}).value||e.iso;e.z=($("#e_z")||{}).value||"";e.mc=!!($("#e_mc")||{}).checked;e.sw=e.mc?(($("#e_sw")||{}).value||e.sw):"";
+  var z=parseMeterVal(e.cat,e.z),sw=e.mc?parseMeterVal(e.cat,e.sw):NaN;
+  e.err=null;
+  if(!e.iso||e.iso>todayISO())e.err="Das Datum darf nicht in der Zukunft liegen.";
+  else if(!isFinite(z))e.err="Bitte einen gültigen Zählerstand eingeben.";
+  else if(e.mc&&!isFinite(sw))e.err="Bitte den Anfangsstand des neuen Zählers eintragen.";
+  else if(readingInMonth(e.cat,e.iso,e.id))e.err="Für "+billLabel(e.iso)+" gibt es schon eine andere Ablesung.";
+  if(e.err){e.warn=null;drawEdit();return;}
+  if(!e.warn){
+    /* Plausibilität ohne den bearbeiteten Datensatz prüfen */
+    var keep=STATE[e.cat].readings;STATE[e.cat].readings=keep.filter(function(x){return x.id!==e.id;});_histMemo=null;
+    var w=plausibilityWarning(e.cat,e.iso,z,sw);STATE[e.cat].readings=keep;_histMemo=null;
+    if(w){e.warn=w;drawEdit();return;}
+  }
+  try{await saveReadingData(e.cat,e.iso,z,sw,e.id);}catch(x){e.err=errMsg(x);e.warn=null;drawEdit();return;}
+  VL.edit=null;closeSheet();render();toast("Ablesung gespeichert");
+}
+async function deleteReading(cat,id){
+  var r=STATE[cat].readings.find(function(x){return String(x.id)===String(id);});if(!r)return;
+  if(isOffline()){toast("Löschen geht erst wieder online.",true);return;}
+  try{
+    var d=await sb.from("readings").delete().eq("id",r.id);if(d.error)throw d.error;
+    STATE[cat].readings=STATE[cat].readings.filter(function(x){return x.id!==r.id;});_histMemo=null;_tgMemo=null;
+    closeSheet();render();
+    toast("Ablesung "+billLabel(r.datum)+" gelöscht",false,function(){restoreReading(cat,r);});
+  }catch(e){toast("Löschen fehlgeschlagen: "+errMsg(e),true);}
+}
+async function restoreReading(cat,r){
+  try{
+    var ri=await sb.from("readings").insert(readingToCols(cat,{datum:r.datum,zaehlerstand:r.zaehlerstand,startwert:r.startwert,zaehlerstandKwh:r.zaehlerstandKwh})).select().single();
+    if(ri.error)throw ri.error;STATE[cat].readings.push(rowToReading(ri.data));_histMemo=null;_tgMemo=null;render();toast("Wiederhergestellt");
+  }catch(e){toast("Wiederherstellen fehlgeschlagen: "+errMsg(e),true);}
+}
+
 /* ---- Baustelle (Bereiche, die im neuen Design noch entstehen) ---- */
 function screenWip(title,what){
   return '<h1 class="pt">'+title+'</h1><div class="card wip"><div class="ei">'+ic("tool",30)+'</div><h2>Entsteht gerade</h2><p>'+what+'</p>'+
@@ -1637,7 +1876,7 @@ function render(){
   if(!currentUser||AUTH_MODE==="reset"){root.innerHTML=screenAuth();return;}
   var r=route(),c;
   if(r.name==="start")c=screenStart();
-  else if(r.name==="verlauf")c=screenWip("Verlauf","Diagramm und Monatsliste kommen in Schritt 3.");
+  else if(r.name==="verlauf")c=screenVerlauf(r.params);
   else if(r.name==="ablesen")c=screenAblesen(r.params);
   else if(r.name==="vertraege")c=screenWip("Verträge","Verträge und Dokumente kommen in Schritt 4.");
   else c=screenMehr();
@@ -1659,6 +1898,15 @@ function onAction(e){
   else if(a==="theme"){var d=!isDark();applyTheme(d);try{localStorage.setItem("vtV2Theme",d?"dark":"light");}catch(x){}saveUserPref({theme:d?"dark":"light"});render();}
   else if(a==="logout"){authLogout();}
   else if(a==="sheet-close"){closeSheet();}
+  else if(a==="vl-metric"){VL.metric=b.getAttribute("data-v");render();}
+  else if(a==="vl-view"){VL.view=b.getAttribute("data-v");render();}
+  else if(a==="vl-more"){VL.limit+=24;render();}
+  else if(a==="bar"){VL.sel=Number(b.getAttribute("data-i"));render();}
+  else if(a==="vl-row"){VL.delAsk=null;rowDetail(b.getAttribute("data-cat"),b.getAttribute("data-id"));}
+  else if(a==="vl-syn"){go("#/ablesen?cat="+b.getAttribute("data-cat")+"&datum="+b.getAttribute("data-datum"));}
+  else if(a==="vl-edit"){editSheet(b.getAttribute("data-cat"),b.getAttribute("data-id"));}
+  else if(a==="vl-del"){VL.delAsk=String(b.getAttribute("data-id"));rowDetail(b.getAttribute("data-cat"),b.getAttribute("data-id"));}
+  else if(a==="vl-del-yes"){VL.delAsk=null;deleteReading(b.getAttribute("data-cat"),b.getAttribute("data-id"));}
   else if(a==="flow-close"){FLOW=null;go("#/start");}
   else if(a==="flow-reset"){FLOW=null;}
   else if(a==="flow-skip"){FLOW.skipped.push(FLOW.cats[FLOW.i]);flowAdvance();}
@@ -1685,6 +1933,7 @@ async function doAuth(mode){
 document.addEventListener("click",function(e){if(!sheetEl||!sheetEl.contains(e.target))onAction(e);});
 document.addEventListener("submit",function(e){
   if(e.target.id==="authForm"){e.preventDefault();var btn=e.target.querySelector("[data-mode]");doAuth(btn?btn.getAttribute("data-mode"):"login");}
+  else if(e.target.id==="editForm"){e.preventDefault();submitEdit();}
   else if(e.target.id==="flowForm"){e.preventDefault();if(!FLOW.busy)flowNext(false);}
   else if(e.target.id==="flowAllForm"){e.preventDefault();if(!FLOW.busy)flowSaveAll(false);}
 });
@@ -1699,7 +1948,10 @@ document.addEventListener("input",function(e){
   delete FLOW.err[cat];refreshHint(cat);
 });
 document.addEventListener("change",function(e){
-  var t=e.target;if(!FLOW)return;
+  var t=e.target;
+  if(t.hasAttribute&&t.hasAttribute("data-vl-period")){VL.period=t.value;VL.sel=null;render();return;}
+  if(t.id==="e_mc"&&VL.edit){VL.edit.iso=($("#e_iso")||{}).value||VL.edit.iso;VL.edit.z=($("#e_z")||{}).value||"";VL.edit.mc=t.checked;VL.edit.warn=null;drawEdit();return;}
+  if(!FLOW)return;
   if(t.hasAttribute("data-fdate")){var d=t.value;if(!d||d>todayISO()){toast("Das Datum darf nicht in der Zukunft liegen.",true);t.value=FLOW.iso;return;}FLOW.iso=d;render();}
   else if(t.hasAttribute("data-photo")){var f=t.files&&t.files[0];t.value="";if(f)onPhoto(t.getAttribute("data-photo"),f);}
 });
