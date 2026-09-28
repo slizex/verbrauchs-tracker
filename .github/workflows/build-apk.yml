@@ -9,8 +9,8 @@ name: Android-APK bauen
 # nativen Teil etwas aendert: Plugins, Berechtigungen, App-Symbol/-Name oder die
 # Offline-Seite (offline.html), die als einzige Web-Datei wirklich in der APK steckt.
 #
-# Die APK wird immer mit DEMSELBEN Schluessel (archive/mobile/android-signing.p12) signiert,
-# damit neue Versionen ohne Deinstallation ueber die alte druebergespielt werden koennen.
+# Signatur: nur wenn die Repo-Secrets ANDROID_KEYSTORE_B64/_PASSWORD gesetzt sind, wird mit
+# einem festen Schluessel signiert (Updates ohne Deinstallation). Ohne Secrets: Debug-Signatur.
 on:
   # ARCHIVIERT (28.09.2026): Die native App wird nicht weiterentwickelt.
   # Kein automatischer Build mehr - nur noch manuell ueber "Run workflow".
@@ -27,7 +27,8 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # fest statt ubuntu-latest: das wechselt im Oktober 2026 auf eine neue Version und kann den Build brechen
+    runs-on: ubuntu-24.04
     steps:
       - name: Code holen
         uses: actions/checkout@v4
@@ -35,7 +36,7 @@ jobs:
       - name: Node einrichten
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Java (JDK 17) einrichten
         uses: actions/setup-java@v4
@@ -137,7 +138,7 @@ jobs:
             noetig, wenn sich am nativen Teil etwas aendert (Kamera, Benachrichtigungen,
             Fingerabdruck, App-Symbol oder -Name).
 
-            Immer mit demselben Schluessel signiert, daher ohne Deinstallation aktualisierbar.
+            ${{ steps.signing.outputs.signed == 'true' && 'Mit festem Schluessel signiert - Updates lassen sich direkt drueberspielen.' || 'Debug-signiert - vor einem Update die alte App einmal deinstallieren (die Daten liegen in der Cloud).' }}
 
             **Installation / Update auf dem Handy:**
             1. Datei `alltrack.apk` unten antippen und herunterladen.

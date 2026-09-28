@@ -3,18 +3,20 @@
    Supabase-Anfragen (Daten/Anmeldung) gehen IMMER direkt ins Netz – nie aus dem Cache.
 
    Dieser Service Worker läuft auch in der Android-App: die APK lädt die Web-App von
-   dieser Adresse (server.url in mobile/capacitor.config.json), damit Änderungen ohne
+   dieser Adresse (server.url in archive/mobile/capacitor.config.json), damit Änderungen ohne
    neue Installation ankommen. Damit ist er zugleich das Offline-Netz der App – beim
    Seitenaufruf wartet er höchstens NAV_TIMEOUT auf das Netz und nimmt sonst die
    zuletzt geladene Fassung. */
-var CACHE = 'vt-shell-v3';
+var CACHE = 'vt-shell-v7'; // Version 7.0.0: Standard-Design an der Wurzel, klassisches unter klassisch/
 var NAV_TIMEOUT = 5000;
 
 self.addEventListener('install', function (e) {
   self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE).then(function (c) {
-      return c.addAll(['./', './index.html', './supabase.js']).catch(function () {});
+      /* einzeln, damit ein fehlender Eintrag nicht alles verhindert */
+      return Promise.all(['./', './index.html', './supabase.js', './fonts/nunito-latin-wght-normal.woff2', './icon.svg', './klassisch/']
+        .map(function (u) { return c.add(u).catch(function () {}); }));
     })
   );
 });
@@ -28,7 +30,14 @@ self.addEventListener('activate', function (e) {
 });
 
 function fromCache(req) {
-  return caches.match(req).then(function (m) { return m || caches.match('./index.html'); });
+  return caches.match(req).then(function (m) {
+    if (m) return m;
+    if (req.mode !== 'navigate') return Response.error();
+    /* Offline und nicht im Speicher: passende App-Huelle (klassisch bzw. Standard) */
+    var u = new URL(req.url);
+    if (u.pathname.indexOf('/klassisch/') >= 0) return caches.match('./klassisch/').then(function (k) { return k || caches.match('./index.html'); });
+    return caches.match('./index.html');
+  });
 }
 
 /* Netz zuerst; bei Fehler – und beim Seitenaufruf zusätzlich nach Zeitablauf – aus dem Cache. */
