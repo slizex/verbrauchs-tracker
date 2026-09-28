@@ -210,6 +210,10 @@ a{color:inherit;text-decoration:none}
 #toast.top{bottom:auto;top:calc(14px + env(safe-area-inset-top));transform:translate(-50%,-20px)}
 #toast.top.on{transform:translate(-50%,0)}
 #toast button{font-weight:900;text-decoration:underline;text-underline-offset:3px}
+.updbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;background:var(--ink);color:var(--ink-fg);padding:8px 8px 8px 16px;border-radius:18px;font-weight:800;font-size:.9rem}
+.updbar>span{display:flex;align-items:center;gap:8px}
+html.testenv body::before{content:"";position:fixed;top:0;left:0;right:0;height:3px;background:#7c3aed;z-index:100;pointer-events:none}
+.netbar{display:flex;align-items:center;gap:8px;margin:0 0 14px;padding:10px 14px;border-radius:16px;background:var(--warn-bg);color:var(--warn);font-weight:800;font-size:.88rem}
 @media (min-width:900px){#toast{bottom:28px}}
 
 /* Anmeldung */
@@ -413,6 +417,7 @@ var LIVE_URL=location.origin+BASE+"neu/";
 var TEST_URL=location.origin+BASE+"test/neu/";
 var CLASSIC_URL=location.origin+BASE+(IS_TEST?"test/":"");
 var DB_SCHEMA=IS_TEST?"test":"public";
+if(IS_TEST){document.documentElement.classList.add("testenv");document.title="TEST · AllTrack";}
 var sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true},db:{schema:DB_SCHEMA}});
 /* Haushalte (Mitgliedschaft) liegen immer im public-Schema – auch in der Testumgebung. */
 var sbPub=sb.schema("public");
@@ -1089,6 +1094,16 @@ async function dismissSug(key,text){
 /* ---- Ablesungen speichern: gleiche Regeln wie im klassischen Design ---- */
 var _localSeq=0,_flushing=false;
 function isOffline(){return navigator.onLine===false;}
+/* Offline-Hinweis oben auf jeder Seite (nicht zusätzlich zur Ladefehler-Meldung) */
+function netBarHtml(){
+  if(!isOffline()||LOAD_FAILED||!currentUser)return "";
+  var q=loadQueue(),n=Array.isArray(q)?q.filter(function(x){return x&&x.household_id===activeHousehold;}).length:0;
+  return '<div class="netbar" id="netBar" role="status">'+ic("cloudOff",18)+'<span>Offline'+(n?" · "+n+" Ablesung"+(n===1?"":"en")+" warten":" · Ablesungen werden später übertragen")+'</span></div>';
+}
+function netBarSync(){
+  var m=document.getElementById("main"),el=document.getElementById("netBar");if(el)el.remove();
+  if(m){var hh=netBarHtml();if(hh){var u=document.getElementById("updBar");if(u)u.insertAdjacentHTML("afterend",hh);else m.insertAdjacentHTML("afterbegin",hh);}}
+}
 function applyLocalReading(cat,iso,z,sw){
   var mk=billKey(iso),list=STATE[cat].readings;
   var ex=list.find(function(r){return billKey(r.datum)===mk;});
@@ -1438,7 +1453,7 @@ function shell(content,cur,noNav){
     if(n[0]==="ablesen")return '<a class="nb nb-read" href="#/ablesen"'+on+'><span class="fab">'+ic("gauge",26)+'</span><span class="lbl">Ablesen</span></a>';
     return '<a class="nb" href="#/'+n[0]+'"'+on+'><span class="nbi">'+ic(n[1],22)+'</span>'+n[2]+'</a>';
   }).join("")+'</nav>';
-  return '<div class="shell">'+side+'<main class="main" id="main">'+content+'</main></div>'+(noNav?"":bottom);
+  return '<div class="shell">'+side+'<main class="main" id="main">'+(UPD.ready?updBarHtml():"")+netBarHtml()+content+'</main></div>'+(noNav?"":bottom);
 }
 
 /* ---- Bausteine ---- */
@@ -2559,14 +2574,40 @@ function printReport(){
   w.document.open();w.document.write(buildReportHtml());w.document.close();
   setTimeout(function(){try{w.focus();w.print();}catch(e){}},400);
 }
-async function updCheck(){
-  try{
-    var ctl=new AbortController(),tm=setTimeout(function(){ctl.abort();},8000);
-    var r=await fetch(location.pathname.replace(/index\.html$/,""),{method:"HEAD",cache:"no-store",signal:ctl.signal});clearTimeout(tm);
-    var lm=r.headers.get("Last-Modified"),srv=lm?Date.parse(lm):NaN,mine=Date.parse(document.lastModified||"");
-    if(isFinite(srv)&&isFinite(mine)&&srv>mine+2000){openSheet('<h3>Neue Version verfügbar</h3><div class="factions"><button class="btn full" data-a="upd-reload">Jetzt laden</button></div>');}
-    else toast("AllTrack ist auf dem neuesten Stand");
-  }catch(e){toast("Keine Verbindung – Prüfung nicht möglich.",true);}
+/* Update-Pruefung: Stand der laufenden Fassung (Last-Modified) gegen den Server.
+   Automatisch nach dem Start, alle 6 Stunden und beim Zurueckkehren in die App. */
+var UPD={ready:false,busy:false,last:0,tag:null};
+async function serverStamp(){
+  var ctl=new AbortController(),tm=setTimeout(function(){ctl.abort();},8000),r;
+  try{r=await fetch(location.pathname.replace(/index\.html$/,""),{method:"HEAD",cache:"no-store",signal:ctl.signal});}
+  finally{clearTimeout(tm);}
+  if(!r||!r.ok)return null;
+  var lm=r.headers.get("Last-Modified"),et=r.headers.get("ETag"),ms=lm?Date.parse(lm):NaN;
+  if(!isFinite(ms))ms=0;
+  if(!ms&&!et)return null;
+  return {ms:ms,tag:et||lm||""};
+}
+async function updCheck(manual){
+  if(UPD.busy)return;
+  if(!manual&&(UPD.ready||isOffline()))return;
+  UPD.busy=true;var s=null;
+  try{s=await serverStamp();}catch(e){s=null;}
+  UPD.busy=false;
+  if(!s){if(manual)toast("Keine Verbindung – Prüfung nicht möglich.",true);return;}
+  UPD.last=Date.now();
+  var mine=Date.parse(document.lastModified||""),neuer;
+  if(s.ms&&isFinite(mine))neuer=s.ms>mine+2000;
+  else{if(!UPD.tag){UPD.tag=s.tag;neuer=false;}else neuer=s.tag!==UPD.tag;}
+  if(!neuer){if(manual)toast("AllTrack ist auf dem neuesten Stand");return;}
+  UPD.ready=true;
+  var m=document.getElementById("main");if(m&&!document.getElementById("updBar"))m.insertAdjacentHTML("afterbegin",updBarHtml()); /* ohne Neuzeichnen – laufende Eingaben bleiben */
+  if(manual)toast("Neue Version verfügbar");
+}
+function updBarHtml(){return '<div class="updbar" id="updBar" role="status"><span>'+ic("sparkles",18)+'Neue Version verfügbar</span><button class="btn sm onink" data-a="upd-reload">Jetzt laden</button></div>';}
+async function applyUpdate(){
+  var b=document.querySelector('#updBar button');if(b){b.disabled=true;b.textContent="Lädt …";}
+  try{if("serviceWorker" in navigator){var regs=await navigator.serviceWorker.getRegistrations();for(var i=0;i<regs.length;i++){try{await regs[i].update();}catch(e){}}}}catch(e){}
+  location.reload();
 }
 function aiLevelSheet(){
   var lv=aiLevel();
@@ -2716,8 +2757,8 @@ function onAction(e){
   else if(a==="imp-csv"){pickImport("csv",b.getAttribute("data-cat"));}
   else if(a==="imp-json-yes"){importJsonNow();}
   else if(a==="imp-csv-yes"){importCsvNow();}
-  else if(a==="upd-check"){updCheck();}
-  else if(a==="upd-reload"){location.reload();}
+  else if(a==="upd-check"){updCheck(true);}
+  else if(a==="upd-reload"){applyUpdate();}
   else if(a==="setup-start"){SETUP.step=1;}
   else if(a==="setup-cat"){setupToggle(b.getAttribute("data-cat"));}
   else if(a==="setup-next"){SETUP.step=Math.min(3,SETUP.step+1);render();window.scrollTo(0,0);}
@@ -2772,6 +2813,7 @@ async function doAuth(mode){
     authMsg("Passwort wird gespeichert …");var e2=await authSetPassword((($("#a_new")||{}).value)||"");
     if(e2){authMsg(e2,"err");return;}
     AUTH_MODE="login";toast("Passwort geändert");
+    if(/type=recovery/i.test(location.hash)){try{window.history.replaceState(null,"",location.pathname+location.search+"#/start");}catch(x){}}
     var s=await sb.auth.getSession();enteredUserId=null;handleSession(s&&s.data?s.data.session:null);
   }
 }
@@ -2813,8 +2855,14 @@ document.addEventListener("change",function(e){
 });
 
 /* ---- Start ---- */
-window.addEventListener("online",function(){if(currentUser&&LOAD_FAILED)retryLoad();else if(currentUser)flushQueue();});
-document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&currentUser&&LOAD_FAILED)retryLoad();});
+window.addEventListener("online",function(){netBarSync();if(currentUser&&LOAD_FAILED)retryLoad();else if(currentUser)flushQueue();});
+window.addEventListener("offline",netBarSync);
+document.addEventListener("visibilitychange",function(){
+  if(document.visibilityState!=="visible")return;
+  if(currentUser&&LOAD_FAILED)retryLoad();
+  if(Date.now()-UPD.last>30*60*1000)updCheck(false);
+});
+if(location.protocol.indexOf("http")===0){setTimeout(function(){updCheck(false);},4000);setInterval(function(){updCheck(false);},6*60*60*1000);}
 if(window.matchMedia){try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",function(ev){var t=null;try{t=localStorage.getItem("vtV2Theme");}catch(x){}if(!t)applyTheme(ev.matches);});}catch(x){}}
 /* Service Worker des klassischen Designs mitnutzen (gleiche Registrierung, sorgt für Offline-Start). */
 if("serviceWorker" in navigator&&location.protocol.indexOf("http")===0&&location.hostname!=="localhost"&&location.hostname!=="127.0.0.1"){
