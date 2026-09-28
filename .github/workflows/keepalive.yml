@@ -1,36 +1,89 @@
 name: Supabase Keep-Alive
 
-# Haelt das kostenlose Supabase-Projekt "wach": Free-Tier-Projekte werden
-# nach 7 Tagen ohne Aktivitaet automatisch pausiert. Dieser Job schickt
-# alle 3 Tage einen winzigen Aufruf an die Datenbank -> das zaehlt als
-# Aktivitaet, also pausiert das Projekt nicht mehr.
+# Haelt das kostenlose Supabase-Projekt wach.
+#
+# Warum nicht mehr "alle 3 Tage ein Lese-Ping": Supabase pausiert Free-Projekte,
+# die ueber 7 Tage "zu wenig Datenbank-Aktivitaet" haben; als Richtwert nennt die
+# Doku "ein paar Anfragen pro Tag". Am 28.09.2026 wurde das Projekt trotz
+# erfolgreicher Pings pausiert - exakt 7 Tage nach der letzten echten Nutzung.
+# Der alte Ping zaehlte also nicht. Deshalb jetzt:
+#   - zweimal taeglich, pro Lauf drei Aufrufe im Abstand von 30 Sekunden
+#   - jeder Aufruf ist eine echte Schreib-Abfrage: rpc/keepalive setzt einen
+#     Zeitstempel in public.keepalive (so ist auch nachpruefbar, wann zuletzt
+#     gepingt wurde)
+#   - streng: nur HTTP 200 mit frischem Zeitstempel zaehlt. Klappt keiner der
+#     drei Aufrufe, scheitert der Lauf -> GitHub schickt sofort eine Mail.
 #
 # Genutzt wird nur der oeffentliche "publishable key" (steht ohnehin in
-# index.html, durch RLS geschuetzt) -> kein Secret noetig.
+# index.html). keepalive() nimmt keine Parameter und beruehrt nur eine Zeile.
 
 on:
   schedule:
-    - cron: '23 5 */3 * *'   # alle 3 Tage, 05:23 UTC
-  workflow_dispatch: {}        # zusaetzlich manuell startbar (Actions-Tab)
+    - cron: '17 5 * * *'    # taeglich 05:17 UTC
+    - cron: '47 16 * * *'   # taeglich 16:47 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Datenbank anpingen
+      - name: Herzschlag an die Datenbank
         env:
           SUPABASE_URL: https://xiwibfscbfrglgfjadza.supabase.co
           SUPABASE_KEY: sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm
         run: |
-          set -e
-          code=$(curl -sS -o /dev/null -w "%{http_code}" \
-            "$SUPABASE_URL/rest/v1/households?select=id&limit=1" \
-            -H "apikey: $SUPABASE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_KEY")
-          echo "Supabase REST antwortete mit HTTP $code"
-          if [ "$code" -ge 200 ] && [ "$code" -lt 500 ]; then
-            echo "OK - Projekt ist erreichbar und bleibt aktiv."
-          else
-            echo "Unerwarteter Status ($code) - bitte pruefen."
+          set -u
+          ok=0
+          for i in 1 2 3; do
+            out=$(curl -sS --max-time 20 --retry 3 --retry-delay 15 --retry-all-errors \
+                    -X POST "$SUPABASE_URL/rest/v1/rpc/keepalive" \
+                    -H "apikey: $SUPABASE_KEY" \
+                    -H "Content-Type: application/json" -d '{}' \
+                    -w '\n%{http_code}' 2>&1) || true
+            code=$(printf '%s\n' "$out" | tail -n1)
+            body=$(printf '%s\n' "$out" | sed '$d' | tr -d '"\r')
+            age=""
+            if [ "$code" = "200" ]; then
+              ts=$(date -u -d "$body" +%s 2>/dev/null || echo "")
+              if [ -n "$ts" ]; then age=$(( $(date -u +%s) - ts )); fi
+            fi
+            if [ "$code" = "200" ] && [ -n "$age" ] && [ "$age" -ge -60 ] && [ "$age" -le 120 ]; then
+              echo "Herzschlag $i: OK (HTTP 200, Zeitstempel $body)"
+              ok=$((ok+1))
+            else
+              echo "::warning::Herzschlag $i fehlgeschlagen (HTTP $code): $body"
+            fi
+            if [ "$i" -lt 3 ]; then sleep 30; fi
+          done
+          if [ "$ok" -eq 0 ]; then
+            echo "::error::Kein Herzschlag ist angekommen. HTTP 000 / nicht aufloesbar = Projekt pausiert (Supabase-Dashboard: Resume project). HTTP 401 = Schluessel ungueltig. Details stehen in den Warnungen darueber."
+            exit 1
+          fi
+          echo "$ok von 3 Herzschlaegen angekommen."
+
+      # GitHub schaltet geplante Workflows in oeffentlichen Repos nach 60 Tagen
+      # ohne Commit ab - dann gaebe es keinen Herzschlag mehr und das Projekt
+      # pausiert wieder. Das wird hier NICHT umgangen (Werkzeuge, die das tun,
+      # hat GitHub gesperrt). Stattdessen: ab Tag 50 scheitert der Morgenlauf
+      # absichtlich, damit GitHub eine Mail schickt. Abhilfe: irgendeine
+      # Kleinigkeit ins Repo committen.
+      - name: Warnung vor der 60-Tage-Abschaltung
+        if: github.event_name == 'schedule' && github.event.schedule == '17 5 * * *'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          last=$(gh api "repos/${{ github.repository }}/commits/${{ github.event.repository.default_branch }}" --jq '.commit.committer.date')
+          days=$(( ( $(date -u +%s) - $(date -u -d "$last" +%s) ) / 86400 ))
+          echo "Letzter Commit: $last (vor $days Tagen)"
+          if [ "$days" -ge 50 ]; then
+            echo "::error::Seit $days Tagen kein Commit. Nach 60 Tagen schaltet GitHub diesen Zeitplan ab und Supabase pausiert wieder. Bitte eine Kleinigkeit ins Repo committen."
             exit 1
           fi
