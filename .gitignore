@@ -13,3 +13,8 @@ index-localstorage-backup.html
 Thumbs.db
 .DS_Store
 desktop.ini
+
+# Lokale Test-Hilfen (echte Daten!) – nie ins Repo
+*.local.json
+*.local.html
+*.local.js
