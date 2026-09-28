@@ -6,8 +6,9 @@
 <meta name="theme-color" content="#f7f4ef">
 <meta name="robots" content="noindex">
 <title>AllTrack</title>
-<link rel="icon" href="../icon-192.png">
-<link rel="apple-touch-icon" href="../icon-192.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preload" href="fonts/nunito-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <script>
 /* Hell/Dunkel sofort setzen, bevor etwas gezeichnet wird (kein Aufblitzen). */
@@ -59,7 +60,7 @@ a{color:inherit;text-decoration:none}
 
 /* ================= App-Rahmen ================= */
 .shell{min-height:100vh}
-.main{padding:18px 16px calc(var(--nav-h) + 28px + env(safe-area-inset-bottom));max-width:1180px;margin:0 auto}
+.main{padding:18px 16px calc(var(--nav-h) + 52px + env(safe-area-inset-bottom));max-width:1180px;margin:0 auto}
 .side{display:none}
 .bnav{position:fixed;left:0;right:0;bottom:0;z-index:40;height:calc(var(--nav-h) + env(safe-area-inset-bottom));padding:6px 8px env(safe-area-inset-bottom);background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);align-items:stretch}
 .nb{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;padding:0 0 10px;color:var(--muted);font-size:.72rem;font-weight:700;border-radius:14px;transition:color .15s}
@@ -76,7 +77,7 @@ a{color:inherit;text-decoration:none}
   .bnav{display:none}
   .side{display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh;padding:22px 16px;border-right:1px solid var(--line);background:var(--surface)}
   .brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:1.25rem;padding:6px 10px 18px}
-  .brand .logo{width:34px;height:34px;border-radius:11px;background:conic-gradient(from 200deg,var(--strom),var(--wasser),var(--gas),var(--strom));display:grid;place-items:center;color:#fff}
+  .brand .logo{width:34px;height:34px;border-radius:10px;box-shadow:var(--sh-1)}
   .sb{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:14px;font-weight:700;color:var(--muted)}
   .sb:hover{background:var(--surface-2);color:var(--text)}
   .sb[aria-current="page"]{background:var(--surface-2);color:var(--text)}
@@ -209,7 +210,7 @@ a{color:inherit;text-decoration:none}
 /* Anmeldung */
 .auth{min-height:100vh;display:grid;place-items:center;padding:24px 16px}
 .authc{width:100%;max-width:400px}
-.authc .logo{width:58px;height:58px;border-radius:18px;background:conic-gradient(from 200deg,var(--strom),var(--wasser),var(--gas),var(--strom));display:grid;place-items:center;color:#fff;margin-bottom:18px;box-shadow:var(--sh-2)}
+.authc .logo{display:block;width:64px;height:64px;border-radius:18px;margin-bottom:18px;box-shadow:var(--sh-2)}
 .authc h1{font-size:2rem;font-weight:900;margin:0 0 4px;letter-spacing:-.02em}
 .authc p{color:var(--muted);margin:0 0 22px}
 .fld{display:block;margin-bottom:12px}
@@ -219,6 +220,50 @@ a{color:inherit;text-decoration:none}
 .amsg{min-height:22px;margin:10px 4px;font-weight:800;font-size:.9rem}
 .amsg.err{color:var(--neg)}.amsg.ok{color:var(--pos)}
 .arow{display:flex;justify-content:space-between;gap:10px;margin-top:14px;flex-wrap:wrap}
+
+/* ================= Ablesen ================= */
+.flow{max-width:560px;margin:0 auto}
+.fhead{display:flex;align-items:center;gap:10px;margin:0 0 16px}
+.fhead .prog{margin-left:auto;display:flex;align-items:center;gap:10px;font-weight:800;color:var(--muted);font-size:.9rem}
+.dots2{display:flex;gap:5px;align-items:center}.dots2 i{width:8px;height:8px;border-radius:9px;background:var(--line-2);transition:width .2s}.dots2 i.on{background:var(--ink);width:22px}.dots2 i.ok{background:var(--pos)}
+.mhead{display:flex;align-items:center;gap:14px}
+.mhead .cb{width:54px;height:54px;border-radius:17px}
+.mhead h2{margin:0;font-size:1.7rem;font-weight:900;letter-spacing:-.01em}
+.mmeta{color:var(--muted);font-weight:700;font-size:.88rem}
+.mrow{display:flex;gap:10px;align-items:stretch;margin-top:18px}
+.minp{flex:1;position:relative;display:block;min-width:0}
+.minp input{width:100%;height:78px;border-radius:22px;border:2px solid var(--line-2);background:var(--surface);font-size:2.2rem;font-weight:900;padding:0 64px 0 20px;font-variant-numeric:tabular-nums;outline:none;transition:border-color .15s,box-shadow .15s}
+.minp input:focus{border-color:var(--ink);box-shadow:0 0 0 5px color-mix(in srgb,var(--ink) 9%,transparent)}
+.minp .u{position:absolute;right:18px;top:50%;transform:translateY(-50%);font-weight:900;color:var(--muted);pointer-events:none}
+.camb{width:78px;flex:none;border-radius:22px;background:var(--surface-2);display:grid;place-items:center;position:relative;color:var(--text)}
+.camb:hover{background:var(--surface-3)}
+.camb .ki{position:absolute;right:8px;bottom:8px;font-size:.6rem;font-weight:900;background:var(--ink);color:var(--ink-fg);border-radius:6px;padding:1px 5px}
+.camb:disabled{cursor:default}
+.spin{width:22px;height:22px;border-radius:50%;border:3px solid var(--line-2);border-top-color:var(--ink);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hint{display:flex;align-items:flex-start;gap:8px;margin:10px 4px 0;font-weight:800;font-size:.9rem;color:var(--muted);min-height:22px}
+.amp{width:10px;height:10px;border-radius:50%;flex:none;margin-top:5px;background:var(--line-2)}
+.amp.green{background:var(--pos)}.amp.yellow{background:var(--warn)}.amp.red{background:var(--neg)}
+.hint.red{color:var(--neg)}.hint.yellow{color:var(--warn)}.hint.green{color:var(--pos)}
+.fsec{margin-top:14px}
+.linkbtn{font-weight:800;color:var(--muted);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line-2)}
+.linkbtn:hover{color:var(--text)}
+.dateline{display:flex;align-items:center;gap:10px;margin-top:18px;padding:12px 14px;border-radius:16px;background:var(--surface-2);font-weight:800;color:var(--muted)}
+.dateline input{margin-left:auto;border:0;background:transparent;font-weight:900;color:var(--text);outline:none;min-width:0}
+.factions{display:grid;gap:12px;margin-top:22px}
+.frow2{display:flex;justify-content:space-between;gap:10px;padding:0 4px}
+.mchange{margin-top:14px;padding:16px;border-radius:18px;border:1.5px dashed var(--line-2)}
+.allrow{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:center;padding:14px;border-radius:20px;background:var(--surface);border:1px solid var(--line);margin-bottom:10px}
+.allrow .minp input{height:60px;font-size:1.5rem;border-radius:16px;padding-right:54px}
+.allrow .camb{width:60px;border-radius:16px}
+.allrow .mrow{margin-top:10px}
+.allrow .hint{grid-column:1/-1;margin-top:6px}
+.donehero{text-align:center;padding:22px 10px 12px}
+.donehero .ok{width:78px;height:78px;border-radius:50%;background:var(--pos-bg);color:var(--pos);display:grid;place-items:center;margin:0 auto 14px}
+.donehero h2{margin:0 0 4px;font-size:1.8rem;font-weight:900}
+.sumrow{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.sumrow:last-child{border-bottom:0}
+.sumrow .v{margin-left:auto;text-align:right;display:grid;justify-items:end;gap:4px}
 
 /* Baustellen-Hinweis fuer noch nicht fertige Bereiche */
 .wip{text-align:center;padding:40px 20px}
@@ -927,6 +972,142 @@ async function dismissSug(key,text){
   }catch(e){toast("Konnte nicht gespeichert werden – erscheint beim nächsten Start evtl. wieder.",true);}
 }
 
+
+/* ---- Ablesungen speichern: gleiche Regeln wie im klassischen Design ---- */
+var _localSeq=0,_flushing=false;
+function isOffline(){return navigator.onLine===false;}
+function applyLocalReading(cat,iso,z,sw){
+  var mk=billKey(iso),list=STATE[cat].readings;
+  var ex=list.find(function(r){return billKey(r.datum)===mk;});
+  var stamp=new Date().toISOString(),start=(isFinite(sw)?sw:null);
+  if(ex){ex.datum=iso;ex.zaehlerstand=z;ex.startwert=start;ex.erfasstAm=stamp;}
+  else list.push({id:"local-"+(++_localSeq),datum:iso,zaehlerstand:z,startwert:start,erfasstAm:stamp});
+}
+/* Pro Abrechnungsmonat gibt es höchstens eine Ablesung. */
+function readingInMonth(cat,iso,exceptId){var mk=billKey(iso);return STATE[cat].readings.find(function(r){return billKey(r.datum)===mk&&r.id!==exceptId;})||null;}
+/* Speichert eine Ablesung. editId = genau diesen Datensatz ändern (auch wenn das Datum in einen anderen Monat rutscht).
+   Rückfragen (Monat schon belegt, unplausibel) stellt die Oberfläche VOR dem Aufruf. Wirft Error mit deutscher Meldung. */
+async function saveReadingData(cat,iso,z,sw,editId){
+  if(!iso)throw new Error("Bitte ein Ablesedatum wählen.");
+  if(iso>todayISO())throw new Error("Das Ablesedatum liegt in der Zukunft ("+deDate(iso)+").");
+  if(!isFinite(z))throw new Error("Bitte einen gültigen Zählerstand eingeben.");
+  if(!tariffForDate(cat,iso)){var e=new Error("Für dieses Datum gibt es noch keinen "+CATS[cat].label+"-Tarif.");e.code="NO_TARIFF";throw e;}
+  var editing=editId?STATE[cat].readings.find(function(r){return r.id===editId;}):null;
+  if(editing&&readingInMonth(cat,iso,editing.id))throw new Error("Für "+billLabel(iso)+" gibt es schon eine andere Ablesung.");
+  var existing=editing||readingInMonth(cat,iso);
+  if(isOffline()){
+    if(editing)throw new Error("Bearbeiten geht erst wieder online.");
+    var q=loadQueue();q.push({t:"reading",household_id:activeHousehold,cat:cat,datum:iso,zaehlerstand:z,startwert:(isFinite(sw)?sw:null)});saveQueue(q);
+    applyLocalReading(cat,iso,z,sw);_histMemo=null;_tgMemo=null;
+    return {queued:true};
+  }
+  var start=isFinite(sw)?sw:null,res;
+  if(existing){
+    res=await sb.from("readings").update({datum:iso,zaehlerstand:z,startwert:start,erfasst_am:new Date().toISOString()}).eq("id",existing.id).select().single();
+    if(res.error)throw res.error;
+    var ix=STATE[cat].readings.findIndex(function(r){return r.id===existing.id;});STATE[cat].readings[ix]=rowToReading(res.data);
+  }else{
+    res=await sb.from("readings").insert(readingToCols(cat,{datum:iso,zaehlerstand:z,startwert:start})).select().single();
+    if(res.error)throw res.error;
+    STATE[cat].readings.push(rowToReading(res.data));
+  }
+  _histMemo=null;_tgMemo=null;
+  return {id:res.data.id};
+}
+/* Offline gesammelte Ablesungen übertragen, sobald wieder Netz da ist. */
+async function flushQueue(){
+  if(_flushing||isOffline()||!currentUser||!activeHousehold||LOAD_FAILED)return;
+  var q=loadQueue();if(!q.length)return;
+  _flushing=true;
+  try{await loadFromDB();}catch(e){_flushing=false;return;}
+  var remain=[],ok=0,fail=0;
+  for(var i=0;i<q.length;i++){
+    var op=q[i];
+    if(op.t!=="reading"||op.household_id!==activeHousehold){remain.push(op);continue;}
+    try{
+      var mk=billKey(op.datum),start=(op.startwert!=null?op.startwert:null);
+      var ex=STATE[op.cat].readings.find(function(r){return billKey(r.datum)===mk&&String(r.id).indexOf("local-")!==0;});
+      var r=ex
+        ?await sb.from("readings").update({datum:op.datum,zaehlerstand:op.zaehlerstand,startwert:start,erfasst_am:new Date().toISOString()}).eq("id",ex.id)
+        :await sb.from("readings").insert(readingToCols(op.cat,{datum:op.datum,zaehlerstand:op.zaehlerstand,startwert:start}));
+      if(r.error)throw r.error;ok++;
+    }catch(e){fail++;remain.push(op);}
+  }
+  saveQueue(remain);_flushing=false;
+  try{await loadFromDB();}catch(e){}
+  render();
+  if(ok)toast(ok+" offline gespeicherte Ablesung"+(ok===1?"":"en")+" übertragen"+(fail?", "+fail+" folgen später":""),fail>0);
+}
+/* Bereichs-Einstellungen des Haushalts (Zähler-Nr., Ziele …) – nur Admins dürfen das laut Datenbankregeln. */
+async function setHouseholdConfig(cfg){
+  if(!activeHousehold)return false;
+  var h=HOUSEHOLDS.find(function(x){return x.id===activeHousehold;}),prev=h?h.category_config:null;
+  if(h)h.category_config=cfg;
+  try{var r=await sbPub.from("households").update({category_config:cfg}).eq("id",activeHousehold);if(r.error)throw r.error;return true;}
+  catch(e){if(h)h.category_config=prev;toast("Konnte Einstellung nicht speichern: "+errMsg(e),true);return false;}
+}
+function saveMeter(cat,value){
+  var cfg=JSON.parse(JSON.stringify(householdConfig()||{}));
+  if(!cfg[cat])cfg[cat]={enabled:true};
+  var v=(value||"").trim();if(v)cfg[cat].meter=v;else delete cfg[cat].meter;
+  return setHouseholdConfig(cfg);
+}
+
+/* ---- Erwarteter Zählerstand (intelligente Vorschläge „Beim Ablesen“) ----
+   Aus den Rohständen: Zuwachs pro Tag zwischen zwei Ablesungen, bevorzugt aus demselben
+   Kalendermonat der Vorjahre (Gas im Winter ≠ Sommer), sonst Ø der letzten 12 Abschnitte.
+   Zählerwechsel-Abschnitte zählen nicht mit. */
+function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/86400000);}
+function lastReadingBefore(cat,iso){var rs=readingsAsc(cat).filter(function(r){return r.datum<iso;});return rs.length?rs[rs.length-1]:null;}
+function meterRates(cat){
+  var rs=readingsAsc(cat),out=[];
+  for(var i=1;i<rs.length;i++){
+    var a=rs[i-1],b=rs[i];
+    if(b.startwert!=null&&isFinite(b.startwert))continue;
+    var d=daysBetween(a.datum,b.datum),dz=b.zaehlerstand-a.zaehlerstand;
+    if(d<5||!(dz>=0))continue;
+    out.push({rate:dz/d,month:((billIndex(b.datum)%12)+12)%12});
+  }
+  return out;
+}
+function expectedMeter(cat,iso){
+  var last=lastReadingBefore(cat,iso);if(!last)return null;
+  var days=daysBetween(last.datum,iso);if(days<=0)return null;
+  var rates=meterRates(cat);if(rates.length<3)return null;
+  var m=((billIndex(iso)%12)+12)%12,same=rates.filter(function(r){return r.month===m;});
+  var pool=same.length?same:rates.slice(-12);
+  var avg=pool.reduce(function(s,r){return s+r.rate;},0)/pool.length;
+  return {value:last.zaehlerstand+avg*days,delta:avg*days,last:last,days:days,seasonal:same.length>0};
+}
+/* Ampel für einen eingegebenen Stand. sw = Anfangsstand bei Zählerwechsel. */
+function meterCheck(cat,iso,z,sw){
+  var u=CATS[cat].unit;
+  if(!isFinite(z))return {level:"red",text:"Bitte eine Zahl eingeben."};
+  if(isFinite(sw)){return z<sw?{level:"red",text:"Kleiner als der Anfangsstand des neuen Zählers."}:{level:"green",text:"Neuer Zähler: "+fmtVal(cat,z-sw)+" "+u+" seit dem Einbau."};}
+  var last=lastReadingBefore(cat,iso);if(!last)return null;
+  if(z<last.zaehlerstand)return {level:"red",text:"Niedriger als zuletzt ("+fmtVal(cat,last.zaehlerstand)+"). Neuer Zähler eingebaut?"};
+  var e=expectedMeter(cat,iso);if(!e||!(e.delta>0))return null;
+  var d=z-last.zaehlerstand,q=d/e.delta,dd=fmtVal(cat,d)+" "+u,ed=fmtVal(cat,e.delta)+" "+u;
+  if(q>=0.5&&q<=1.8)return {level:"green",text:"Passt – "+dd+" seit der letzten Ablesung."};
+  if(q>6)return {level:"red",text:"Das wären "+dd+" – rund "+Math.round(q)+"× so viel wie üblich. Ziffer vertauscht?"};
+  if(q<0.5)return {level:"yellow",text:"Weniger als üblich: "+dd+" statt ca. "+ed+"."};
+  return {level:"yellow",text:"Mehr als üblich: "+dd+" statt ca. "+ed+"."};
+}
+
+/* Fotos vor dem Senden verkleinern: schneller, günstiger, und die KI-Funktion nimmt max. ~6 MB. */
+async function photoB64(file){
+  try{
+    var bmp=await createImageBitmap(file,{imageOrientation:"from-image"});
+    var s=Math.min(1,2000/Math.max(bmp.width,bmp.height)),c=document.createElement("canvas");
+    c.width=Math.round(bmp.width*s);c.height=Math.round(bmp.height*s);
+    c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+    var d=c.toDataURL("image/jpeg",0.85);return {b64:d.slice(d.indexOf(",")+1),mime:"image/jpeg"};
+  }catch(e){
+    if(file.size>6*1024*1024)throw new Error("Das Bild ist zu groß.");
+    return {b64:await fileToBase64(file),mime:file.type||"image/jpeg"};
+  }
+}
+
 /* ================= 4. Intelligente Vorschläge ================= */
 /* Alle Werte stammen aus den eigenen Daten – keine KI, keine externen Dienste.
    Jede Gruppe lässt sich pro Person unter „Mehr“ abschalten. */
@@ -1077,6 +1258,7 @@ var ICONS={
   swap:'<path d="M4 7h13l-3-3"/><path d="M20 17H7l3 3"/>',
   user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   house:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v11h14V9"/><path d="M10 20v-5h4v5"/>',
+  camera:'<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.3l1.5-2h5.4l1.5 2h1.3A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.5"/>',
   sparkles:'<path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.4l-1.8-4.9L5 9.7l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>'
 };
 function ic(n,s){return '<svg class="ico" width="'+(s||20)+'" height="'+(s||20)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[n]||"")+'</svg>';}
@@ -1103,7 +1285,8 @@ function openSheet(html){
   scrimEl=document.createElement("div");scrimEl.className="scrim";scrimEl.onclick=function(){closeSheet();};
   sheetEl=document.createElement("div");sheetEl.className="sheet";sheetEl.setAttribute("role","dialog");sheetEl.setAttribute("aria-modal","true");
   sheetEl.innerHTML='<div class="grab"></div>'+html;
-  sheetEl.addEventListener("click",onAction);
+  /* Klicks im Fenster nur hier verarbeiten – sonst liefe jede Aktion ein zweites Mal ueber document. */
+  sheetEl.addEventListener("click",function(e){onAction(e);e.stopPropagation();});
   document.body.appendChild(scrimEl);document.body.appendChild(sheetEl);
   requestAnimationFrame(function(){scrimEl.classList.add("on");sheetEl.classList.add("on");});
 }
@@ -1124,12 +1307,12 @@ function route(){
   return {name:name,params:params};
 }
 function go(hash){if(location.hash===hash)render();else location.hash=hash;}
-window.addEventListener("hashchange",function(){closeSheet(true);render();window.scrollTo(0,0);});
+window.addEventListener("hashchange",function(){closeSheet(true);if(FLOW&&FLOW.done&&route().name!=="ablesen")FLOW=null;render();window.scrollTo(0,0);if(route().name==="ablesen")focusFlow();});
 
 /* ---- Rahmen: Seitenleiste (Desktop) + untere Leiste (Handy) ---- */
 var NAV=[["start","home","Start"],["verlauf","chart","Verlauf"],["ablesen","gauge","Ablesen"],["vertraege","doc","Verträge"],["mehr","more","Mehr"]];
-function shell(content,cur){
-  var side='<nav class="side" aria-label="Hauptnavigation"><div class="brand"><span class="logo">'+ic("gauge",18)+'</span>AllTrack</div>'+
+function shell(content,cur,noNav){
+  var side='<nav class="side" aria-label="Hauptnavigation"><div class="brand"><img class="logo" src="icon.svg" alt="">AllTrack</div>'+
     NAV.map(function(n){
       if(n[0]==="ablesen")return '<a class="sb sb-read" href="#/ablesen"'+(cur==="ablesen"?' aria-current="page"':"")+'>'+ic("gauge")+' Jetzt ablesen</a>';
       return '<a class="sb" href="#/'+n[0]+'"'+(cur===n[0]?' aria-current="page"':"")+'>'+ic(n[1])+n[2]+'</a>';
@@ -1141,7 +1324,7 @@ function shell(content,cur){
     if(n[0]==="ablesen")return '<a class="nb nb-read" href="#/ablesen"'+on+'><span class="fab">'+ic("gauge",26)+'</span><span class="lbl">Ablesen</span></a>';
     return '<a class="nb" href="#/'+n[0]+'"'+on+'><span class="nbi">'+ic(n[1],22)+'</span>'+n[2]+'</a>';
   }).join("")+'</nav>';
-  return '<div class="shell">'+side+'<main class="main" id="main">'+content+'</main></div>'+bottom;
+  return '<div class="shell">'+side+'<main class="main" id="main">'+content+'</main></div>'+(noNav?"":bottom);
 }
 
 /* ---- Bausteine ---- */
@@ -1225,6 +1408,195 @@ function screenStart(){
     '<div class="sect"><span>Bereiche</span></div>'+tiles;
 }
 
+
+/* ---- Ablesen ---- */
+/* FLOW hält den Stand eines Ablese-Durchgangs (auch wenn man kurz woandershin tippt). */
+var FLOW=null;
+function flowKey(p){return [p.cat||"",p.datum||"",p.mode||""].join("|");}
+function startFlow(p){
+  var withTariff=householdCats().filter(function(c){return STATE[c].tariffs.length>0;});
+  var cats,due=readingsDue();
+  if(p.cat&&withTariff.indexOf(p.cat)>=0)cats=[p.cat];
+  else cats=due.length?due:withTariff;
+  var iso=(p.datum&&/^\d{4}-\d{2}-\d{2}$/.test(p.datum)&&p.datum<=todayISO())?p.datum:todayISO();
+  FLOW={key:flowKey(p),mode:p.mode==="alle"?"all":"steps",cats:cats,i:0,iso:iso,v:{},saved:[],skipped:[],busy:false,done:false,err:{},
+    allCurrent:!p.cat&&!due.length,missing:householdCats().filter(function(c){return withTariff.indexOf(c)<0;})};
+  cats.forEach(function(c){FLOW.v[c]={z:"",sw:"",mn:"",mc:false,ai:null,cam:false};});
+}
+function flowHint(cat){
+  var v=FLOW.v[cat],u=CATS[cat].unit,parts=[];
+  if(v.ai!==null&&v.z)parts.push({level:"",text:"Von der KI gelesen – bitte prüfen."+(v.ai?" "+v.ai:"")});
+  if(smartOn("ablesen")){
+    if(!v.z.trim()){var e=expectedMeter(cat,FLOW.iso);if(e&&!v.mc)parts.push({level:"",text:"erwartet ≈ "+fmtVal(cat,e.value)+" "+u});}
+    else{var ck=meterCheck(cat,FLOW.iso,parseMeterVal(cat,v.z),v.mc?parseMeterVal(cat,v.sw):NaN);if(ck)parts.push(ck);}
+  }
+  if(FLOW.err[cat])parts=[{level:"red",text:FLOW.err[cat]}];
+  if(!parts.length)return {cls:"",html:""};
+  var p=parts[parts.length-1];
+  /* KI-Herkunft sichtbar lassen, auch wenn die Ampel etwas sagt */
+  if(parts.length>1&&v.ai!==null&&v.z&&!FLOW.err[cat])p={level:p.level,text:"KI-Wert · "+p.text};
+  return {cls:p.level,html:'<span class="amp '+p.level+'"></span><span>'+esc(p.text)+'</span>'};
+}
+function hintEl(cat){var h=flowHint(cat);return '<div class="hint '+h.cls+'" id="h_'+cat+'">'+h.html+'</div>';}
+function refreshHint(cat){var el=document.getElementById("h_"+cat);if(!el)return;var h=flowHint(cat);el.className="hint "+h.cls;el.innerHTML=h.html;}
+function meterInput(cat,big){
+  var v=FLOW.v[cat],u=CATS[cat].unit;
+  return '<div class="mrow"><label class="minp"><span class="sr">Zählerstand '+CATS[cat].label+'</span>'+
+    '<input data-mz="'+cat+'" value="'+esc(v.z)+'" inputmode="decimal" autocomplete="off" enterkeyhint="'+(big?"next":"done")+'">'+
+    '<span class="u">'+u+'</span></label>'+
+    '<button type="button" class="camb" data-a="flow-cam" data-cat="'+cat+'" aria-label="Zähler fotografieren, die KI liest die Zahl"'+(v.cam?" disabled":"")+'>'+(v.cam?'<span class="spin"></span>':ic("camera",big?26:22))+'<span class="ki">KI</span></button>'+
+    '<input type="file" accept="image/*" capture="environment" hidden data-photo="'+cat+'"></div>';
+}
+function dateLine(){
+  var today=FLOW.iso===todayISO();
+  return '<label class="dateline">'+ic("calendar",18)+'<span>'+(today?"Heute":"Abgelesen am")+'</span><input type="date" data-fdate value="'+FLOW.iso+'" max="'+todayISO()+'" aria-label="Ablesedatum"></label>';
+}
+function flowHead(){
+  var n=FLOW.cats.length,dots="";
+  if(FLOW.mode==="steps"&&n>1)dots='<span class="dots2">'+FLOW.cats.map(function(c,i){
+    var st=FLOW.saved.some(function(s){return s.cat===c;})?"ok":(i===FLOW.i?"on":"");return '<i class="'+st+'"></i>';}).join("")+'</span>';
+  return '<div class="fhead"><button class="ibtn" data-a="flow-close" aria-label="Ablesen beenden">'+ic("x",22)+'</button>'+
+    '<span class="prog">'+(FLOW.mode==="steps"&&n>1?(FLOW.i+1)+' von '+n:"")+dots+'</span></div>';
+}
+function screenAblesen(p){
+  if(LOADING)return '<div class="flow"><div class="sk" style="height:320px"></div></div>';
+  if(LOAD_FAILED)return '<h1 class="pt">Ablesen</h1>'+loadFailedNote();
+  if(!FLOW||FLOW.key!==flowKey(p))startFlow(p);
+  if(FLOW.done)return flowSummary();
+  if(!FLOW.cats.length)return '<h1 class="pt">Ablesen</h1><div class="card empty"><div class="ei">'+ic("doc",28)+'</div><h3>Erst einen Tarif anlegen</h3><p>Zum Ablesen braucht jeder Bereich einen Tarif – daraus berechnet AllTrack die Kosten.</p><a class="btn" href="#/vertraege">Zu den Verträgen</a></div>';
+  return FLOW.mode==="all"?flowAll():flowStep();
+}
+function flowStep(){
+  var cat=FLOW.cats[FLOW.i],v=FLOW.v[cat],c=CATS[cat],last=lastReadingBefore(cat,FLOW.iso),meter=householdMeter(cat);
+  var meta=[];
+  if(meter)meta.push("Zähler "+esc(meter));
+  if(last)meta.push("zuletzt "+fmtVal(cat,last.zaehlerstand)+" "+c.unit+" am "+deDate(last.datum));
+  return '<form class="flow" id="flowForm" novalidate>'+flowHead()+
+    (FLOW.allCurrent&&FLOW.i===0?'<div class="done" style="margin-bottom:16px">'+ic("check",20)+'<span>Alle Zähler sind aktuell<small>Du kannst trotzdem neue Stände eintragen.</small></span></div>':"")+
+    '<div class="mhead">'+catBadge(cat)+'<div><h2>'+c.label+'</h2><div class="mmeta">'+meta.join(" · ")+'</div></div></div>'+
+    meterInput(cat,true)+hintEl(cat)+
+    (v.mc
+      ?'<div class="mchange"><div style="font-weight:900;margin-bottom:10px">Neuer Zähler eingebaut</div>'+
+        '<label class="fld"><span>Anfangsstand des neuen Zählers ('+c.unit+')</span><input class="inp" data-msw="'+cat+'" value="'+esc(v.sw)+'" inputmode="decimal" placeholder="z. B. 0"></label>'+
+        (IAM_ADMIN?'<label class="fld" style="margin:0"><span>Neue Zählernummer (optional)</span><input class="inp" data-mmn="'+cat+'" value="'+esc(v.mn)+'" autocomplete="off"></label>':"")+
+        '<button type="button" class="linkbtn" data-a="flow-mc" data-cat="'+cat+'" style="margin-top:10px">Doch kein neuer Zähler</button></div>'
+      :'<div class="fsec"><button type="button" class="linkbtn" data-a="flow-mc" data-cat="'+cat+'">Neuer Zähler eingebaut?</button></div>')+
+    dateLine()+
+    '<div class="factions"><button class="btn lg full" type="submit"'+(FLOW.busy?" disabled":"")+'>'+(FLOW.busy?"Speichert …":(FLOW.i<FLOW.cats.length-1?"Speichern & weiter":"Speichern"))+(FLOW.busy?"":" "+ic("arrow",18))+'</button>'+
+    '<div class="frow2"><button type="button" class="linkbtn" data-a="flow-skip">Überspringen</button>'+
+    (FLOW.cats.length>1?'<button type="button" class="linkbtn" data-a="flow-mode" data-mode="all">Alle auf einmal eintragen</button>':"")+'</div></div>'+
+  '</form>';
+}
+function flowAll(){
+  return '<form class="flow" id="flowAllForm" novalidate>'+flowHead()+'<h1 class="pt" style="margin-top:0">Alle Zähler</h1>'+
+    dateLine()+'<div style="margin-top:14px">'+
+    FLOW.cats.map(function(cat){
+      var c=CATS[cat],last=lastReadingBefore(cat,FLOW.iso),done=FLOW.saved.some(function(s){return s.cat===cat;});
+      return '<div class="allrow">'+catBadge(cat)+'<div><div style="font-weight:900">'+c.label+(done?' <span class="pill pos">'+ic("check",12)+' gespeichert</span>':"")+'</div>'+
+        '<div class="mmeta">'+(last?"zuletzt "+fmtVal(cat,last.zaehlerstand)+" "+c.unit:"noch kein Stand")+'</div></div><span></span>'+
+        '<div style="grid-column:1/-1">'+meterInput(cat,false).replace('class="mrow"','class="mrow" style="margin-top:0"')+'</div>'+hintEl(cat)+'</div>';
+    }).join("")+'</div>'+
+    '<p class="mut-t" style="font-size:.86rem;margin:4px 4px 0">Leere Felder werden übersprungen.</p>'+
+    '<div class="factions"><button class="btn lg full" type="submit"'+(FLOW.busy?" disabled":"")+'>'+(FLOW.busy?"Speichert …":"Alle speichern")+'</button>'+
+    '<div class="frow2"><span></span><button type="button" class="linkbtn" data-a="flow-mode" data-mode="steps">Schritt für Schritt</button></div></div></form>';
+}
+/* Rückfragen vor dem Speichern: Monat schon belegt? Wert unplausibel? */
+function flowIssues(cat,z,sw){
+  var out=[],ex=readingInMonth(cat,FLOW.iso);
+  if(ex)out.push("Für "+billLabel(FLOW.iso)+" gibt es schon eine Ablesung ("+fmtVal(cat,ex.zaehlerstand)+" "+CATS[cat].unit+" am "+deDate(ex.datum)+"). Sie wird ersetzt.");
+  var w=plausibilityWarning(cat,FLOW.iso,z,sw);if(w)out.push(w);
+  return out;
+}
+function flowValues(cat){var v=FLOW.v[cat];return {z:parseMeterVal(cat,v.z),sw:v.mc?parseMeterVal(cat,v.sw):NaN,mn:v.mc?v.mn:""};}
+function flowValidate(cat){
+  var v=FLOW.v[cat],x=flowValues(cat);
+  if(!v.z.trim())return "Bitte den Zählerstand eintragen – oder „Überspringen“.";
+  if(!isFinite(x.z))return "Das ist keine gültige Zahl.";
+  if(v.mc&&!isFinite(x.sw))return "Bitte den Anfangsstand des neuen Zählers eintragen.";
+  if(FLOW.iso>todayISO())return "Das Datum liegt in der Zukunft.";
+  if(!tariffForDate(cat,FLOW.iso))return "Für dieses Datum gibt es noch keinen "+CATS[cat].label+"-Tarif.";
+  return null;
+}
+function askConfirm(title,lines,yesAction,data){
+  openSheet('<h3>'+esc(title)+'</h3>'+lines.map(function(l){return '<p style="margin:0 0 10px;color:var(--muted);font-weight:700">'+esc(l)+'</p>';}).join("")+
+    '<div class="factions" style="margin-top:16px"><button class="btn full" data-a="'+yesAction+'"'+(data?' data-cat="'+data+'"':"")+'>Trotzdem speichern</button><button class="btn soft full" data-a="sheet-close">Korrigieren</button></div>');
+}
+async function flowSaveOne(cat){
+  var x=flowValues(cat);
+  try{
+    var r=await saveReadingData(cat,FLOW.iso,x.z,x.sw,null);
+    if(x.mn&&x.mn.trim()&&IAM_ADMIN)await saveMeter(cat,x.mn);
+    FLOW.saved=FLOW.saved.filter(function(s){return s.cat!==cat;});
+    FLOW.saved.push({cat:cat,queued:!!r.queued});delete FLOW.err[cat];
+    return true;
+  }catch(e){FLOW.err[cat]=errMsg(e);return false;}
+}
+async function flowNext(force){
+  var cat=FLOW.cats[FLOW.i],bad=flowValidate(cat);
+  if(bad){FLOW.err[cat]=bad;refreshHint(cat);return;}
+  if(!force){var x=flowValues(cat),iss=flowIssues(cat,x.z,x.sw);if(iss.length){askConfirm("Kurz prüfen",iss,"flow-force");return;}}
+  FLOW.busy=true;render();
+  var ok=await flowSaveOne(cat);FLOW.busy=false;
+  if(!ok){render();return;}
+  flowAdvance();
+}
+function flowAdvance(){
+  if(FLOW.i<FLOW.cats.length-1){FLOW.i++;render();focusFlow();}
+  else finishFlow();
+}
+async function flowSaveAll(force){
+  var todo=FLOW.cats.filter(function(c){return FLOW.v[c].z.trim()&&!FLOW.saved.some(function(s){return s.cat===c&&FLOW.v[c].savedZ===FLOW.v[c].z;});});
+  if(!todo.length){toast("Bitte mindestens einen Zählerstand eintragen.",true);return;}
+  var bad=false;todo.forEach(function(c){var b=flowValidate(c);if(b){FLOW.err[c]=b;bad=true;}else delete FLOW.err[c];refreshHint(c);});
+  if(bad)return;
+  if(!force){
+    var iss=[];todo.forEach(function(c){var x=flowValues(c);flowIssues(c,x.z,x.sw).forEach(function(t){iss.push(CATS[c].label+": "+t);});});
+    if(iss.length){askConfirm("Kurz prüfen",iss,"flow-force-all");return;}
+  }
+  FLOW.busy=true;render();
+  var allOk=true;
+  for(var i=0;i<todo.length;i++){var ok=await flowSaveOne(todo[i]);if(ok)FLOW.v[todo[i]].savedZ=FLOW.v[todo[i]].z;else allOk=false;}
+  FLOW.busy=false;
+  if(allOk)finishFlow();else render();
+}
+async function finishFlow(){
+  FLOW.done=true;FLOW.busy=true;render();
+  if(!isOffline()){try{await loadFromDB();}catch(e){}}
+  _histMemo=null;_tgMemo=null;FLOW.busy=false;render();window.scrollTo(0,0);
+  flushQueue();
+}
+function flowSummary(){
+  if(FLOW.busy)return '<div class="flow"><div class="sk" style="height:300px"></div></div>';
+  var saved=FLOW.saved,mk=billKey(FLOW.iso),queued=saved.some(function(s){return s.queued;});
+  if(!saved.length)return '<div class="flow"><div class="donehero"><div class="ok" style="background:var(--surface-2);color:var(--muted)">'+ic("x",34)+'</div><h2>Nichts gespeichert</h2><p class="mut-t">Alle Zähler wurden übersprungen.</p></div><div class="factions"><a class="btn lg full" href="#/start" data-a="flow-reset">Zur Startseite</a></div></div>';
+  var totK=0,totA=0,rows=saved.map(function(s){
+    var c=CATS[s.cat],u=c.billUnit||c.unit;
+    var r=history(s.cat).find(function(x){return !x.synthetic&&x.reading&&x.reading.datum===FLOW.iso;});
+    if(!r||r.baseline||!isFinite(r.gesamtkosten))return '<div class="sumrow">'+catBadge(s.cat,true)+'<div><b>'+c.label+'</b><div class="mmeta">'+(s.queued?"offline gespeichert":"Startwert gespeichert")+'</div></div></div>';
+    totK+=r.gesamtkosten;totA+=r.abschlag||0;
+    return '<div class="sumrow">'+catBadge(s.cat,true)+'<div><b>'+c.label+'</b><div class="mmeta">'+fmtVerb(s.cat,r.verbrauch)+' '+u+(r.gapMonths>1?" · verteilt auf "+r.gapMonths+" Monate":"")+'</div></div>'+
+      '<div class="v"><div class="num" style="font-weight:900">'+eur(r.gesamtkosten)+'</div>'+(isFinite(r.differenz)?'<span class="pill '+(r.differenz>=0?"pos":"neg")+' num">'+signed(r.differenz)+'</span>':"")+'</div></div>';
+  }).join("");
+  var diff=totA-totK;
+  return '<div class="flow"><div class="donehero"><div class="ok">'+ic("check",38)+'</div><h2>Geschafft!</h2>'+
+    '<p class="mut-t" style="font-weight:700">'+saved.length+' Zähler für '+monthName(mk)+(queued?" – offline gespeichert, wird automatisch übertragen":" gespeichert")+'</p></div>'+
+    '<div class="card" style="padding:4px 16px">'+rows+'</div>'+
+    (totK>0?'<div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center"><div><div class="mmeta">Kosten diesen Monat</div><div class="num" style="font-size:1.4rem;font-weight:900">'+eur(totK)+'</div></div>'+
+      '<div style="text-align:right"><div class="mmeta">gegenüber Abschlag '+eur(totA)+'</div><div class="num '+(diff>=0?"pos-t":"neg-t")+'" style="font-size:1.4rem;font-weight:900">'+signed(diff)+'</div></div></div>':"")+
+    '<div class="factions"><a class="btn lg full" href="#/start" data-a="flow-reset">Zur Startseite</a><a class="btn soft full" href="#/verlauf" data-a="flow-reset">Verlauf ansehen</a></div></div>';
+}
+function focusFlow(){setTimeout(function(){var i=document.querySelector("[data-mz]");if(i)try{i.focus({preventScroll:true});}catch(e){}},60);}
+async function onPhoto(cat,file){
+  var v=FLOW&&FLOW.v[cat];if(!v||!file)return;
+  v.cam=true;render();
+  try{
+    var p=await photoB64(file),z=await recognizeMeterB64(cat,p.b64,p.mime),val=z.zaehlerstand;
+    if(val==null||val===""||!isFinite(Number(val)))toast("Keine Zahl erkannt – bitte eintippen oder neu fotografieren.",true);
+    else{v.z=String(val).replace(".",",");v.ai=z.hinweise||"";delete FLOW.err[cat];}
+  }catch(e){toast("Foto-Erkennung fehlgeschlagen: "+errMsg(e),true);}
+  finally{v.cam=false;render();}
+}
+
 /* ---- Baustelle (Bereiche, die im neuen Design noch entstehen) ---- */
 function screenWip(title,what){
   return '<h1 class="pt">'+title+'</h1><div class="card wip"><div class="ei">'+ic("tool",30)+'</div><h2>Entsteht gerade</h2><p>'+what+'</p>'+
@@ -1244,7 +1616,7 @@ function screenMehr(){
 /* ---- Anmeldung ---- */
 function screenAuth(){
   var reset=AUTH_MODE==="reset";
-  return '<div class="auth"><form class="authc" id="authForm" novalidate><div class="logo">'+ic("gauge",28)+'</div>'+
+  return '<div class="auth"><form class="authc" id="authForm" novalidate><img class="logo" src="icon.svg" alt="">'+
     '<h1>'+(reset?"Neues Passwort":"AllTrack")+'</h1><p>'+(reset?"Vergib jetzt ein neues Passwort.":"Strom, Wasser und Gas im Blick.")+'</p>'+
     (reset
       ?'<label class="fld"><span>Neues Passwort</span><input class="inp" id="a_new" type="password" autocomplete="new-password" minlength="8"></label>'+
@@ -1266,10 +1638,10 @@ function render(){
   var r=route(),c;
   if(r.name==="start")c=screenStart();
   else if(r.name==="verlauf")c=screenWip("Verlauf","Diagramm und Monatsliste kommen in Schritt 3.");
-  else if(r.name==="ablesen")c=screenWip("Ablesen","Der neue Ablese-Ablauf kommt in Schritt 2.");
+  else if(r.name==="ablesen")c=screenAblesen(r.params);
   else if(r.name==="vertraege")c=screenWip("Verträge","Verträge und Dokumente kommen in Schritt 4.");
   else c=screenMehr();
-  root.innerHTML=shell(c,r.name);
+  root.innerHTML=shell(c,r.name,r.name==="ablesen"&&FLOW&&!FLOW.done&&FLOW.cats.length>0);
 }
 
 /* ---- Aktionen (ein zentraler Klick-Verteiler) ---- */
@@ -1286,6 +1658,15 @@ function onAction(e){
   else if(a==="retry"){retryLoad();}
   else if(a==="theme"){var d=!isDark();applyTheme(d);try{localStorage.setItem("vtV2Theme",d?"dark":"light");}catch(x){}saveUserPref({theme:d?"dark":"light"});render();}
   else if(a==="logout"){authLogout();}
+  else if(a==="sheet-close"){closeSheet();}
+  else if(a==="flow-close"){FLOW=null;go("#/start");}
+  else if(a==="flow-reset"){FLOW=null;}
+  else if(a==="flow-skip"){FLOW.skipped.push(FLOW.cats[FLOW.i]);flowAdvance();}
+  else if(a==="flow-mode"){FLOW.mode=b.getAttribute("data-mode")==="all"?"all":"steps";render();if(FLOW.mode==="steps")focusFlow();}
+  else if(a==="flow-mc"){var mc=FLOW.v[b.getAttribute("data-cat")];mc.mc=!mc.mc;render();if(mc.mc){var sw=document.querySelector("[data-msw]");if(sw)sw.focus();}}
+  else if(a==="flow-cam"){var inp=document.querySelector('input[data-photo="'+b.getAttribute("data-cat")+'"]');if(inp)inp.click();}
+  else if(a==="flow-force"){closeSheet();flowNext(true);}
+  else if(a==="flow-force-all"){closeSheet();flowSaveAll(true);}
   else if(a==="signup"){doAuth("signup");}
   else if(a==="forgot"){doAuth("forgot");}
 }
@@ -1304,11 +1685,27 @@ async function doAuth(mode){
 document.addEventListener("click",function(e){if(!sheetEl||!sheetEl.contains(e.target))onAction(e);});
 document.addEventListener("submit",function(e){
   if(e.target.id==="authForm"){e.preventDefault();var btn=e.target.querySelector("[data-mode]");doAuth(btn?btn.getAttribute("data-mode"):"login");}
+  else if(e.target.id==="flowForm"){e.preventDefault();if(!FLOW.busy)flowNext(false);}
+  else if(e.target.id==="flowAllForm"){e.preventDefault();if(!FLOW.busy)flowSaveAll(false);}
 });
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&sheetEl)closeSheet();});
+document.addEventListener("input",function(e){
+  var t=e.target;if(!FLOW)return;
+  var cat=t.getAttribute("data-mz")||t.getAttribute("data-msw")||t.getAttribute("data-mmn");if(!cat||!FLOW.v[cat])return;
+  var v=FLOW.v[cat];
+  if(t.hasAttribute("data-mz")){v.z=t.value;v.ai=null;}
+  else if(t.hasAttribute("data-msw"))v.sw=t.value;
+  else v.mn=t.value;
+  delete FLOW.err[cat];refreshHint(cat);
+});
+document.addEventListener("change",function(e){
+  var t=e.target;if(!FLOW)return;
+  if(t.hasAttribute("data-fdate")){var d=t.value;if(!d||d>todayISO()){toast("Das Datum darf nicht in der Zukunft liegen.",true);t.value=FLOW.iso;return;}FLOW.iso=d;render();}
+  else if(t.hasAttribute("data-photo")){var f=t.files&&t.files[0];t.value="";if(f)onPhoto(t.getAttribute("data-photo"),f);}
+});
 
 /* ---- Start ---- */
-window.addEventListener("online",function(){if(currentUser&&LOAD_FAILED)retryLoad();});
+window.addEventListener("online",function(){if(currentUser&&LOAD_FAILED)retryLoad();else if(currentUser)flushQueue();});
 document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&currentUser&&LOAD_FAILED)retryLoad();});
 if(window.matchMedia){try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",function(ev){var t=null;try{t=localStorage.getItem("vtV2Theme");}catch(x){}if(!t)applyTheme(ev.matches);});}catch(x){}}
 /* Service Worker des klassischen Designs mitnutzen (gleiche Registrierung, sorgt für Offline-Start). */
