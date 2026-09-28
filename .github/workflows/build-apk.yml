@@ -3,25 +3,19 @@ name: Android-APK bauen
 # Baut die native Android-App (Capacitor) und haengt die fertige .apk an ein Release.
 #
 # WICHTIG: Die App laedt ihren Inhalt zur Laufzeit direkt von GitHub Pages
-# (server.url in mobile/capacitor.config.json). Aenderungen an index.html landen dadurch
+# (server.url in archive/mobile/capacitor.config.json). Aenderungen an index.html landen dadurch
 # SOFORT auf dem Handy – dafuer ist KEINE neue APK noetig. Deshalb loest index.html
 # hier auch keinen Build mehr aus. Ein neuer Build wird nur gebraucht, wenn sich am
 # nativen Teil etwas aendert: Plugins, Berechtigungen, App-Symbol/-Name oder die
 # Offline-Seite (offline.html), die als einzige Web-Datei wirklich in der APK steckt.
 #
-# Die APK wird immer mit DEMSELBEN Schluessel (mobile/android-signing.p12) signiert,
+# Die APK wird immer mit DEMSELBEN Schluessel (archive/mobile/android-signing.p12) signiert,
 # damit neue Versionen ohne Deinstallation ueber die alte druebergespielt werden koennen.
 on:
+  # ARCHIVIERT (28.09.2026): Die native App wird nicht weiterentwickelt.
+  # Kein automatischer Build mehr - nur noch manuell ueber "Run workflow".
+  # Die installierte APK laeuft weiter, weil sie ihre Oberflaeche vom Server laedt.
   workflow_dispatch:
-  push:
-    branches: [ main ]
-    paths:
-      - 'offline.html'
-      - 'manifest.webmanifest'
-      - 'icon-192.png'
-      - 'icon-512.png'
-      - 'mobile/**'
-      - '.github/workflows/build-apk.yml'
 
 permissions:
   contents: write
@@ -53,23 +47,23 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Abhaengigkeiten installieren
-        working-directory: mobile
+        working-directory: archive/mobile
         run: npm install --no-audit --no-fund
 
       - name: Web-App zusammenstellen (www)
-        working-directory: mobile
+        working-directory: archive/mobile
         run: node copy-web.mjs
 
       - name: Android-Projekt erzeugen
-        working-directory: mobile
+        working-directory: archive/mobile
         run: npx --no-install cap add android
 
       - name: Plugins synchronisieren
-        working-directory: mobile
+        working-directory: archive/mobile
         run: npx --no-install cap sync android
 
       - name: App-Icons erzeugen (optional)
-        working-directory: mobile
+        working-directory: archive/mobile
         run: npx --no-install capacitor-assets generate --android || echo "Icon-Erzeugung uebersprungen"
 
       # Wenn das Repo-Secret ANDROID_KEYSTORE_B64 gesetzt ist, wird die APK mit
@@ -91,7 +85,7 @@ jobs:
           fi
 
       - name: APK bauen
-        working-directory: mobile/android
+        working-directory: archive/mobile/android
         env:
           KS_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
@@ -111,12 +105,12 @@ jobs:
 
       - name: Fertige APK einsammeln
         run: |
-          REL="mobile/android/app/build/outputs/apk/release/app-release.apk"
-          DBG="mobile/android/app/build/outputs/apk/debug/app-debug.apk"
+          REL="archive/mobile/android/app/build/outputs/apk/release/app-release.apk"
+          DBG="archive/mobile/android/app/build/outputs/apk/debug/app-debug.apk"
           if [ -f "$REL" ]; then cp "$REL" alltrack.apk
           elif [ -f "$DBG" ]; then cp "$DBG" alltrack.apk
           else
-            echo "Keine APK gefunden:"; ls -R mobile/android/app/build/outputs/apk || true; exit 1
+            echo "Keine APK gefunden:"; ls -R archive/mobile/android/app/build/outputs/apk || true; exit 1
           fi
           rm -f "$GITHUB_WORKSPACE/release.p12"
           ls -l alltrack.apk

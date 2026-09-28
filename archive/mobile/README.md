@@ -1,3 +1,12 @@
+> **ARCHIVIERT am 28.09.2026 – wird nicht weiterentwickelt.**
+> Die bereits installierte APK läuft weiter: Sie lädt ihre Oberfläche vom Server (`server.url`)
+> und bekommt damit jede Änderung an der Web-App automatisch.
+>
+> **Reaktivieren:** Ordner zurück nach `mobile/` verschieben, in `copy-web.mjs` die Wurzel wieder auf
+> `join(here, '..')` setzen und in `.github/workflows/build-apk.yml` die Pfade zurückstellen sowie den
+> `push`-Auslöser wieder eintragen. Bis dahin lässt sich eine APK weiterhin manuell bauen
+> (GitHub → Actions → „Android-APK bauen“ → Run workflow).
+
 # AllTrack – native Android-App (Capacitor)
 
 Dieser Ordner verpackt die vorhandene Web-App (`../index.html`) als echte

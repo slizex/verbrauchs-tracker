@@ -5,7 +5,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const root = join(here, '..');
+// Archiviert unter archive/mobile/ -> die Web-App liegt zwei Ebenen hoeher.
+const root = join(here, '..', '..');
 const www = join(here, 'www');
 
 rmSync(www, { recursive: true, force: true });
