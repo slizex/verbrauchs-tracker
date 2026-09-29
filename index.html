@@ -16,19 +16,8 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preload" href="fonts/nunito-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <script>
-/* Wer das klassische Design gewählt hat, landet ohne Umweg dort (Merker pro Gerät,
-   die Einstellung in der Datenbank prüft nach der Anmeldung nach).
-   Nie bei Anmelde-Links (Passwort-Reset), höchstens 3 Sprünge in 20 s. */
-(function(){try{
-  if(/access_token|type=recovery|error_description/.test(location.hash+location.search))return;
-  if(/^#\/abrechnung/.test(location.hash))return;
-  if(localStorage.getItem("vt_design")!=="klassisch")return;
-  var now=Date.now(),h=JSON.parse(sessionStorage.getItem("vt_hops")||"[]");
-  h=(Array.isArray(h)?h:[]).filter(function(t){return typeof t==="number"&&now-t<20000;});
-  if(h.length>=3)return;
-  h.push(now);sessionStorage.setItem("vt_hops",JSON.stringify(h));
-  location.replace(location.pathname.replace(/[^\/]*$/,"")+"klassisch/");
-}catch(e){}})();
+/* Das klassische Design ist seit 7.2.0 archiviert – alte Umschalt-Merker aufräumen. */
+(function(){try{localStorage.removeItem("vt_design");sessionStorage.removeItem("vt_hops");}catch(e){}})();
 /* Hell/Dunkel sofort setzen, bevor etwas gezeichnet wird (kein Aufblitzen). */
 (function(){try{var t=localStorage.getItem("vtV2Theme");var d=t?t==="dark":(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.classList.add("dark");}catch(e){}})();
 </script>
@@ -503,8 +492,8 @@ a.vsep.abr span{color:var(--text)}
 (function(){"use strict";
 /* =====================================================================
    AllTrack – Standard-Design (seit Version 7.0.0)
-   Das klassische Design liegt als Rückfall unter klassisch/index.html – gleiche
-   Daten, gleiche Rechenregeln. Aufbau dieser Datei:
+   Das frühere klassische Design ist seit 7.2.0 archiviert (archive/klassisch/);
+   klassisch/ leitet nur noch hierher um. Aufbau dieser Datei:
      1. Umgebung & Supabase
      2. Rechenlogik – unverändert aus dem klassischen Design übernommen
      3. Sitzung, Laden, Speichern (ohne Oberfläche)
@@ -519,14 +508,13 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.1.0";
+var APP_VERSION="7.2.0";
 /* Pfad …/ = live, …/test/ = Testumgebung (eigener Datenbereich "test") */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var IS_TEST=/\/test\/$/.test(APP_PATH);
 var BASE=APP_PATH.replace(/test\/$/,"");
 var LIVE_URL=location.origin+BASE;
 var TEST_URL=location.origin+BASE+"test/";
-var CLASSIC_URL=location.origin+APP_PATH+"klassisch/";
 var DB_SCHEMA=IS_TEST?"test":"public";
 if(IS_TEST){document.documentElement.classList.add("testenv");document.title="TEST · AllTrack";}
 var sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true},db:{schema:DB_SCHEMA}});
@@ -1087,12 +1075,11 @@ async function loadFromDB(){
 }
 async function fetchUserPrefs(){
   if(!currentUser){USER_PREFS=null;return;}
-  var r=await sb.from("user_prefs").select("ai_level,theme,notif,design,smart,last_export,abr_level").eq("user_id",currentUser.id).maybeSingle();
+  var r=await sb.from("user_prefs").select("ai_level,theme,notif,smart,last_export,abr_level").eq("user_id",currentUser.id).maybeSingle();
   if(r.error)return;
   USER_PREFS=r.data||{};
   if(USER_PREFS.theme==="dark"||USER_PREFS.theme==="light"){try{localStorage.setItem("vtV2Theme",USER_PREFS.theme);}catch(e){}applyTheme(USER_PREFS.theme==="dark");}
   if(AI_LEVELS[USER_PREFS.ai_level]){try{localStorage.setItem("vt_ai_level",USER_PREFS.ai_level);}catch(e){}}
-  try{localStorage.setItem("vt_design",USER_PREFS.design==="klassisch"?"klassisch":"neu");}catch(e){}
 }
 /* Liefert true, wenn gespeichert. */
 function saveUserPref(patch){
@@ -1100,18 +1087,6 @@ function saveUserPref(patch){
   USER_PREFS=Object.assign(USER_PREFS||{},patch);
   var row=Object.assign({user_id:currentUser.id,updated_at:new Date().toISOString()},patch);
   return sb.from("user_prefs").upsert(row,{onConflict:"user_id"}).then(function(r){if(r&&r.error){toast("Einstellung konnte nicht gespeichert werden.",true);return false;}return true;},function(){toast("Einstellung konnte nicht gespeichert werden.",true);return false;});
-}
-/* Wechsel zwischen den Designs – höchstens 3 Sprünge in 20 s (Schutz vor Schleifen). */
-function designHop(url){
-  try{var now=Date.now(),h=JSON.parse(sessionStorage.getItem("vt_hops")||"[]");h=(Array.isArray(h)?h:[]).filter(function(t){return typeof t==="number"&&now-t<20000;});
-    if(h.length>=3)return false;h.push(now);sessionStorage.setItem("vt_hops",JSON.stringify(h));}catch(e){}
-  location.replace(url);return true;
-}
-function wantsClassic(){return !!(USER_PREFS&&USER_PREFS.design==="klassisch")&&!pendingRecovery&&AUTH_MODE!=="reset"&&!/^#\/abrechnung/.test(location.hash);}
-async function switchToClassic(){
-  if(!(await saveUserPref({design:"klassisch"})))return;
-  try{localStorage.setItem("vt_design","klassisch");sessionStorage.removeItem("vt_hops");}catch(e){}
-  location.href=CLASSIC_URL;
 }
 function smartCfg(){
   var s=(USER_PREFS&&USER_PREFS.smart&&typeof USER_PREFS.smart==="object")?USER_PREFS.smart:{};
@@ -1204,7 +1179,6 @@ async function authSetPassword(p){
 }
 async function authLogout(){
   try{unsubscribeRealtime();}catch(e){}
-  try{localStorage.removeItem("vt_design");}catch(e){}
   try{await sb.auth.signOut();}catch(e){}
 }
 function resetSession(){
@@ -1219,7 +1193,6 @@ async function handleSession(session){
     enteredUserId=session.user.id;currentUser=session.user;
     BOOTED=true;LOADING=true;render();
     try{await fetchUserPrefs();}catch(e){}
-    if(wantsClassic()&&designHop(CLASSIC_URL))return;
     await loadAll();
     LOADING=false;render();
     if(!LOAD_FAILED)afterDataLoaded();
@@ -1797,7 +1770,7 @@ function screenStart(){
   var cats=householdCats(),any=cats.some(hasData);
   if(!any)return top+'<div class="card empty"><div class="ei">'+ic("sparkles",28)+'</div><h3>Noch keine Daten in diesem Haushalt</h3><p>In drei kurzen Schritten ist alles eingerichtet.</p><a class="btn" href="#/einrichtung" data-a="setup-start">Einrichtung starten</a></div>';
 
-  /* Hero: Saldo seit Tarifbeginn über alle laufenden Tarife (wie im klassischen Design) */
+  /* Hero: offener Saldo über alle Bereiche (seit letzter Abrechnung bzw. Anbieterbeginn) */
   var tot=totalSaldo(),pos=tot>=0,sis=cats.map(saldoInfo).filter(Boolean),openRows=sis.reduce(function(n,s){return n+s.rows.length;},0);
   var lastSt=SETTLEMENTS.slice().sort(function(a,b){return a.period_to<b.period_to?1:-1;})[0];
   var hlast=lastSt?'<a class="hlast" href="#/abrechnung?id='+esc(lastSt.id)+'">'+ic("check",15)+'<span>Letzte Abrechnung '+(CATS[lastSt.category]?CATS[lastSt.category].label+" ":"")+'bis '+deDate(lastSt.period_to)+': <b class="num">'+settlementErgebnisText(lastSt)+'</b></span></a>':"";
@@ -2520,6 +2493,7 @@ function vtMenu(cat){
   openSheet('<h3>'+CATS[cat].label+'</h3>'+
     (t?'<button class="opt" data-a="vt-edit" data-cat="'+cat+'" data-id="'+esc(t.id)+'">'+ic("tool")+'Tarif bearbeiten</button>':"")+
     '<a class="opt" href="#/abrechnung?cat='+cat+'">'+ic("sparkles")+'Jahresabrechnung prüfen</a>'+
+    (t?'<button class="opt" data-a="vt-wechsel" data-cat="'+cat+'">'+ic("swap")+'Lohnt sich ein Wechsel?</button>':"")+
     '<button class="opt" data-a="vt-beleg" data-cat="'+cat+'">'+ic("doc")+'Dokument hochladen</button>'+
     (cat==="gas"?'<button class="opt" data-a="vt-conv">'+ic("gas")+'Gas-Umrechnung (m³ → kWh)</button>':"")+
     (t?'<button class="opt" data-a="vt-tariff" data-cat="'+cat+'" data-id="'+esc(t.id)+'">'+ic("info")+'Alle Tarifdaten</button>':""));
@@ -2568,6 +2542,33 @@ function docsSheet(cat){
       :'<p class="mut-t" style="font-weight:700">Noch keine Dokumente.</p>')+
     '<div class="factions"><button class="btn full" data-a="vt-beleg" data-cat="'+cat+'">'+ic("doc",18)+' Dokument hochladen</button></div>');
 }
+/* Tarifwechsel-Rechner: laufender Tarif gegen ein Angebot, hochgerechnet auf den geschätzten Jahresverbrauch */
+function wechselSheet(cat){
+  var t=tariffForDate(cat,todayISO());if(!t)return;
+  var w=cat==="wasser",p=tariffPrice(cat,t);VT.wxCat=cat;
+  openSheet('<h3>Lohnt sich ein Wechsel?</h3>'+
+    '<form id="wxForm" novalidate><div class="two"><label class="fld"><span>Grundpreis (€/Jahr)</span><input class="inp" id="wx_grund" inputmode="decimal" value="'+String(Number(t.grundpreisJahr)||0).replace(".",",")+'"></label>'+
+    '<label class="fld"><span>'+(w?"Wasser + Kanal (€/m³)":"Arbeitspreis (ct/kWh)")+'</span><input class="inp" id="wx_preis" inputmode="decimal" value="'+(isFinite(p)?String(w?p:Math.round(p*100000)/1000).replace(".",","):"")+'"></label></div></form>'+
+    '<div id="wxResult"></div>');
+  wechselCalc();
+}
+function wechselCalc(){
+  var cat=VT.wxCat,box=$("#wxResult");if(!cat||!box)return;
+  var t=tariffForDate(cat,todayISO()),av=annualVerbrauchEst(cat),c=CATS[cat];
+  if(!t){box.innerHTML="";return;}
+  if(av==null){box.innerHTML='<p class="mut-t" style="font-weight:700">Noch zu wenig Verbrauch für eine Hochrechnung.</p>';return;}
+  var ng=parseNum(($("#wx_grund")||{}).value),np=parseNum(($("#wx_preis")||{}).value);
+  /* wie im Tarif-Formular: ct/kWh, Werte unter 2 sind schon in € */
+  if(cat!=="wasser"&&isFinite(np)&&np>=2)np=np/100;
+  if(!isFinite(ng)||ng<0||!isFinite(np)||np<0){box.innerHTML='<div class="ferr">Grundpreis und Preis eintragen.</div>';return;}
+  var cur=(Number(t.grundpreisJahr)||0)+av*(tariffPrice(cat,t)||0),neu=ng+av*np,d=cur-neu;
+  box.innerHTML='<div class="dl"><span>Jahresverbrauch (geschätzt)</span><b class="num">'+fmtVerb(cat,av)+' '+(c.billUnit||c.unit)+'</b></div>'+
+    '<div class="dl"><span>Aktueller Tarif</span><b class="num">'+eur(cur)+'/Jahr</b></div>'+
+    '<div class="dl"><span>Angebot</span><b class="num">'+eur(neu)+'/Jahr</b></div>'+
+    (Math.abs(d)<0.5?'<div class="note" style="margin-top:14px"><span class="ni">'+ic("info")+'</span><div><b>Gleich teuer</b></div></div>'
+      :d>0?'<div class="done" style="margin-top:14px">'+ic("check",20)+'<span>'+eur(d)+' günstiger pro Jahr</span></div>'
+      :'<div class="note" style="margin-top:14px"><span class="ni">'+ic("alert")+'</span><div><b>'+eur(-d)+' teurer pro Jahr</b></div></div>');
+}
 function convSheet(err){
   var cv=STATE.gas.conversion||defConv();
   openSheet('<h3>Gas-Umrechnung</h3><p class="mut-t" style="font-weight:700;margin:0 0 12px">kWh = m³ × Wandelfaktor × Zustandszahl × Brennwert – die Werte stehen auf der Gasrechnung.</p>'+
@@ -2597,7 +2598,7 @@ function abrKey(p){return [p.cat||"",p.doc||"",p.id||""].join("|");}
 function abrLevel(){var v=(USER_PREFS&&USER_PREFS.abr_level)||null;try{v=v||localStorage.getItem("vt_abr_level");}catch(e){}return ABR_LEVELS[v]?v:"advanced";}
 function abrStart(p){
   var cats=householdCats().filter(function(c){return STATE[c].tariffs.length>0;});
-  ABR={key:abrKey(p),from:p.from==="klassisch"?"klassisch":null,level:abrLevel(),busy:false,err:null,v:null,raw:null,usage:null,done:null,fixed:{},editOpen:false,delAsk:false};
+  ABR={key:abrKey(p),level:abrLevel(),busy:false,err:null,v:null,raw:null,usage:null,done:null,fixed:{},editOpen:false,delAsk:false};
   if(p.id){var s=SETTLEMENTS.find(function(x){return String(x.id)===String(p.id);});
     if(s){ABR.saved=s;ABR.cat=s.category;ABR.step="bericht";ABR.docId=s.document_id||null;ABR.v=(s.details&&s.details.v)||abrFromRow(s);ABR.raw=s.details&&s.details.raw||null;ABR.usage=s.details&&s.details.usage||null;return;}
     ABR.missing=true;}
@@ -2606,8 +2607,7 @@ function abrStart(p){
 }
 function abrFromRow(s){return {anbieter:s.anbieter||"",von:s.period_from,bis:s.period_to,verbrauch:abrNum(s.verbrauch),kosten:abrNum(s.gesamtkosten),abschlaege:abrNum(s.abschlaege),ergebnis:abrNum(s.ergebnis),
   neuerAbschlag:abrNum(s.neuer_abschlag),rechnungsnummer:s.rechnungsnummer||"",preise:[],anzahl:null};}
-function abrBack(){return ABR&&ABR.from==="klassisch"?'<a class="back" href="'+CLASSIC_URL+'">'+ic("right",18).replace("<svg","<svg style=\"transform:rotate(180deg)\"")+' Klassisches Design</a>'
-  :'<a class="back" href="#/vertraege?cat='+(ABR?ABR.cat:"")+'">'+ic("right",18).replace("<svg","<svg style=\"transform:rotate(180deg)\"")+' Verträge</a>';}
+function abrBack(){return '<a class="back" href="#/vertraege?cat='+(ABR?ABR.cat:"")+'">'+ic("right",18).replace("<svg","<svg style=\"transform:rotate(180deg)\"")+' Verträge</a>';}
 function abrDocs(cat){return docsFor(cat).filter(function(d){return /pdf|image/.test(d.mime_type||"")||/\.(pdf|jpe?g|png|webp|heic)$/i.test(d.filename||"");});}
 function screenAbrechnung(p){
   if(LOADING)return '<h1 class="pt">Jahresabrechnung</h1><div class="sk" style="height:300px"></div>';
@@ -2682,7 +2682,7 @@ function abrReport(cat){
   var form=saved?"":abrEditForm(cat,v);
   var acts=saved
     ?'<div class="factions">'+(ABR.delAsk?'<button class="btn full" style="background:var(--neg);color:#fff" data-a="abr-del-yes">Wirklich löschen – Saldo läuft wieder durch</button>':'<button class="btn soft full" data-a="abr-del">Abrechnung löschen</button>')+'</div>'
-    :(ABR.done?'<div class="factions"><a class="btn lg full" href="'+(ABR.from==="klassisch"?CLASSIC_URL:"#/vertraege?cat="+cat)+'">Fertig</a></div>'
+    :(ABR.done?'<div class="factions"><a class="btn lg full" href="#/vertraege?cat='+cat+'">Fertig</a></div>'
       :'<div class="factions"><button class="btn lg full" data-a="abr-save"'+(v.bis?"":" disabled")+'>'+ic("check",20)+' Abrechnung übernehmen</button><button class="btn soft full" data-a="abr-reset">Verwerfen</button></div>'+
        (v.bis?"":'<p class="mut-t" style="font-weight:700;text-align:center">Zum Übernehmen fehlt das Ende des Zeitraums.</p>'));
   var doneBanner=ABR.done?'<div class="done" style="margin-bottom:var(--gap)">'+ic("check",22)+'<span>Abrechnung übernommen<small>Der Saldo läuft ab '+deDate(addDays(v.bis,1))+' neu.</small></span></div>':"";
@@ -2702,7 +2702,9 @@ function abrEditForm(cat,v){
 function abrReadForm(){
   var v=ABR.v,g=function(id){var e=document.getElementById(id);return e?e.value:"";},num=function(id){var x=parseNum(g(id));return isFinite(x)?x:null;};
   v.von=abrIso(g("ab_von"));v.bis=abrIso(g("ab_bis"));v.verbrauch=num("ab_verb");v.kosten=num("ab_kost");v.abschlaege=num("ab_absch");
-  var e=num("ab_erg");v.ergebnis=e==null?null:(ABR.art==="nachzahlung"?-Math.abs(e):Math.abs(e));
+  /* ein Minus im Betrag heißt Nachzahlung – sonst gilt der Schalter */
+  var e=num("ab_erg");if(e!=null&&e<0)ABR.art="nachzahlung";
+  v.ergebnis=e==null?null:(ABR.art==="nachzahlung"?-Math.abs(e):Math.abs(e));
   v.neuerAbschlag=num("ab_neu");v.neuerAbschlagAb=abrIso(g("ab_neuab"));v.anbieter=g("ab_anb").trim();v.rechnungsnummer=g("ab_nr").trim();
 }
 async function abrUpload(file){
@@ -2814,7 +2816,6 @@ function screenMehr(p){
       mrow("tool","Haushalt verwalten","Anlegen, beitreten, umbenennen, verlassen",null,'href="#/mehr?p=haushalt"')+'</div></section>';
   var pers='<section class="mg mg-pers"><div class="mgrp">Persönlich</div><div class="mlist">'+
       '<div class="mrow2"><span class="mi">'+ic(isDark()?"moon":"sun")+'</span><span class="mt2"><b>Dunkles Design</b></span>'+sw(isDark(),"theme","Dunkles Design")+'</div>'+
-      '<div class="mrow2"><span class="mi">'+ic("swap")+'</span><span class="mt2"><b>Klassisches Design</b></span>'+sw(false,"design-classic","Klassisches Design verwenden")+'</div>'+
       mrow("sparkles","Intelligente Vorschläge",sc.on?"an":"aus",null,'href="#/mehr?p=vorschlaege"')+
       mrow("camera","KI-Modell",AI_LEVELS[aiLevel()].name+" · "+AI_LEVELS[aiLevel()].model,null,'data-a="ai-level"')+
       (IAM_ADMIN?mrow("wallet","KI-Kosten","Wer, wann, welches Modell",null,'href="#/mehr?p=ki"'):"")+'</div></section>';
@@ -2914,7 +2915,7 @@ function mehrInfo(){
       '<li><b>Differenz</b> = Abschlag − Gesamtkosten · Plus = Guthaben</li><li><b>Offener Saldo</b> = Differenzen seit der letzten übernommenen Jahresabrechnung bzw. seit Beginn beim aktuellen Anbieter</li><li>Eine Ablesung am 1. zählt zum Vormonat.</li><li>Fehlende Monate werden gleichmäßig verteilt (geschätzt).</li></ul></div>'+
     '<div class="card" style="margin-top:12px"><div class="nm" style="font-weight:900;margin-bottom:6px">Version '+APP_VERSION+'</div><p class="mut-t" style="font-weight:700;margin:0 0 12px">Stand dieser Fassung: '+stand+'</p><button class="btn sm soft" data-a="upd-check">Nach Updates suchen</button></div>'+
     '<div class="card" style="margin-top:12px"><div class="nm" style="font-weight:900;margin-bottom:6px">Umgebung</div><p class="mut-t" style="font-weight:700;margin:0 0 12px">'+(IS_TEST?"Du bist in der Testumgebung – getrennte Testdaten.":"Du bist in der Live-Umgebung mit deinen echten Daten.")+'</p>'+
-      '<a class="btn sm soft" href="'+(IS_TEST?LIVE_URL:TEST_URL)+'">'+(IS_TEST?"Zur Live-Umgebung":"Zur Testumgebung")+'</a> <button class="btn sm soft" data-a="design-classic">Klassisches Design</button></div>';
+      '<a class="btn sm soft" href="'+(IS_TEST?LIVE_URL:TEST_URL)+'">'+(IS_TEST?"Zur Live-Umgebung":"Zur Testumgebung")+'</a></div>';
 }
 
 /* ---- KI-Kosten (nur Admins; Protokoll schreibt die Edge Function) ---- */
@@ -3234,7 +3235,6 @@ function onAction(e){
   else if(a==="theme"){var d=!isDark();applyTheme(d);try{localStorage.setItem("vtV2Theme",d?"dark":"light");}catch(x){}saveUserPref({theme:d?"dark":"light"});render();}
   else if(a==="logout"){authLogout();}
   else if(a==="sheet-close"){closeSheet();}
-  else if(a==="design-classic"){switchToClassic();}
   else if(a==="ai-level"){aiLevelSheet();}
   else if(a==="ai-set"){var lv=b.getAttribute("data-v");if(!AI_LEVELS[lv])lv="basic";try{localStorage.setItem("vt_ai_level",lv);}catch(x){}saveUserPref({ai_level:lv});closeSheet();render();toast("KI: "+AI_LEVELS[lv].name+" · "+AI_LEVELS[lv].model);}
   else if(a==="install"){if(MH.installEvt){MH.installEvt.prompt();MH.installEvt=null;render();}}
@@ -3282,6 +3282,7 @@ function onAction(e){
   else if(a==="doc-del-yes"){docDelete(b.getAttribute("data-id"));}
   else if(a==="vt-beleg"){pickFile(b.getAttribute("data-cat"),"beleg");}
   else if(a==="vt-conv"){convSheet();}
+  else if(a==="vt-wechsel"){wechselSheet(b.getAttribute("data-cat"));}
   else if(a==="abr-cat"){ABR.cat=b.getAttribute("data-cat");ABR.step="beleg";ABR.docId=null;render();}
   else if(a==="abr-upload"){var af=document.getElementById("abrFile");if(af)af.click();}
   else if(a==="abr-doc"){ABR.docId=b.getAttribute("data-id");ABR.step="modell";ABR.err=null;render();window.scrollTo(0,0);}
@@ -3343,6 +3344,7 @@ document.addEventListener("submit",function(e){
   else if(e.target.id==="abForm"){e.preventDefault();(async function(){var cat=VT.abCat;var bt=parseNum(($("#ab_betrag")||{}).value),iso=($("#ab_gueltig")||{}).value;
     try{await saveAbschlagData(cat,bt,iso);closeSheet();render();toast("Abschlag ab "+deDate(iso)+": "+eur(bt));}catch(x){abschlagSheet(cat,errMsg(x));}})();}
   else if(e.target.id==="abrForm"){e.preventDefault();abrReadForm();ABR.editOpen=true;render();}
+  else if(e.target.id==="wxForm"){e.preventDefault();}
   else if(e.target.id==="convForm"){e.preventDefault();(async function(){var wf=parseNum(($("#cv_wf")||{}).value),zz=parseNum(($("#cv_zz")||{}).value),bw=parseNum(($("#cv_bw")||{}).value);
     try{await saveConversion(wf,zz,bw);closeSheet();render();toast("Umrechnung gespeichert");}catch(x){convSheet(errMsg(x));}})();}
   else if(e.target.id==="flowForm"){e.preventDefault();if(FLOW&&!FLOW.busy)flowNext(false);}
@@ -3350,7 +3352,9 @@ document.addEventListener("submit",function(e){
 });
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&sheetEl)closeSheet();});
 document.addEventListener("input",function(e){
-  var t=e.target;if(!FLOW)return;
+  var t=e.target;
+  if(t.closest&&t.closest("#wxForm")){wechselCalc();return;}
+  if(!FLOW)return;
   var cat=t.getAttribute("data-mz")||t.getAttribute("data-msw")||t.getAttribute("data-mmn");if(!cat||!FLOW.v[cat])return;
   var v=FLOW.v[cat];
   if(t.hasAttribute("data-mz")){v.z=t.value;v.ai=null;}
@@ -3381,7 +3385,7 @@ document.addEventListener("visibilitychange",function(){
 });
 if(location.protocol.indexOf("http")===0){setTimeout(function(){updCheck(false);},4000);setInterval(function(){updCheck(false);},6*60*60*1000);}
 if(window.matchMedia){try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",function(ev){var t=null;try{t=localStorage.getItem("vtV2Theme");}catch(x){}if(!t)applyTheme(ev.matches);});}catch(x){}}
-/* Service Worker des klassischen Designs mitnutzen (gleiche Registrierung, sorgt für Offline-Start). */
+/* Service Worker (network-first, sorgt für Offline-Start). */
 if("serviceWorker" in navigator&&location.protocol.indexOf("http")===0&&location.hostname!=="localhost"&&location.hostname!=="127.0.0.1"){
   navigator.serviceWorker.register(APP_PATH+"sw.js",{scope:APP_PATH}).catch(function(){});
 }

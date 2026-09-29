@@ -9,14 +9,14 @@ Aktuelle Version und Änderungen: [CHANGELOG.md](CHANGELOG.md).
 | Pfad | Inhalt |
 |---|---|
 | `index.html` | App im Standard-Design (eine Datei, Vanilla JS, kein Build) |
-| `klassisch/index.html` | klassisches Design als Rückfall, pro Person umschaltbar |
+| `klassisch/` | leitet nur noch auf die App um (klassisches Design archiviert) |
 | `test/` | Testumgebung – Byte-Kopien, eigener Datenbereich (Schema `test`) |
 | `sw.js`, `manifest.webmanifest`, `icon-*` | installierbare Web-App (PWA) |
 | `supabase/functions/tarif-extract/` | Edge Function für die KI-Auswertung (Claude) |
 | `archive/mobile/` | stillgelegte native Android-Hülle (Capacitor) |
+| `archive/klassisch/` | archiviertes klassisches Design (Stand 7.1.0, nur als Text) |
 
-Nach jeder Änderung `index.html → test/index.html`, `klassisch/index.html → test/klassisch/index.html`
-und `sw.js → test/sw.js` kopieren – die Umgebung wird zur Laufzeit am Pfad erkannt.
+Nach jeder Änderung `index.html → test/index.html` und `sw.js → test/sw.js` kopieren – die Umgebung wird zur Laufzeit am Pfad erkannt.
 
 ## Technik
 

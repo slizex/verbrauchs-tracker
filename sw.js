@@ -7,7 +7,7 @@
    neue Installation ankommen. Damit ist er zugleich das Offline-Netz der App – beim
    Seitenaufruf wartet er höchstens NAV_TIMEOUT auf das Netz und nimmt sonst die
    zuletzt geladene Fassung. */
-var CACHE = 'vt-shell-v7'; // Version 7.0.0: Standard-Design an der Wurzel, klassisches unter klassisch/
+var CACHE = 'vt-shell-v8'; // Version 7.2.0: klassisches Design archiviert – neuer Name räumt dessen alte Kopie aus dem Speicher
 var NAV_TIMEOUT = 5000;
 
 self.addEventListener('install', function (e) {
@@ -15,7 +15,7 @@ self.addEventListener('install', function (e) {
   e.waitUntil(
     caches.open(CACHE).then(function (c) {
       /* einzeln, damit ein fehlender Eintrag nicht alles verhindert */
-      return Promise.all(['./', './index.html', './supabase.js', './fonts/nunito-latin-wght-normal.woff2', './icon.svg', './klassisch/']
+      return Promise.all(['./', './index.html', './supabase.js', './fonts/nunito-latin-wght-normal.woff2', './icon.svg']
         .map(function (u) { return c.add(u).catch(function () {}); }));
     })
   );
@@ -33,9 +33,7 @@ function fromCache(req) {
   return caches.match(req).then(function (m) {
     if (m) return m;
     if (req.mode !== 'navigate') return Response.error();
-    /* Offline und nicht im Speicher: passende App-Huelle (klassisch bzw. Standard) */
-    var u = new URL(req.url);
-    if (u.pathname.indexOf('/klassisch/') >= 0) return caches.match('./klassisch/').then(function (k) { return k || caches.match('./index.html'); });
+    /* Offline und nicht im Speicher: die App-Huelle */
     return caches.match('./index.html');
   });
 }

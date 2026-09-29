@@ -3,6 +3,21 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg, Version, Umgebung* (`APP_VERSION` in `index.html`).
 
+## 7.2.0 – 29.09.2026
+
+**Klassisches Design archiviert**
+- Das klassische Design wird nicht mehr verwendet. Der Umschalter unter *Mehr* und die automatische Designweiche sind entfernt.
+- `/klassisch/` und `/test/klassisch/` leiten auf die App um; Passwort-Reset-Links funktionieren dabei weiter.
+- Die letzte Fassung (Stand 7.1.0) liegt als reine Textdatei unter `archive/klassisch/` und läuft nicht mehr als App.
+- Offline-Speicher: neuer Cache-Name, damit Geräte die alte klassische Kopie verwerfen.
+
+**Neu im Standard-Design**
+- *Lohnt sich ein Wechsel?* (Verträge → ⋯): laufender Tarif gegen ein Angebot, hochgerechnet auf den geschätzten Jahresverbrauch.
+  Bisher gab es den Rechner nur im klassischen Design.
+
+**Korrekturen**
+- Jahresabrechnung: Ein negativ eingetragenes Ergebnis (z. B. −50) gilt jetzt als Nachzahlung statt als Guthaben.
+
 ## 7.1.0 – 29.09.2026
 
 **Jahresabrechnungen**
