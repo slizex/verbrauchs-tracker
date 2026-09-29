@@ -484,7 +484,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.0.0";
+var APP_VERSION="7.0.1";
 /* Pfad …/ = live, …/test/ = Testumgebung (eigener Datenbereich "test") */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var IS_TEST=/\/test\/$/.test(APP_PATH);
@@ -1710,7 +1710,7 @@ function flowHead(){
   var n=FLOW.cats.length,dots="";
   if(FLOW.mode==="steps"&&n>1)dots='<span class="dots2">'+FLOW.cats.map(function(c,i){
     var st=FLOW.saved.some(function(s){return s.cat===c;})?"ok":(i===FLOW.i?"on":"");return '<i class="'+st+'"></i>';}).join("")+'</span>';
-  return '<div class="fhead"><button class="ibtn" data-a="flow-close" aria-label="Ablesen beenden">'+ic("x",22)+'</button>'+
+  return '<div class="fhead"><button type="button" class="ibtn" data-a="flow-close" aria-label="Ablesen beenden">'+ic("x",22)+'</button>'+
     '<span class="prog">'+(FLOW.mode==="steps"&&n>1?(FLOW.i+1)+' von '+n:"")+dots+'</span></div>';
 }
 function screenAblesen(p){
@@ -2980,8 +2980,8 @@ document.addEventListener("submit",function(e){
     try{await saveAbschlagData(cat,bt,iso);closeSheet();render();toast("Abschlag ab "+deDate(iso)+": "+eur(bt));}catch(x){abschlagSheet(cat,errMsg(x));}})();}
   else if(e.target.id==="convForm"){e.preventDefault();(async function(){var wf=parseNum(($("#cv_wf")||{}).value),zz=parseNum(($("#cv_zz")||{}).value),bw=parseNum(($("#cv_bw")||{}).value);
     try{await saveConversion(wf,zz,bw);closeSheet();render();toast("Umrechnung gespeichert");}catch(x){convSheet(errMsg(x));}})();}
-  else if(e.target.id==="flowForm"){e.preventDefault();if(!FLOW.busy)flowNext(false);}
-  else if(e.target.id==="flowAllForm"){e.preventDefault();if(!FLOW.busy)flowSaveAll(false);}
+  else if(e.target.id==="flowForm"){e.preventDefault();if(FLOW&&!FLOW.busy)flowNext(false);}
+  else if(e.target.id==="flowAllForm"){e.preventDefault();if(FLOW&&!FLOW.busy)flowSaveAll(false);}
 });
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&sheetEl)closeSheet();});
 document.addEventListener("input",function(e){

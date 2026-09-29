@@ -3,6 +3,10 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg, Version, Umgebung* (`APP_VERSION` in `index.html`).
 
+## 7.0.1 – 29.09.2026
+
+- Ablesen: Das Schließen-Kreuz im Ablese-Formular löste zusätzlich ein Absenden aus (Konsolenfehler, im ungünstigen Fall halber Speichervorgang). Behoben.
+
 ## 7.0.0 – 28.09.2026
 
 **Neues Design ist Standard**
