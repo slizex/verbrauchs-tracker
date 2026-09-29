@@ -21,6 +21,7 @@
    Nie bei Anmelde-Links (Passwort-Reset), höchstens 3 Sprünge in 20 s. */
 (function(){try{
   if(/access_token|type=recovery|error_description/.test(location.hash+location.search))return;
+  if(/^#\/abrechnung/.test(location.hash))return;
   if(localStorage.getItem("vt_design")!=="klassisch")return;
   var now=Date.now(),h=JSON.parse(sessionStorage.getItem("vt_hops")||"[]");
   h=(Array.isArray(h)?h:[]).filter(function(t){return typeof t==="number"&&now-t<20000;});
@@ -407,6 +408,40 @@ button.mrow2:hover,a.mrow2:hover{background:var(--surface-2)}
 .setupcat .ck{margin-left:auto;color:var(--muted-2)}
 .setupcat.on{border-color:var(--ink)}.setupcat.on .ck{color:var(--pos)}
 
+/* ================= Jahresabrechnung ================= */
+.hlast{display:flex;align-items:center;gap:8px;margin-top:12px;padding:9px 12px;border-radius:12px;background:color-mix(in srgb,var(--surface) 70%,transparent);border:1px solid var(--line);font-weight:800;font-size:.86rem;color:var(--muted)}
+.hlast b{color:var(--text)}
+.vsep.open{color:var(--text)}
+a.vsep.abr{color:var(--pos);border-radius:12px;background:var(--pos-bg);padding:10px 12px;margin:6px 0 2px}
+a.vsep.abr span{color:var(--text)}
+.abrsteps{display:flex;gap:6px;margin:0 0 var(--gap)}
+.abrsteps span{flex:1;text-align:center;padding:7px 4px;border-radius:999px;background:var(--surface-2);color:var(--muted);font-weight:800;font-size:.8rem}
+.abrsteps span.on{background:var(--ink);color:var(--ink-fg)}.abrsteps span.ok{background:var(--pos-bg);color:var(--pos)}
+.abrdoc{display:flex;align-items:center;gap:12px}.abrdoc>div{flex:1;min-width:0;display:grid}.abrdoc small{color:var(--muted);font-weight:700}
+.abrlvl{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:16px;border-radius:var(--r-lg);border:2px solid var(--line);background:var(--surface)}
+.abrlvl.on{border-color:var(--ink)}
+.abrlvl>span:nth-child(2){flex:1;display:grid;gap:2px}.abrlvl small{color:var(--muted);font-weight:700}
+.abrlvl .rd{width:24px;height:24px;border-radius:50%;border:2px solid var(--line-2);display:grid;place-items:center;flex:none;color:var(--ink-fg)}
+.abrlvl.on .rd{background:var(--ink);border-color:var(--ink)}
+.abrlvl .pr{font-weight:900;white-space:nowrap}
+.abrbusy{display:grid;justify-items:center;gap:10px;padding:48px 20px;text-align:center}.abrbusy small{color:var(--muted);font-weight:700}
+.abrhead .vch{margin-bottom:6px}
+.abrres{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+.abrres>div{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px;display:grid;gap:2px}
+.abrres span{color:var(--muted);font-weight:800;font-size:.84rem}.abrres b{font-size:1.6rem;font-weight:900}.abrres small{color:var(--muted);font-weight:700}
+.abrexpl{margin:-4px 4px 0;font-weight:800;color:var(--muted);font-size:.9rem}
+.cause{border-radius:var(--r-lg);padding:14px 16px;border:1px solid var(--line);background:var(--surface);display:grid;gap:8px;justify-items:start}
+.cause .ct{display:flex;align-items:center;gap:8px}.cause p{margin:0;color:var(--text);font-size:.92rem}
+.cause.warn{border-color:color-mix(in srgb,var(--warn) 40%,var(--line))}.cause.warn .ct{color:var(--warn)}
+.cause.info .ct{color:var(--info)}
+.cause .vline{width:auto}
+.abrki{margin:0 4px;color:var(--muted);font-weight:700;font-size:.86rem}
+.abrmon{margin:0}
+.ytab.abr th small{display:block;font-weight:700;color:var(--muted-2);font-size:.74rem}
+.ytab.abr .pill{font-size:.76rem;padding:2px 8px}
+@media (min-width:1100px){.abrgrid{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}}
+@media (min-width:900px){.abrgrid>.grid>.sect:first-child{margin-top:4px}}
+
 /* ================= Ein Abstandsraster für alle Seiten ================= */
 /* --gap zwischen Karten, --sect vor Abschnittstiteln; auf dem Desktop größer */
 :root{--gap:14px;--sect:22px}
@@ -484,7 +519,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.0.1";
+var APP_VERSION="7.1.0";
 /* Pfad …/ = live, …/test/ = Testumgebung (eigener Datenbereich "test") */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var IS_TEST=/\/test\/$/.test(APP_PATH);
@@ -1045,13 +1080,14 @@ async function loadFromDB(){
   var c=res[3];
   if(c&&c.data){st.gas.conversion={wandelfaktor:Number(c.data.wandelfaktor),zustandszahl:Number(c.data.zustandszahl),brennwert:Number(c.data.brennwert)};}
   STATE=st;_histMemo=null;_tgMemo=null;
+  try{await loadSettlements();}catch(e){SETTLEMENTS=[];}
   try{await fetchDismissedNotifs();}catch(e){}
   try{await fetchUserPrefs();}catch(e){}
   try{subscribeRealtime();}catch(e){}
 }
 async function fetchUserPrefs(){
   if(!currentUser){USER_PREFS=null;return;}
-  var r=await sb.from("user_prefs").select("ai_level,theme,notif,design,smart,last_export").eq("user_id",currentUser.id).maybeSingle();
+  var r=await sb.from("user_prefs").select("ai_level,theme,notif,design,smart,last_export,abr_level").eq("user_id",currentUser.id).maybeSingle();
   if(r.error)return;
   USER_PREFS=r.data||{};
   if(USER_PREFS.theme==="dark"||USER_PREFS.theme==="light"){try{localStorage.setItem("vtV2Theme",USER_PREFS.theme);}catch(e){}applyTheme(USER_PREFS.theme==="dark");}
@@ -1071,7 +1107,7 @@ function designHop(url){
     if(h.length>=3)return false;h.push(now);sessionStorage.setItem("vt_hops",JSON.stringify(h));}catch(e){}
   location.replace(url);return true;
 }
-function wantsClassic(){return !!(USER_PREFS&&USER_PREFS.design==="klassisch")&&!pendingRecovery&&AUTH_MODE!=="reset";}
+function wantsClassic(){return !!(USER_PREFS&&USER_PREFS.design==="klassisch")&&!pendingRecovery&&AUTH_MODE!=="reset"&&!/^#\/abrechnung/.test(location.hash);}
 async function switchToClassic(){
   if(!(await saveUserPref({design:"klassisch"})))return;
   try{localStorage.setItem("vt_design","klassisch");sessionStorage.removeItem("vt_hops");}catch(e){}
@@ -1091,7 +1127,7 @@ function subscribeRealtime(){
   unsubscribeRealtime();
   if(!activeHousehold||!sb.channel)return;
   var flt="household_id=eq."+activeHousehold,ch=sb.channel("neu-hh-"+activeHousehold);
-  ["readings","tariffs","abschlag_changes"].forEach(function(tbl){ch.on("postgres_changes",{event:"*",schema:DB_SCHEMA,table:tbl,filter:flt},onRealtimeChange);});
+  ["readings","tariffs","abschlag_changes","settlements"].forEach(function(tbl){ch.on("postgres_changes",{event:"*",schema:DB_SCHEMA,table:tbl,filter:flt},onRealtimeChange);});
   ch.subscribe();rtChannel=ch;rtHousehold=activeHousehold;
 }
 function unsubscribeRealtime(){if(rtChannel){try{sb.removeChannel(rtChannel);}catch(e){}}rtChannel=null;rtHousehold=null;}
@@ -1172,6 +1208,7 @@ async function authLogout(){
   try{await sb.auth.signOut();}catch(e){}
 }
 function resetSession(){
+  SETTLEMENTS=[];ABR=null;
   unsubscribeRealtime();enteredUserId=null;currentUser=null;HOUSEHOLDS=[];activeHousehold=null;
   STATE=defaults();BACKUPS=[];DISMISSED_NOTIFS=[];USER_PREFS=null;MEMBERS=[];IAM_ADMIN=false;LOAD_FAILED=false;
 }
@@ -1353,9 +1390,145 @@ async function photoB64(file){
 function catRows(cat){return history(cat).filter(function(r){return !r.baseline&&isFinite(r.verbrauch);});}
 function lastRow(cat){var r=catRows(cat);return r.length?r[r.length-1]:null;}
 function currentGroup(cat){var cur=tariffForDate(cat,todayISO());return cur?tariffGroups(cat).find(function(g){return g.tid===cur.id;})||null:null;}
-function catSaldo(cat){var g=currentGroup(cat);return g?g.saldo:0;}
 function totalSaldo(){return householdCats().reduce(function(s,c){return s+catSaldo(c);},0);}
 function hasData(cat){return STATE[cat].tariffs.length>0||STATE[cat].readings.length>0;}
+/* ---- Abrechnungen & offener Saldo (seit 7.1.0) ----
+   Der Saldo läuft pro Anbieter: ab dem späteren von „Ende der letzten übernommenen
+   Abrechnung“ und „Beginn beim aktuellen Anbieter“. Preisänderungen beim selben
+   Anbieter laufen weiter, ein Anbieterwechsel beginnt neu. */
+var SETTLEMENTS=[];
+async function loadSettlements(){
+  if(!activeHousehold){SETTLEMENTS=[];return;}
+  var r=await sb.from("settlements").select("*").eq("household_id",activeHousehold);
+  if(r&&r.error)throw r.error;
+  SETTLEMENTS=(r&&r.data)||[];
+}
+var SUPPLIER_STOP=["gmbh","mbh","ag","se","kg","co","ohg","ev","energie","energy","energien","europe","sales","vertrieb","versorgung","stadtwerke","stadt","werke","gemeindewerke","die","der","und","the","deutschland"];
+function supplierKey(name){
+  var ws=String(name||"").toLowerCase().replace(/[^a-zäöüß0-9 ]+/g," ").split(/\s+/).filter(function(w){return w.length>=3&&SUPPLIER_STOP.indexOf(w)<0;});
+  return ws[0]||String(name||"").toLowerCase().trim();
+}
+function sameSupplier(a,b){return !!a&&!!b&&supplierKey(a.anbieter)===supplierKey(b.anbieter);}
+function settlementsFor(cat){return SETTLEMENTS.filter(function(s){return s.category===cat;}).sort(function(a,b){return a.period_to<b.period_to?1:-1;});}
+function saldoInfo(cat){
+  var ts=tariffsAsc(cat);if(!ts.length)return null;
+  var cur=tariffForDate(cat,todayISO())||ts[ts.length-1],i=ts.indexOf(cur),j=i;
+  while(j>0&&sameSupplier(ts[j-1],cur))j--;
+  var ids={};ts.forEach(function(t,k){if(k>=j&&(k<=i||sameSupplier(t,cur)))ids[t.id]=1;});
+  var supStart=ts[j].gueltigAb,last=settlementsFor(cat)[0]||null;
+  var st=(last&&last.period_to>=addDays(supStart,-1))?last:null;
+  var rows=history(cat).filter(function(r){return !r.baseline&&r.tariff&&ids[r.tariff.id]&&(!st||billISO(r.reading.datum)>st.period_to);});
+  var saldo=rows.reduce(function(s,r){return s+(isFinite(r.differenz)?r.differenz:0);},0);
+  return {cat:cat,rows:rows,saldo:saldo,tariff:cur,settlement:st,lastSettlement:last,supplierStart:supStart,kind:st?"abrechnung":"anbieter"};
+}
+function saldoSince(si){
+  if(!si)return "";
+  if(si.kind==="abrechnung")return "seit Abrechnung "+deDate(si.settlement.period_to);
+  return si.rows.length?"seit "+monthName(billKey(si.rows[0].reading.datum)):"seit Beginn";
+}
+function catSaldo(cat){var s=saldoInfo(cat);return s?s.saldo:0;}
+function settlementErgebnisText(s){var e=Number(s.ergebnis);if(!isFinite(e))return "–";return signed(e)+" "+(e>=0?"Guthaben":"Nachzahlung");}
+
+/* ---- Abrechnungsprüfung: Beleg gegen App ---- */
+function abrIso(v){var s=v==null?"":String(v).slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:null;}
+/* KI-Antwort -> einheitliche Belegwerte (Ergebnis mit Vorzeichen: + Guthaben, − Nachzahlung) */
+function abrNorm(x){
+  x=x||{};var n=abrNum,erg=n(x.ergebnisBetrag);
+  if(erg!=null)erg=x.ergebnisArt==="nachzahlung"?-Math.abs(erg):Math.abs(erg);
+  return {anbieter:String(x.anbieter||""),von:abrIso(x.zeitraumVon),bis:abrIso(x.zeitraumBis),verbrauch:n(x.verbrauch),kosten:n(x.gesamtkosten),
+    abschlaege:n(x.summeAbschlaege),anzahl:n(x.anzahlAbschlaege),ergebnis:erg,neuerAbschlag:n(x.neuerAbschlag),neuerAbschlagAb:abrIso(x.neuerAbschlagAb),
+    zStart:n(x.zaehlerstandStart),dStart:abrIso(x.datumStart),zEnde:n(x.zaehlerstandEnde),dEnde:abrIso(x.datumEnde),endGeschaetzt:x.standArtEnde==="geschaetzt",
+    preis:n(x.arbeitspreis),grund:n(x.grundpreisJahr),preise:Array.isArray(x.preise)?x.preise.filter(function(p){return p&&abrNum(p.arbeitspreis)!=null;}):[],
+    rechnungsnummer:String(x.rechnungsnummer||""),schluss:!!x.schlussrechnung,zaehlerwechsel:!!x.zaehlerwechsel,kategorie:String(x.kategorie||""),hinweise:String(x.hinweise||"")};
+}
+/* App-Monate eines Zeitraums (nach Abrechnungstag; Ablesung am 1. zählt zum Vormonat) */
+function abrPeriodRows(cat,von,bis){return history(cat).filter(function(r){if(r.baseline)return false;var d=billISO(r.reading.datum);return (!von||d>=von)&&(!bis||d<=bis);});}
+function tariffPrice(cat,t){return t?(cat==="wasser"?Number(t.wasserKanal):Number(t.arbeitspreis)):NaN;}
+function daysBetween(a,b){var pa=a.split("-").map(Number),pb=b.split("-").map(Number);return Math.round((Date.UTC(pb[0],pb[1]-1,pb[2])-Date.UTC(pa[0],pa[1]-1,pa[2]))/864e5);}
+/* Belegpreis im Zeitraum: nach Tagen gewichtete Preisphasen, sonst der angegebene Preis */
+function abrBillPrice(v){
+  var ps=v.preise.filter(function(p){return abrIso(p.von)&&abrIso(p.bis);});
+  if(ps.length){var d=0,s=0,g=0;ps.forEach(function(p){var n=Math.max(1,daysBetween(abrIso(p.von),abrIso(p.bis))+1);d+=n;s+=n*abrNum(p.arbeitspreis);var gp=abrNum(p.grundpreisJahr);g+=n*(gp!=null?gp:(v.grund||0));});
+    return {preis:s/d,grund:g/d,phasen:ps.length};}
+  return {preis:v.preis,grund:v.grund,phasen:0};
+}
+/* Signifikant ab 5 % oder 10 € (Mengen über den Preis in € bewertet) */
+function abrSig(bill,app,euro){
+  if(bill==null||app==null||!isFinite(bill)||!isFinite(app))return null;
+  var d=bill-app,base=Math.max(Math.abs(bill),Math.abs(app),1);
+  return {d:d,pct:Math.abs(d)/base*100,sig:Math.abs(d)/base>=0.05||Math.abs(euro!=null?euro:d)>=10};
+}
+function abrAnalyse(cat,v){
+  var c=CATS[cat],rows=abrPeriodRows(cat,v.von,v.bis);
+  var sum=function(k){return rows.reduce(function(s,r){return s+(isFinite(r[k])?r[k]:0);},0);};
+  var app={verbrauch:sum("verbrauch"),kosten:sum("gesamtkosten"),abschlaege:sum("abschlag"),ergebnis:sum("differenz"),months:rows.length,est:rows.filter(function(r){return r.synthetic;}).length};
+  var used={};rows.forEach(function(r){if(r.tariff)used[r.tariff.id]=r.tariff;});
+  var tl=Object.keys(used).map(function(k){return used[k];});
+  var appPrice=app.verbrauch>0?rows.reduce(function(s,r){return s+(isFinite(r.verbrauch)&&r.tariff?r.verbrauch*tariffPrice(cat,r.tariff):0);},0)/app.verbrauch:(tl[0]?tariffPrice(cat,tl[0]):NaN);
+  var bp=abrBillPrice(v),priceForEuro=isFinite(bp.preis)?bp.preis:appPrice;
+  var m={
+    verbrauch:abrSig(v.verbrauch,rows.length?app.verbrauch:null,v.verbrauch!=null&&isFinite(priceForEuro)?(v.verbrauch-app.verbrauch)*priceForEuro:null),
+    kosten:abrSig(v.kosten,rows.length?app.kosten:null),
+    abschlaege:abrSig(v.abschlaege,rows.length?app.abschlaege:null),
+    ergebnis:abrSig(v.ergebnis,rows.length?app.ergebnis:null)
+  };
+  var anySig=Object.keys(m).some(function(k){return m[k]&&m[k].sig;}),causes=[];
+  function cause(o){causes.push(o);}
+  if(rows.length){
+    /* 1. Zeitraum / Endstand */
+    var inP=readingsAsc(cat).filter(function(r){var d=billISO(r.datum);return (!v.von||d>=v.von)&&(!v.bis||d<=v.bis);});
+    var lastR=inP[inP.length-1];
+    if(v.zEnde!=null&&v.dEnde&&lastR&&!v.zaehlerwechsel){
+      var dz=v.zEnde-Number(lastR.zaehlerstand),dd=daysBetween(lastR.datum,v.dEnde);
+      if(Math.abs(dz)>0.0005&&(Math.abs(dd)>0||Math.abs(dz)>0)){
+        var ex=readingInMonth(cat,v.dEnde),rep=ex&&ex.datum!==v.dEnde;
+        var eur0=isFinite(priceForEuro)?dz*(c.gas?gasFactor():1)*priceForEuro:null;
+        cause({k:"ende",tone:Math.abs(eur0||0)>=10||Math.abs(dd)>3?"warn":"info",title:"Endstand",
+          text:"Beleg: "+fmtVal(cat,v.zEnde)+" "+c.unit+" am "+deDate(v.dEnde)+(v.endGeschaetzt?" (geschätzt)":"")+" · App: "+fmtVal(cat,lastR.zaehlerstand)+" "+c.unit+" am "+deDate(lastR.datum)+
+            (dd?" ("+Math.abs(dd)+" Tag"+(Math.abs(dd)===1?"":"e")+" "+(dd>0?"früher":"später")+")":"")+" – "+(dz>0?"in der App fehlen ":"die App hat ")+fmtVal(cat,Math.abs(dz))+" "+c.unit+(dz>0?"":" mehr")+".",
+          action:v.dEnde<=todayISO()?{label:rep?"Endstand übernehmen (ersetzt "+deDate(ex.datum)+")":"Endstand als Ablesung eintragen"}:null});
+      }
+    }
+    var firstR=readingsAsc(cat).filter(function(r){return v.dStart&&r.datum<=v.dStart;}).pop();
+    if(v.zStart!=null&&v.dStart&&firstR&&Math.abs(v.zStart-Number(firstR.zaehlerstand))>0.0005&&!v.zaehlerwechsel)
+      cause({k:"start",tone:"info",title:"Anfangsstand",text:"Beleg: "+fmtVal(cat,v.zStart)+" "+c.unit+" am "+deDate(v.dStart)+" · App: "+fmtVal(cat,firstR.zaehlerstand)+" "+c.unit+" am "+deDate(firstR.datum)+"."});
+    /* 2. Preise */
+    if(isFinite(bp.preis)&&isFinite(appPrice)&&v.verbrauch!=null){
+      var dp=bp.preis-appPrice,eurP=dp*v.verbrauch;
+      if(Math.abs(eurP)>=10||Math.abs(dp)/Math.max(appPrice,1e-9)>=0.05){
+        var fmtP=function(p){return cat==="wasser"?num4(p)+" €/m³":ctFmt(p)+" ct/kWh";};
+        var one=tl.length===1?tl[0]:null,split=one&&isFinite(v.preis)&&Math.abs(v.preis-bp.preis)>1e-6&&v.bis;
+        cause({k:"preis",tone:"warn",title:"Arbeitspreis",
+          text:"Der Beleg rechnet im Zeitraum mit "+fmtP(bp.preis)+(bp.phasen>1?" (Mittel aus "+bp.phasen+" Preisphasen)":"")+", die App mit "+fmtP(appPrice)+" – das macht "+(eurP>0?"+":"−")+eur(Math.abs(eurP))+" bei den Kosten."+
+            (split?" "+fmtP(v.preis)+" gilt laut Beleg erst danach.":""),
+          action:one?{label:"Preis "+fmtP(bp.preis)+" übernehmen"+(split?", "+fmtP(v.preis)+" ab "+deDate(addDays(v.bis,1)):"")}:{label:"Tarife ansehen",route:"#/vertraege?cat="+cat}});
+      }
+    }
+    if(isFinite(bp.grund)&&tl.length===1&&Math.abs(bp.grund-Number(tl[0].grundpreisJahr))>=10)
+      cause({k:"grund",tone:"warn",title:"Grundpreis",text:"Beleg: "+eur(bp.grund)+" pro Jahr · App: "+eur(tl[0].grundpreisJahr)+" pro Jahr.",action:{label:"Grundpreis "+eur(bp.grund)+" übernehmen"}});
+    /* 3. Abschläge */
+    if(m.abschlaege&&m.abschlaege.sig){
+      var t3=v.anzahl!=null&&v.anzahl!==app.months?"Der Beleg zählt "+v.anzahl+" Abschläge ("+eur(v.abschlaege)+"), die App "+app.months+" Monate ("+eur(app.abschlaege)+"). Wurde ein Abschlag nicht abgebucht? Kontoauszug prüfen."
+        :"Beleg: "+eur(v.abschlaege)+" · App: "+eur(app.abschlaege)+". Vermutlich fehlt in der App eine Abschlagsänderung.";
+      cause({k:"abschlaege",tone:"warn",title:"Abschläge",text:t3,action:v.anzahl!=null&&v.anzahl!==app.months?null:{label:"Abschlag ändern"}});
+    }
+    /* 4. Posten, die die App nicht kennt */
+    if(v.kosten!=null&&v.verbrauch!=null&&isFinite(bp.preis)&&v.von&&v.bis){
+      var days=daysBetween(v.von,v.bis)+1,expK=v.verbrauch*bp.preis+(isFinite(bp.grund)?bp.grund*days/365:0),rest=v.kosten-expK;
+      if(Math.abs(rest)>=10)cause({k:"posten",tone:"info",title:"Weitere Posten",text:"Verbrauch × Preis + Grundpreis ergeben laut Beleg "+eur(expK)+", berechnet sind "+eur(v.kosten)+" – "+(rest>0?"+":"−")+eur(Math.abs(rest))+" für Posten, die die App nicht kennt (z. B. Messstelle, Umlagen, Boni)."});
+    }
+    /* 5. geschätzte Monate */
+    if(app.est&&anySig)cause({k:"est",tone:"info",title:"Geschätzte Monate",text:app.est+" von "+app.months+" Monaten sind in der App geschätzt, weil Ablesungen fehlen. Die Summe bleibt gleich, nur die Verteilung auf die Monate ist gemittelt."});
+  }
+  /* 6. neuer Abschlag laut Beleg */
+  if(v.neuerAbschlag!=null){
+    var abAb=v.neuerAbschlagAb||(v.bis?addDays(v.bis,1):todayISO()),appAb=abschlagForDate(cat,abAb);
+    var near=(STATE[cat].abschlagChanges||[]).filter(function(a){return Math.abs(Number(a.betrag)-v.neuerAbschlag)<0.005&&a.gueltigAb!==abAb&&Math.abs(daysBetween(a.gueltigAb,abAb))<=120;})[0];
+    if(near)cause({k:"abschlagneu",tone:"info",title:"Neuer Abschlag",text:eur(v.neuerAbschlag)+" gilt laut Beleg ab "+deDate(abAb)+", in der App ab "+deDate(near.gueltigAb)+".",action:{label:"Beginn auf "+deDate(abAb)+" setzen"},near:near.id,ab:abAb});
+    else if(appAb==null||Math.abs(Number(appAb)-v.neuerAbschlag)>=0.005)cause({k:"abschlagneu",tone:"info",title:"Neuer Abschlag",text:"Laut Beleg "+eur(v.neuerAbschlag)+" ab "+deDate(abAb)+".",action:{label:"Abschlag "+eur(v.neuerAbschlag)+" ab "+deDate(abAb)+" anlegen"},ab:abAb});
+  }
+  return {rows:rows,app:app,m:m,anySig:anySig,causes:causes,tariffs:tl,bp:bp,appPrice:appPrice};
+}
 function monthName(key){var n=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];return n[Number(key.slice(5,7))-1]+" "+key.slice(0,4);}
 
 /* Monatlicher Bedarf = Ø Gesamtkosten der letzten 12 abgerechneten Monate (mind. 6). */
@@ -1364,16 +1537,17 @@ function monthlyNeed(cat){
   if(rows.length<6)return null;
   return rows.reduce(function(s,r){return s+r.gesamtkosten;},0)/rows.length;
 }
-/* Prognose zur nächsten Abrechnung: laufendes 12-Monats-Stück des aktuellen Tarifs + Vorschau der Restmonate. */
+/* Prognose zur nächsten Abrechnung: offene Monate seit letzter Abrechnung/Anbieterbeginn + Vorschau bis 12 Monate. */
 function nextBillForecast(cat){
-  var g=currentGroup(cat);if(!g||!g.years.length)return null;
-  var y=g.years[g.years.length-1];
-  if(y.complete||y.rows.length<2)return null;
-  var rest=12-y.rows.length,fc=forecastRows(cat,rest);
+  var si=saldoInfo(cat);if(!si)return null;
+  var rows=si.rows,n=rows.length%12;if(rows.length<2||!n)return null;
+  var cur=rows.slice(rows.length-n);if(cur.length<2)return null;
+  var rest=12-n,fc=forecastRows(cat,rest);
   if(fc.length<rest||fc.some(function(r){return !isFinite(r.differenz);}))return null;
-  var proj=y.sum+fc.reduce(function(s,r){return s+r.differenz;},0);
-  var endKey=billKey(fc.length?fc[fc.length-1].reading.datum:y.end);
-  return {cat:cat,sofar:y.sum,proj:proj,endKey:endKey,months:y.rows.length};
+  var sofar=cur.reduce(function(s,r){return s+(isFinite(r.differenz)?r.differenz:0);},0);
+  var proj=sofar+fc.reduce(function(s,r){return s+r.differenz;},0);
+  var endKey=billKey(fc.length?fc[fc.length-1].reading.datum:cur[cur.length-1].reading.datum);
+  return {cat:cat,sofar:sofar,proj:proj,endKey:endKey,months:n};
 }
 function yearCostWith(t,cat){var v=annualVerbrauchEst(cat);if(v==null||!t)return null;return t.grundpreisJahr+CATS[cat].verbrauchskosten(t,v);}
 
@@ -1407,6 +1581,13 @@ function buildSuggestions(){
   }
 
   if(smartOn("vertraege")){
+    cats.forEach(function(cat){
+      var si=saldoInfo(cat);
+      if(si&&si.rows.length>=12)add({key:"s:abrfaellig|"+cat+"|"+billKey(si.rows[11].reading.datum),group:"vertraege",prio:45,tone:"info",icon:"doc",cat:cat,
+        title:CATS[cat].label+": Jahresabrechnung da?",
+        text:si.rows.length+" Monate sind offen "+saldoSince(si)+". Mit der Abrechnung startet der Saldo neu.",
+        action:{label:"Abrechnung prüfen",route:"#/abrechnung?cat="+cat}});
+    });
     cats.forEach(function(cat){
       var cur=tariffForDate(cat,today);if(!cur)return;
       var ki=kuendigungInfo(cur),name=CATS[cat].label;
@@ -1544,7 +1725,7 @@ function closeSheet(now){
 }
 
 /* ---- Navigation über die Adresse (#/start, #/verlauf?cat=strom …) ---- */
-var ROUTES=["start","verlauf","ablesen","vertraege","mehr","einrichtung"];
+var ROUTES=["start","verlauf","ablesen","vertraege","mehr","einrichtung","abrechnung"];
 function route(){
   var h=location.hash||"";
   if(h.indexOf("#/")!==0)return {name:"start",params:{}};
@@ -1554,7 +1735,7 @@ function route(){
   return {name:name,params:params};
 }
 function go(hash){if(location.hash===hash)render();else location.hash=hash;}
-window.addEventListener("hashchange",function(){closeSheet(true);if(FLOW&&FLOW.done&&route().name!=="ablesen")FLOW=null;render();window.scrollTo(0,0);var rr=route();if(rr.name==="ablesen")focusFlow();if(rr.name==="vertraege"&&rr.params.cat){var vc=document.getElementById("vt_"+rr.params.cat);if(vc)vc.scrollIntoView({block:"start"});}});
+window.addEventListener("hashchange",function(){closeSheet(true);if(ABR&&(ABR.done||ABR.saved)&&route().name!=="abrechnung")ABR=null;if(FLOW&&FLOW.done&&route().name!=="ablesen")FLOW=null;render();window.scrollTo(0,0);var rr=route();if(rr.name==="ablesen")focusFlow();if(rr.name==="vertraege"&&rr.params.cat){var vc=document.getElementById("vt_"+rr.params.cat);if(vc)vc.scrollIntoView({block:"start"});}});
 
 /* ---- Rahmen: Seitenleiste (Desktop) + untere Leiste (Handy) ---- */
 var NAV=[["start","home","Start"],["verlauf","chart","Verlauf"],["ablesen","gauge","Ablesen"],["vertraege","doc","Verträge"],["mehr","more","Mehr"]];
@@ -1617,16 +1798,18 @@ function screenStart(){
   if(!any)return top+'<div class="card empty"><div class="ei">'+ic("sparkles",28)+'</div><h3>Noch keine Daten in diesem Haushalt</h3><p>In drei kurzen Schritten ist alles eingerichtet.</p><a class="btn" href="#/einrichtung" data-a="setup-start">Einrichtung starten</a></div>';
 
   /* Hero: Saldo seit Tarifbeginn über alle laufenden Tarife (wie im klassischen Design) */
-  var tot=totalSaldo(),pos=tot>=0;
+  var tot=totalSaldo(),pos=tot>=0,sis=cats.map(saldoInfo).filter(Boolean),openRows=sis.reduce(function(n,s){return n+s.rows.length;},0);
+  var lastSt=SETTLEMENTS.slice().sort(function(a,b){return a.period_to<b.period_to?1:-1;})[0];
+  var hlast=lastSt?'<a class="hlast" href="#/abrechnung?id='+esc(lastSt.id)+'">'+ic("check",15)+'<span>Letzte Abrechnung '+(CATS[lastSt.category]?CATS[lastSt.category].label+" ":"")+'bis '+deDate(lastSt.period_to)+': <b class="num">'+settlementErgebnisText(lastSt)+'</b></span></a>':"";
   var hero=!cats.some(function(c){return catRows(c).length>0;})?
-    '<section class="hero"><div class="lbl">Saldo laufende Tarife</div><div class="big num" style="color:var(--muted)">–</div><div class="sub">Erste Auswertung nach der nächsten Ablesung</div></section>':
-    '<section class="hero '+(pos?"pos":"neg")+'"><div class="lbl">Saldo laufende Tarife</div>'+
-    '<div class="big num">'+signed(tot)+'</div><div class="state">'+(pos?"Guthaben":"Nachzahlung")+'</div>'+
-    '<div class="sub">über '+cats.length+' Bereich'+(cats.length===1?"":"e")+' seit Tarifbeginn</div>'+
+    '<section class="hero"><div class="lbl">Offener Saldo</div><div class="big num" style="color:var(--muted)">–</div><div class="sub">Erste Auswertung nach der nächsten Ablesung</div></section>':
+    '<section class="hero '+(openRows?(pos?"pos":"neg"):"")+'"><div class="lbl">Offener Saldo</div>'+
+    '<div class="big num"'+(openRows?"":' style="color:var(--muted)"')+'>'+(openRows?signed(tot):eur(0))+'</div><div class="state">'+(openRows?(pos?"Guthaben":"Nachzahlung"):"Neu gestartet")+'</div>'+
+    '<div class="sub">'+(sis.length===1?CATS[sis[0].cat].label+" · "+saldoSince(sis[0]):"über "+cats.length+" Bereiche · seit letzter Abrechnung bzw. Anbieterbeginn")+'</div>'+hlast+
     '<button class="tog" data-a="hero-toggle" aria-expanded="'+HERO_OPEN+'">'+(HERO_OPEN?"Weniger":"Aufteilung")+ic(HERO_OPEN?"down":"right",16)+'</button>'+
     (HERO_OPEN?'<div class="hbreak">'+cats.map(function(c){
-      var g=currentGroup(c),t=g&&g.tariff,s=g?g.saldo:0;
-      return '<div class="hrow">'+catBadge(c,true)+'<div><div style="font-weight:900">'+CATS[c].label+'</div><div class="mut-t" style="font-size:.82rem;font-weight:700">'+(t?esc(t.anbieter||"Tarif")+" · seit "+monthName(billKey(g.rows[0].reading.datum)):"kein laufender Tarif")+'</div></div><span class="v num '+(s>=0?"pos-t":"neg-t")+'">'+signed(s)+'</span></div>';
+      var si=saldoInfo(c),t=si&&si.tariff,s=si?si.saldo:0;
+      return '<div class="hrow">'+catBadge(c,true)+'<div><div style="font-weight:900">'+CATS[c].label+'</div><div class="mut-t" style="font-size:.82rem;font-weight:700">'+(t?esc(t.anbieter||"Tarif")+" · "+saldoSince(si):"kein laufender Tarif")+'</div></div><span class="v num '+(s>=0?"pos-t":"neg-t")+'">'+signed(s)+'</span></div>';
     }).join("")+'</div>':"")+
   '</section>';
 
@@ -1641,7 +1824,7 @@ function screenStart(){
 
   /* Kacheln */
   var tiles='<div class="tiles'+(cats.length>=3?" t3":"")+'">'+cats.map(function(c){
-    var L=lastRow(c),g=currentGroup(c),s=g?g.saldo:0,u=CATS[c].billUnit||CATS[c].unit;
+    var L=lastRow(c),s=catSaldo(c),u=CATS[c].billUnit||CATS[c].unit;
     if(!L)return '<a class="tile" href="#/verlauf?cat='+c+'"><div class="hd">'+catBadge(c)+'<div><div class="nm">'+CATS[c].label+'</div><div class="mt">Noch keine Auswertung</div></div></div></a>';
     var d=L.differenz,dp=d>=0;
     var costs=catRows(c).slice(-12).map(function(r){return r.gesamtkosten;});
@@ -1923,16 +2106,21 @@ function screenVerlauf(p){
 }
 function monthList(cat){
   var c=CATS[cat],u=c.billUnit||c.unit,groups=tariffGroups(cat).slice().reverse(),out=[],count=0,more=false;
+  var si=saldoInfo(cat),sts=settlementsFor(cat),placed={};
+  var covered=function(r){var d=billISO(r.reading.datum);return sts.some(function(s){return d<=s.period_to&&(!s.period_from||d>=s.period_from);});};
+  if(si)out.push('<div class="vsep open">'+ic("wallet",15)+'<span>Offen '+saldoSince(si)+'</span><b class="num '+(si.saldo>=0?"pos-t":"neg-t")+'">'+signed(si.saldo)+'</b></div>');
   groups.forEach(function(g){
     if(more)return;
     var t=g.tariff,first=g.rows[0].reading.datum;
-    out.push('<div class="vsep">'+ic("doc",15)+'<span>'+(t?esc(t.anbieter||"Tarif"):"Ohne Tarif")+' · seit '+monthName(billKey(first))+'</span><b class="num '+(g.saldo>=0?"pos-t":"neg-t")+'">'+signed(g.saldo)+'</b></div>');
+    out.push('<div class="vsep">'+ic("doc",15)+'<span>'+(t?esc(t.anbieter||"Tarif"):"Ohne Tarif")+' · seit '+monthName(billKey(first))+'</span></div>');
     var ends={};g.years.forEach(function(y){if(y.complete)ends[billKey(y.end)]=y;});
     g.rows.slice().reverse().forEach(function(r){
       if(more)return;
       if(count>=VL.limit){more=true;return;}
-      var k=billKey(r.reading.datum),ye=ends[k];
-      if(ye)out.push('<div class="vsep yr">'+ic("calendar",15)+'<span>Jahresabrechnung '+mShort(billKey(y0(ye)))+' – '+mShort(k)+'</span><b class="num '+(ye.sum>=0?"pos-t":"neg-t")+'">'+signed(ye.sum)+'</b></div>');
+      var k=billKey(r.reading.datum),ye=ends[k],dr=billISO(r.reading.datum);
+      sts.forEach(function(s){if(placed[s.id]||dr>s.period_to||(s.period_from&&dr<s.period_from))return;placed[s.id]=1;
+        out.push('<a class="vsep abr" href="#/abrechnung?id='+esc(s.id)+'">'+ic("check",15)+'<span>Abgerechnet '+(s.period_from?deDate(s.period_from).slice(0,6)+deDate(s.period_from).slice(8)+" – ":"bis ")+deDate(s.period_to).slice(0,6)+deDate(s.period_to).slice(8)+'</span><b class="num '+(Number(s.ergebnis)>=0?"pos-t":"neg-t")+'">'+(isFinite(Number(s.ergebnis))&&s.ergebnis!=null?signed(Number(s.ergebnis)):"–")+'</b></a>');});
+      if(ye&&!covered(r))out.push('<div class="vsep yr">'+ic("calendar",15)+'<span>Jahressumme (berechnet) '+mShort(billKey(y0(ye)))+' – '+mShort(k)+'</span><b class="num '+(ye.sum>=0?"pos-t":"neg-t")+'">'+signed(ye.sum)+'</b></div>');
       out.push(monthRowNeu(cat,r));count++;
     });
   });
@@ -2073,7 +2261,7 @@ async function ensureDocs(force){
   if(!force&&VT.docsHH===activeHousehold)return;
   VT.docsHH=activeHousehold;
   try{await loadDocs();}catch(e){}
-  if(route().name==="vertraege")render();
+  if(route().name==="vertraege"||(route().name==="abrechnung"&&ABR&&!ABR.busy))render();
 }
 
 /* Tarif speichern (neu oder bearbeiten). Neue Tarife lösen den vorherigen über das Gültig-ab-Datum ab. */
@@ -2192,9 +2380,11 @@ function kuendigungLine(cat,t){
   else txt="Kündigungsfrist "+kfLabel(ki.frist);
   return '<div class="vline '+cls+'">'+ic(icon,16)+'<span>'+esc(txt)+'</span></div>';
 }
+/* Vom Handy geteilte Dateien heißen oft nur nach einer Kennung – dann Art + Datum zeigen */
+function docName(d){var n=String(d&&d.filename||"");if(!n)return "Dokument";if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/i.test(n))return n;var ext=(n.match(/\.(\w+)$/)||[])[1];return (d.kind==="abrechnung"?"Abrechnung":d.kind==="tarif"?"Tarif":d.kind==="beleg"?"Beleg":"Dokument")+(d.created_at?" "+deDate(String(d.created_at).slice(0,10)):"")+(ext?"."+ext.toLowerCase():"");}
 function docChip(d){
   var s=docStatus(d),pdf=d.mime_type==="application/pdf",st=s.t.replace(/^[^\wÄÖÜäöü]+\s*/,"");
-  return '<button class="dchip" data-a="doc-open" data-id="'+esc(d.id)+'">'+ic("doc",16)+'<span><b>'+esc(d.filename||"Dokument")+'</b><small>'+esc(st)+'</small></span></button>';
+  return '<button class="dchip" data-a="doc-open" data-id="'+esc(d.id)+'">'+ic("doc",16)+'<span><b>'+esc(docName(d))+'</b><small>'+esc(st)+'</small></span></button>';
 }
 function screenVertraege(p){
   if(LOADING)return '<h1 class="pt">Verträge</h1><div class="sk" style="height:260px"></div>';
@@ -2212,13 +2402,13 @@ function contractCard(cat,focus){
     '<p class="mut-t" style="margin:12px 0 14px;font-weight:700">Mit dem Tarif berechnet AllTrack Kosten und Abschlag.</p>'+
     '<div class="vact"><button class="btn sm" data-a="vt-ai" data-cat="'+cat+'">'+ic("sparkles",16)+' Aus Dokument (KI)</button><button class="btn sm soft" data-a="vt-new" data-cat="'+cat+'">Selbst eingeben</button></div>'+
     (past.length?pastList(cat,past):"")+'</section>';
-  var ab=abschlagForDate(cat,today),g=currentGroup(cat),sal=g?g.saldo:0;
+  var ab=abschlagForDate(cat,today),si=saldoInfo(cat),sal=si?si.saldo:0,lst=settlementsFor(cat)[0];
   var grid='<div class="kv">'+
     '<div><span>'+priceLabel(cat)+'</span><b class="num">'+priceText(cat,t)+'</b></div>'+
     '<div><span>Grundpreis</span><b class="num">'+eur(t.grundpreisJahr)+'/Jahr</b></div>'+
     '<div><span>Abschlag</span><b class="num">'+(ab!=null?eur(ab):"–")+'/Monat</b></div>'+
-    '<div><span>Saldo seit Beginn</span><b class="num '+(sal>=0?"pos-t":"neg-t")+'">'+signed(sal)+'</b></div></div>';
-  var lines="";
+    '<div><span>Saldo '+(si&&si.kind==="abrechnung"?"seit Abrechnung":"seit Beginn")+'</span><b class="num '+(sal>=0?"pos-t":"neg-t")+'">'+signed(sal)+'</b></div></div>';
+  var lines=lst?'<a class="vline good" href="#/abrechnung?id='+esc(lst.id)+'">'+ic("check",16)+'<span>Abrechnung bis '+deDate(lst.period_to)+': '+settlementErgebnisText(lst)+'</span><b>Bericht</b></a>':"";
   if(smartOn("geld")){
     var need=monthlyNeed(cat);
     if(need!=null&&ab>0){var diff=ab-need,lim=Math.max(5,ab*0.08);
@@ -2233,7 +2423,7 @@ function contractCard(cat,focus){
   var docs=docsFor(cat);
   var docRow=docs.length?'<div class="drow">'+docs.slice(0,3).map(docChip).join("")+(docs.length>3?'<button class="dchip more" data-a="vt-docs" data-cat="'+cat+'">Alle '+docs.length+'</button>':"")+'</div>':"";
   return '<section class="card vcard'+(focus?" focus":"")+'" id="vt_'+cat+'">'+head+grid+(lines?'<div class="vlines">'+lines+'</div>':"")+docRow+
-    '<div class="vact"><button class="btn sm soft" data-a="vt-new-choice" data-cat="'+cat+'">Neuer Tarif</button><button class="btn sm soft" data-a="vt-ab" data-cat="'+cat+'">Abschlag</button><button class="btn sm soft" data-a="vt-docs" data-cat="'+cat+'">Dokumente'+(docs.length?" ("+docs.length+")":"")+'</button></div>'+
+    '<div class="vact"><button class="btn sm soft" data-a="vt-new-choice" data-cat="'+cat+'">Neuer Tarif</button><button class="btn sm soft" data-a="vt-ab" data-cat="'+cat+'">Abschlag</button><a class="btn sm soft" href="#/abrechnung?cat='+cat+'">Jahresabrechnung</a><button class="btn sm soft" data-a="vt-docs" data-cat="'+cat+'">Dokumente'+(docs.length?" ("+docs.length+")":"")+'</button></div>'+
     (past.length?pastList(cat,past):"")+'</section>';
 }
 function pastList(cat,past){
@@ -2329,7 +2519,7 @@ function vtMenu(cat){
   var t=tariffForDate(cat,todayISO());
   openSheet('<h3>'+CATS[cat].label+'</h3>'+
     (t?'<button class="opt" data-a="vt-edit" data-cat="'+cat+'" data-id="'+esc(t.id)+'">'+ic("tool")+'Tarif bearbeiten</button>':"")+
-    '<button class="opt" data-a="vt-abr" data-cat="'+cat+'">'+ic("sparkles")+'Jahresabrechnung prüfen (KI)</button>'+
+    '<a class="opt" href="#/abrechnung?cat='+cat+'">'+ic("sparkles")+'Jahresabrechnung prüfen</a>'+
     '<button class="opt" data-a="vt-beleg" data-cat="'+cat+'">'+ic("doc")+'Dokument hochladen</button>'+
     (cat==="gas"?'<button class="opt" data-a="vt-conv">'+ic("gas")+'Gas-Umrechnung (m³ → kWh)</button>':"")+
     (t?'<button class="opt" data-a="vt-tariff" data-cat="'+cat+'" data-id="'+esc(t.id)+'">'+ic("info")+'Alle Tarifdaten</button>':""));
@@ -2372,7 +2562,8 @@ function docsSheet(cat){
   openSheet('<h3>Dokumente '+CATS[cat].label+'</h3>'+
     (docs.length?docs.map(function(d){var s=docStatus(d),st=s.t.replace(/^[^\wÄÖÜäöü]+\s*/,""),ask=VT.docDel===String(d.id);
       var dt=(d.created_at||"").slice(0,10).split("-").reverse().join("."),size=d.size_bytes?Math.round(d.size_bytes/1024)+" KB":"";
-      return '<div class="drow2"><button class="dopen" data-a="doc-open" data-id="'+esc(d.id)+'">'+ic("doc",20)+'<span><b>'+esc(d.filename||"Dokument")+'</b><small>'+dt+(size?" · "+size:"")+" · "+esc(st)+'</small></span></button>'+
+      return '<div class="drow2"><button class="dopen" data-a="doc-open" data-id="'+esc(d.id)+'">'+ic("doc",20)+'<span><b>'+esc(docName(d))+'</b><small>'+dt+(size?" · "+size:"")+" · "+esc(st)+'</small></span></button>'+
+        (/pdf|image/.test(d.mime_type||"")?'<a class="ibtn" href="#/abrechnung?cat='+cat+'&doc='+esc(d.id)+'" aria-label="Als Abrechnung prüfen" title="Als Abrechnung prüfen">'+ic("sparkles",16)+'</a>':"")+
         (ask?'<button class="lnk neg-t" data-a="doc-del-yes" data-id="'+esc(d.id)+'">löschen?</button>':'<button class="ibtn" data-a="doc-del" data-cat="'+cat+'" data-id="'+esc(d.id)+'" aria-label="Löschen">'+ic("x",16)+'</button>')+'</div>';}).join("")
       :'<p class="mut-t" style="font-weight:700">Noch keine Dokumente.</p>')+
     '<div class="factions"><button class="btn full" data-a="vt-beleg" data-cat="'+cat+'">'+ic("doc",18)+' Dokument hochladen</button></div>');
@@ -2386,35 +2577,6 @@ function convSheet(err){
     '<div class="dl"><span>Ergibt</span><b class="num">1 m³ = '+num4(gasFactor())+' kWh</b></div>'+
     (err?'<div class="ferr">'+esc(err)+'</div>':"")+'<div class="factions"><button class="btn full" type="submit">Speichern</button></div></form>');
 }
-async function abrFromAI(cat,file){
-  openSheet('<h3>Abrechnung wird geprüft …</h3><div style="display:grid;place-items:center;padding:28px"><span class="spin" style="width:40px;height:40px;border-width:4px"></span></div>');
-  try{var res=await aiExtract(cat,file,"abrechnung");VT.abr={cat:cat,a:res.data};abrSheet();}
-  catch(e){openSheet('<h3>Prüfung fehlgeschlagen</h3><div class="ferr">'+esc(errMsg(e))+'</div><div class="factions"><button class="btn soft full" data-a="sheet-close">Schließen</button></div>');}
-}
-function abrSheet(){
-  var cat=VT.abr.cat,a=VT.abr.a,c=CATS[cat],u=c.billUnit||c.unit;
-  var von=a.zeitraumVon?String(a.zeitraumVon).slice(0,10):null,bis=a.zeitraumBis?String(a.zeitraumBis).slice(0,10):null;
-  var erg=abrNum(a.ergebnisBetrag);if(erg!=null)erg=(a.ergebnisArt==="nachzahlung")?-Math.abs(erg):Math.abs(erg);
-  var app=periodAppSums(cat,von,bis),warns=0;
-  function cmp(label,billV,appV,kind){
-    var fmt=function(v){return v==null?"–":(kind==="verb"?fmtVerb(cat,v)+" "+u:eur(v));},badge='<span class="mut-t">–</span>';
-    if(billV!=null&&appV!=null){var diff=billV-appV,base=Math.max(Math.abs(billV),Math.abs(appV),1),tol=kind==="verb"?Math.max(base*0.02,5):Math.max(base*0.03,3);
-      if(Math.abs(diff)<=tol)badge='<span class="pill pos">'+ic("check",12)+' stimmt</span>';else{badge='<span class="pill neg">Δ '+(kind==="verb"?fmtVerb(cat,diff)+" "+u:eur(diff))+'</span>';warns++;}}
-    return '<tr><th>'+label+'</th><td class="num">'+fmt(billV)+'</td><td class="num mut-t">'+fmt(appV)+'</td><td>'+badge+'</td></tr>';
-  }
-  var ok=app.months>0;
-  var rows=cmp("Verbrauch",abrNum(a.verbrauch),ok?app.verbrauch:null,"verb")+cmp("Kosten",abrNum(a.gesamtkosten),ok?app.kosten:null,"eur")+
-    cmp("Abschläge",abrNum(a.summeAbschlaege),ok?app.abschlaege:null,"eur")+cmp("Ergebnis",erg,ok?app.ergebnis:null,"eur");
-  var na=abrNum(a.neuerAbschlag);
-  var verdict=!ok?'<div class="note">'+ic("info")+'<div>Für diesen Zeitraum gibt es keine erfassten Monate – nur die Belegwerte.</div></div>'
-    :warns?'<div class="note">'+ic("alert")+'<div><b>'+warns+' Abweichung'+(warns===1?"":"en")+'</b>zu deinen erfassten Daten ('+app.months+' Monate).</div></div>'
-    :'<div class="done">'+ic("check",20)+'<span>Alles stimmt<small>'+app.months+' Monate verglichen</small></span></div>';
-  openSheet('<h3>Jahresabrechnung '+c.label+'</h3><p class="mut-t" style="font-weight:700;margin:-6px 0 12px">'+esc(a.anbieter||"")+(von?" · "+deDate(von)+" – "+(bis?deDate(bis):"?"):"")+(a.rechnungsnummer?" · Nr. "+esc(String(a.rechnungsnummer)):"")+'</p>'+verdict+
-    '<div style="overflow-x:auto;margin-top:12px"><table class="ytab abr"><thead><tr><th></th><th>Beleg</th><th>App</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
-    (a.hinweise?'<p class="mut-t" style="font-size:.86rem;font-weight:700">KI: '+esc(a.hinweise)+'</p>':"")+
-    (na!=null?'<div class="factions"><button class="btn full" data-a="vt-abr-ab" data-cat="'+cat+'" data-v="'+na+'">Neuen Abschlag '+eur(na)+' übernehmen</button></div>':"")+
-    '<div class="factions" style="margin-top:10px"><button class="btn soft full" data-a="sheet-close">Schließen</button></div>');
-}
 function pickFile(cat,purpose){
   VT.pick={cat:cat,purpose:purpose};
   var inp=document.getElementById("vtFile");
@@ -2424,10 +2586,200 @@ function pickFile(cat,purpose){
 function onVtFile(file){
   var p=VT.pick;VT.pick=null;if(!p||!file)return;
   if(p.purpose==="tarif")tariffFromAI(p.cat,file);
-  else if(p.purpose==="abr")abrFromAI(p.cat,file);
   else uploadBeleg(p.cat,file);
 }
 
+
+/* ---- Seite „Jahresabrechnung“: Beleg → Modell → Analyse → Bericht → übernehmen ---- */
+var ABR_LEVELS={advanced:{cost:6},max:{cost:12}}; /* ≈ Euro-Cent je Abrechnung (gemessen: 6,4 US-Cent mit Sonnet 5.5) */
+var ABR=null;
+function abrKey(p){return [p.cat||"",p.doc||"",p.id||""].join("|");}
+function abrLevel(){var v=(USER_PREFS&&USER_PREFS.abr_level)||null;try{v=v||localStorage.getItem("vt_abr_level");}catch(e){}return ABR_LEVELS[v]?v:"advanced";}
+function abrStart(p){
+  var cats=householdCats().filter(function(c){return STATE[c].tariffs.length>0;});
+  ABR={key:abrKey(p),from:p.from==="klassisch"?"klassisch":null,level:abrLevel(),busy:false,err:null,v:null,raw:null,usage:null,done:null,fixed:{},editOpen:false,delAsk:false};
+  if(p.id){var s=SETTLEMENTS.find(function(x){return String(x.id)===String(p.id);});
+    if(s){ABR.saved=s;ABR.cat=s.category;ABR.step="bericht";ABR.docId=s.document_id||null;ABR.v=(s.details&&s.details.v)||abrFromRow(s);ABR.raw=s.details&&s.details.raw||null;ABR.usage=s.details&&s.details.usage||null;return;}
+    ABR.missing=true;}
+  ABR.cat=(p.cat&&cats.indexOf(p.cat)>=0)?p.cat:(cats[0]||householdCats()[0]);
+  ABR.docId=p.doc||null;ABR.step=ABR.docId?"modell":"beleg";
+}
+function abrFromRow(s){return {anbieter:s.anbieter||"",von:s.period_from,bis:s.period_to,verbrauch:abrNum(s.verbrauch),kosten:abrNum(s.gesamtkosten),abschlaege:abrNum(s.abschlaege),ergebnis:abrNum(s.ergebnis),
+  neuerAbschlag:abrNum(s.neuer_abschlag),rechnungsnummer:s.rechnungsnummer||"",preise:[],anzahl:null};}
+function abrBack(){return ABR&&ABR.from==="klassisch"?'<a class="back" href="'+CLASSIC_URL+'">'+ic("right",18).replace("<svg","<svg style=\"transform:rotate(180deg)\"")+' Klassisches Design</a>'
+  :'<a class="back" href="#/vertraege?cat='+(ABR?ABR.cat:"")+'">'+ic("right",18).replace("<svg","<svg style=\"transform:rotate(180deg)\"")+' Verträge</a>';}
+function abrDocs(cat){return docsFor(cat).filter(function(d){return /pdf|image/.test(d.mime_type||"")||/\.(pdf|jpe?g|png|webp|heic)$/i.test(d.filename||"");});}
+function screenAbrechnung(p){
+  if(LOADING)return '<h1 class="pt">Jahresabrechnung</h1><div class="sk" style="height:300px"></div>';
+  if(LOAD_FAILED)return '<h1 class="pt">Jahresabrechnung</h1>'+loadFailedNote();
+  if(!ABR||ABR.key!==abrKey(p))abrStart(p);
+  ensureDocs(false);
+  var cat=ABR.cat,c=CATS[cat],head=abrBack()+'<h1 class="pt" style="margin-top:6px">Jahresabrechnung '+(c?c.label:"")+'</h1>';
+  if(ABR.missing)return head+'<div class="card empty"><h3>Abrechnung nicht gefunden</h3><p>Sie wurde vielleicht gelöscht.</p></div>';
+  if(!c)return head+'<div class="card empty"><h3>Noch kein Bereich mit Tarif</h3></div>';
+  if(ABR.busy)return head+'<div class="card abrbusy"><span class="spin" style="width:44px;height:44px;border-width:4px"></span><b>Die KI liest die Abrechnung</b><small>'+esc(AI_LEVELS[ABR.level].model)+' · meist 10–40 Sekunden</small></div>';
+  if(ABR.step==="beleg")return head+abrStepBeleg(cat);
+  if(ABR.step==="modell")return head+abrStepModell(cat);
+  return head+abrReport(cat);
+}
+function abrChips(cat){
+  var cats=householdCats().filter(function(x){return STATE[x].tariffs.length>0;});
+  if(cats.length<2)return "";
+  return '<div class="chips">'+cats.map(function(x){return '<button class="chip'+(x===cat?" on":"")+'" data-a="abr-cat" data-cat="'+x+'" style="--c:var(--'+x+')">'+ic(x,16)+CATS[x].label+'</button>';}).join("")+'</div>';
+}
+function abrStepBeleg(cat){
+  var docs=abrDocs(cat);
+  return abrChips(cat)+'<div class="abrsteps"><span class="on">1 Beleg</span><span>2 Modell</span><span>3 Bericht</span></div>'+
+    '<button class="btn lg full" data-a="abr-upload">'+ic("doc",20)+' Abrechnung hochladen</button><input type="file" id="abrFile" accept="application/pdf,image/*" hidden>'+
+    (docs.length?'<div class="mgrp">Oder gespeichertes Dokument prüfen</div><div class="mlist">'+docs.map(function(d){
+      var dt=(d.created_at||"").slice(0,10),done=SETTLEMENTS.some(function(s){return String(s.document_id)===String(d.id);});
+      return '<button class="mrow2" data-a="abr-doc" data-id="'+esc(d.id)+'"><span class="mi">'+ic("doc")+'</span><span class="mt2"><b class="ell">'+esc(docName(d))+'</b><small>'+(dt?deDate(dt):"")+(d.kind==="abrechnung"?" · Abrechnung":d.kind==="tarif"?" · Vertrag":"")+(done?" · übernommen":"")+'</small></span><span class="mr">'+ic("right",18)+'</span></button>';}).join("")+'</div>':"");
+}
+function abrStepModell(cat){
+  var d=(documentsCache||[]).find(function(x){return String(x.id)===String(ABR.docId);});
+  return '<div class="abrsteps"><span class="ok">1 Beleg</span><span class="on">2 Modell</span><span>3 Bericht</span></div>'+
+    '<div class="card abrdoc">'+ic("doc",22)+'<div><b class="ell">'+esc(d?docName(d):"Dokument")+'</b><small>'+(d&&d.created_at?deDate(d.created_at.slice(0,10)):"")+'</small></div><button class="linkbtn" data-a="abr-reset">ändern</button></div>'+
+    '<div class="grid" style="margin-top:var(--gap)">'+Object.keys(ABR_LEVELS).map(function(k){var L=AI_LEVELS[k],on=ABR.level===k;
+      return '<button class="abrlvl'+(on?" on":"")+'" data-a="abr-level" data-v="'+k+'"><span class="rd">'+(on?ic("check",16):"")+'</span><span><b>'+L.name+' · '+L.model+'</b><small>'+(k==="max"?"Stärkstes Modell für schwierige Belege":"Genau und schnell – reicht meist")+'</small></span><span class="pr">≈ '+ABR_LEVELS[k].cost+' ct</span></button>';}).join("")+'</div>'+
+    (ABR.err?'<div class="ferr" style="margin-top:12px">'+esc(ABR.err)+'</div>':"")+
+    '<div class="factions"><button class="btn lg full" data-a="abr-run">'+ic("sparkles",20)+' Analyse starten</button></div>';
+}
+function abrReport(cat){
+  var v=ABR.v,c=CATS[cat],A=abrAnalyse(cat,v),app=A.app,saved=ABR.saved;
+  var ok=A.rows.length>0;
+  var head='<div class="card abrhead"><div class="vch">'+catBadge(cat)+'<div><div class="nm">'+esc(v.anbieter||"Abrechnung")+(v.schluss?' <span class="pill mut">Schlussrechnung</span>':"")+'</div>'+
+    '<div class="mt">'+(v.von?deDate(v.von):"?")+' – '+(v.bis?deDate(v.bis):"?")+(v.rechnungsnummer?" · Nr. "+esc(v.rechnungsnummer):"")+'</div></div></div>'+
+    (ABR.usage?'<small class="mut-t">Gelesen mit '+esc(aiModelName(ABR.usage.model))+' · '+eurCost(ABR.usage.cost_usd,true)+'</small>':"")+
+    (v.kategorie&&CATS[v.kategorie]&&v.kategorie!==cat?'<div class="ferr" style="margin-top:10px">Der Beleg sieht nach '+CATS[v.kategorie].label+' aus, geprüft wird '+c.label+'.</div>':"")+
+    (saved?'<div class="vline good" style="margin-top:10px">'+ic("check",16)+'<span>Übernommen am '+deDate(String(saved.created_at).slice(0,10))+' – der Saldo läuft ab '+deDate(addDays(saved.period_to,1))+' neu.</span></div>':"")+'</div>';
+  var res='<div class="abrres"><div><span>Beleg</span><b class="num '+(v.ergebnis>=0?"pos-t":"neg-t")+'">'+(v.ergebnis!=null?signed(v.ergebnis):"–")+'</b><small>'+(v.ergebnis==null?"":v.ergebnis>=0?"Guthaben":"Nachzahlung")+'</small></div>'+
+    '<div><span>App</span><b class="num '+(app.ergebnis>=0?"pos-t":"neg-t")+'">'+(ok?signed(app.ergebnis):"–")+'</b><small>'+(ok?app.months+" Monate"+(app.est?", "+app.est+" geschätzt":""):"keine Monate")+'</small></div></div>';
+  var expl="";
+  if(ok&&A.m.ergebnis&&A.m.ergebnis.sig&&A.m.abschlaege&&A.m.kosten){
+    var pa=A.m.abschlaege.d,pk=A.m.kosten.d,parts=[];
+    if(Math.abs(pa)>=0.005)parts.push(signed(pa)+(pa<0?' weniger':' mehr')+' Abschläge');
+    if(Math.abs(pk)>=0.005)parts.push(signed(-pk)+(pk>0?' durch höhere':' durch niedrigere')+' Kosten');
+    expl='<p class="abrexpl">Unterschied '+signed(A.m.ergebnis.d)+(parts.length?': '+parts.join(', '):'')+'.</p>';
+  }
+  /* Tabelle ohne Einheiten in den Zellen (stehen in der Zeile) – passt so aufs Handy */
+  var n2=function(x){return Number(x).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2});};
+  var cell=function(kind,x){return x==null||!isFinite(x)?"–":kind==="verb"?fmtVerb(cat,x):kind==="erg"?(x>=0?"+":"−")+n2(Math.abs(x)):n2(x);};
+  function row(label,key,kind){var s=A.m[key],bill=key==="ergebnis"?v.ergebnis:v[key],appv=app[key];
+    var st=!s?'<span class="mut-t">–</span>':s.sig?'<span class="pill neg num">'+(s.d>0?"+":"−")+(kind==="verb"?fmtVerb(cat,Math.abs(s.d)):n2(Math.abs(s.d)))+'</span>':'<span class="pill pos">passt</span>';
+    return '<tr><th>'+label+'</th><td class="num">'+cell(kind,bill)+'</td><td class="num mut-t">'+(ok?cell(kind,appv):"–")+'</td><td>'+st+'</td></tr>';}
+  var tbl='<div class="card ycard"><table class="ytab abr"><thead><tr><th></th><th>Beleg</th><th>App</th><th></th></tr></thead><tbody>'+
+    row("Verbrauch <small>"+(c.billUnit||c.unit)+"</small>","verbrauch","verb")+row("Kosten <small>€</small>","kosten","eur")+row("Abschläge <small>€</small>","abschlaege","eur")+row("Ergebnis <small>€</small>","ergebnis","erg")+'</tbody></table></div>';
+  var fixedDone=Object.keys(ABR.fixed||{}).filter(function(k){return !A.causes.some(function(x){return x.k===k;});}).map(function(k){return '<div class="vline good">'+ic('check',16)+'<span>'+esc(ABR.fixed[k])+'</span></div>';}).join('');
+  var causes=(fixedDone?'<div class="vlines">'+fixedDone+'</div>':'')+(A.causes.length?'<div class="sect"><span>'+(A.anySig?"Warum weicht es ab?":"Hinweise")+'</span></div><div class="grid">'+A.causes.map(function(x){var done=ABR.fixed[x.k];
+      return '<div class="cause '+x.tone+'"><div class="ct">'+ic(x.tone==="warn"?"alert":"info",18)+'<b>'+x.title+'</b></div><p>'+esc(x.text)+'</p>'+
+        (done?'<div class="vline good">'+ic("check",16)+'<span>'+esc(done)+'</span></div>':x.action?(x.action.route?'<a class="btn sm soft" href="'+x.action.route+'">'+esc(x.action.label)+'</a>':'<button class="btn sm" data-a="abr-fix" data-k="'+x.k+'">'+esc(x.action.label)+'</button>'):"")+'</div>';}).join("")+'</div>'
+    :(ok&&!A.anySig?'<div class="done" style="margin-top:var(--gap)">'+ic("check",20)+'<span>Beleg und App passen zusammen<small>Keine Abweichung ab 5 % oder 10 €</small></span></div>':""));
+  var months=ok?'<details class="more abrmon"><summary>App-Monate im Zeitraum ('+app.months+')</summary><div class="card ycard"><table class="ytab"><thead><tr><th></th><th>Verbrauch</th><th>Kosten</th><th>Abschlag</th><th>Differenz</th></tr></thead><tbody>'+
+    A.rows.map(function(r){return '<tr><th>'+monthName(billKey(r.reading.datum))+(r.synthetic?' <span class="tag">geschätzt</span>':"")+'</th><td class="num">'+fmtVerb(cat,r.verbrauch)+'</td><td class="num">'+eur(r.gesamtkosten)+'</td><td class="num">'+eur(r.abschlag)+'</td><td class="num '+(r.differenz>=0?"pos-t":"neg-t")+'">'+signed(r.differenz)+'</td></tr>';}).join("")+
+    '<tr class="sum"><th>Σ</th><td class="num">'+fmtVerb(cat,app.verbrauch)+'</td><td class="num">'+eur(app.kosten)+'</td><td class="num">'+eur(app.abschlaege)+'</td><td class="num">'+signed(app.ergebnis)+'</td></tr></tbody></table></div></details>'
+    :'<div class="note" style="margin-top:var(--gap)"><span class="ni">'+ic("info")+'</span><div>Für diesen Zeitraum gibt es in der App keine Monate.</div></div>';
+  var hint=v.hinweise?'<details class="more"><summary>Hinweise der KI</summary><p class="abrki">'+esc(v.hinweise)+'</p></details>':"";
+  var form=saved?"":abrEditForm(cat,v);
+  var acts=saved
+    ?'<div class="factions">'+(ABR.delAsk?'<button class="btn full" style="background:var(--neg);color:#fff" data-a="abr-del-yes">Wirklich löschen – Saldo läuft wieder durch</button>':'<button class="btn soft full" data-a="abr-del">Abrechnung löschen</button>')+'</div>'
+    :(ABR.done?'<div class="factions"><a class="btn lg full" href="'+(ABR.from==="klassisch"?CLASSIC_URL:"#/vertraege?cat="+cat)+'">Fertig</a></div>'
+      :'<div class="factions"><button class="btn lg full" data-a="abr-save"'+(v.bis?"":" disabled")+'>'+ic("check",20)+' Abrechnung übernehmen</button><button class="btn soft full" data-a="abr-reset">Verwerfen</button></div>'+
+       (v.bis?"":'<p class="mut-t" style="font-weight:700;text-align:center">Zum Übernehmen fehlt das Ende des Zeitraums.</p>'));
+  var doneBanner=ABR.done?'<div class="done" style="margin-bottom:var(--gap)">'+ic("check",22)+'<span>Abrechnung übernommen<small>Der Saldo läuft ab '+deDate(addDays(v.bis,1))+' neu.</small></span></div>':"";
+  return doneBanner+'<div class="grid grid-2 abrgrid"><div class="grid">'+head+res+expl+tbl+months+hint+'</div><div class="grid">'+causes+form+acts+'</div></div>';
+}
+function abrEditForm(cat,v){
+  var c=CATS[cat],u=c.billUnit||c.unit,val=function(x,dec){return x==null||!isFinite(x)?"":String(Math.round(x*Math.pow(10,dec))/Math.pow(10,dec)).replace(".",",");};
+  return '<details class="more"'+(ABR.editOpen?" open":"")+'><summary data-a="abr-edit-toggle">Werte laut Beleg korrigieren</summary><form id="abrForm" class="card" novalidate>'+
+    '<div class="two"><label class="fld"><span>Zeitraum von</span><input class="inp" type="date" id="ab_von" value="'+(v.von||"")+'"></label><label class="fld"><span>bis</span><input class="inp" type="date" id="ab_bis" value="'+(v.bis||"")+'"></label></div>'+
+    '<div class="two"><label class="fld"><span>Verbrauch ('+u+')</span><input class="inp" id="ab_verb" inputmode="decimal" value="'+val(v.verbrauch,c.verbrauchDec||0)+'"></label><label class="fld"><span>Gesamtkosten (€)</span><input class="inp" id="ab_kost" inputmode="decimal" value="'+val(v.kosten,2)+'"></label></div>'+
+    '<div class="two"><label class="fld"><span>Abschläge (€)</span><input class="inp" id="ab_absch" inputmode="decimal" value="'+val(v.abschlaege,2)+'"></label><label class="fld"><span>Ergebnis (€)</span><input class="inp" id="ab_erg" inputmode="decimal" value="'+val(v.ergebnis!=null?Math.abs(v.ergebnis):null,2)+'"></label></div>'+
+    '<div class="seg wide" role="group" style="margin:0 0 12px"><button type="button" class="'+(v.ergebnis==null||v.ergebnis>=0?"on":"")+'" data-a="abr-art" data-v="guthaben">Guthaben</button><button type="button" class="'+(v.ergebnis!=null&&v.ergebnis<0?"on":"")+'" data-a="abr-art" data-v="nachzahlung">Nachzahlung</button></div>'+
+    '<div class="two"><label class="fld"><span>Neuer Abschlag (€)</span><input class="inp" id="ab_neu" inputmode="decimal" value="'+val(v.neuerAbschlag,2)+'"></label><label class="fld"><span>ab</span><input class="inp" type="date" id="ab_neuab" value="'+(v.neuerAbschlagAb||"")+'"></label></div>'+
+    '<div class="two"><label class="fld"><span>Anbieter</span><input class="inp" id="ab_anb" value="'+esc(v.anbieter||"")+'"></label><label class="fld"><span>Rechnungsnr.</span><input class="inp" id="ab_nr" value="'+esc(v.rechnungsnummer||"")+'"></label></div>'+
+    '<button class="btn soft full" type="submit">Neu vergleichen</button></form></details>';
+}
+function abrReadForm(){
+  var v=ABR.v,g=function(id){var e=document.getElementById(id);return e?e.value:"";},num=function(id){var x=parseNum(g(id));return isFinite(x)?x:null;};
+  v.von=abrIso(g("ab_von"));v.bis=abrIso(g("ab_bis"));v.verbrauch=num("ab_verb");v.kosten=num("ab_kost");v.abschlaege=num("ab_absch");
+  var e=num("ab_erg");v.ergebnis=e==null?null:(ABR.art==="nachzahlung"?-Math.abs(e):Math.abs(e));
+  v.neuerAbschlag=num("ab_neu");v.neuerAbschlagAb=abrIso(g("ab_neuab"));v.anbieter=g("ab_anb").trim();v.rechnungsnummer=g("ab_nr").trim();
+}
+async function abrUpload(file){
+  var cat=ABR.cat;ABR.err=null;
+  if(file.size>6.5*1024*1024){toast("Die Datei ist zu groß für die KI (max. ca. 6 MB).",true);return;}
+  toast("Beleg wird gespeichert …");
+  try{var path=await uploadDocFile(cat,file);var rec=await addDocRecord(cat,file,path,"abrechnung",null,null);documentsCache=[rec].concat(documentsCache||[]);ABR.docId=rec.id;ABR.step="modell";render();window.scrollTo(0,0);}
+  catch(e){toast("Upload fehlgeschlagen: "+errMsg(e),true);}
+}
+async function abrRun(){
+  var cat=ABR.cat;ABR.busy=true;ABR.err=null;render();window.scrollTo(0,0);
+  try{
+    var data=await aiInvoke(aiBody({document_id:ABR.docId,category:cat,mode:"abrechnung",level:ABR.level}));
+    ABR.raw=data.abrechnung||{};ABR.usage=data.usage||null;ABR.v=abrNorm(ABR.raw);ABR.art=ABR.v.ergebnis!=null&&ABR.v.ergebnis<0?"nachzahlung":"guthaben";
+    ABR.step="bericht";ABR.fixed={};
+    sb.from("documents").update({extracted:ABR.raw}).eq("id",ABR.docId).then(function(){ensureDocs(true);},function(){});
+    try{localStorage.setItem("vt_abr_level",ABR.level);}catch(e){}
+    if(!USER_PREFS||USER_PREFS.abr_level!==ABR.level)saveUserPref({abr_level:ABR.level});
+  }catch(e){ABR.err=errMsg(e);ABR.step="modell";}
+  ABR.busy=false;render();window.scrollTo(0,0);
+}
+async function abrSave(){
+  var cat=ABR.cat,v=ABR.v;if(!v||!v.bis){toast("Bitte das Ende des Zeitraums eintragen.",true);return;}
+  var over=settlementsFor(cat).filter(function(s){return (!v.von||s.period_to>=v.von)&&(!s.period_from||s.period_from<=v.bis);});
+  if(over.length&&!ABR.replaceOk){ABR.replaceAsk=over.map(function(s){return s.id;});
+    openSheet('<h3>Zeitraum überschneidet sich</h3><p class="mut-t" style="font-weight:700">Es gibt schon eine übernommene Abrechnung für '+over.map(function(s){return (s.period_from?deDate(s.period_from)+" – ":"")+deDate(s.period_to);}).join(", ")+'. Soll sie ersetzt werden?</p><div class="factions"><button class="btn full" data-a="abr-save-replace">Ersetzen</button><button class="btn soft full" data-a="sheet-close">Abbrechen</button></div>');return;}
+  var A=abrAnalyse(cat,v);
+  var row={household_id:activeHousehold,category:cat,period_from:v.von,period_to:v.bis,anbieter:v.anbieter||null,rechnungsnummer:v.rechnungsnummer||null,verbrauch:v.verbrauch,gesamtkosten:v.kosten,
+    abschlaege:v.abschlaege,ergebnis:v.ergebnis,neuer_abschlag:v.neuerAbschlag,document_id:ABR.docId||null,model:ABR.usage?ABR.usage.model:null,
+    details:{v:v,raw:ABR.raw,usage:ABR.usage,level:ABR.level},app_snapshot:{verbrauch:A.app.verbrauch,kosten:A.app.kosten,abschlaege:A.app.abschlaege,ergebnis:A.app.ergebnis,months:A.app.months,est:A.app.est}};
+  try{
+    if(ABR.replaceAsk&&ABR.replaceOk){for(var i=0;i<ABR.replaceAsk.length;i++){var d=await sb.from("settlements").delete().eq("id",ABR.replaceAsk[i]);if(d.error)throw d.error;}
+      SETTLEMENTS=SETTLEMENTS.filter(function(s){return ABR.replaceAsk.indexOf(s.id)<0;});}
+    var r=await sb.from("settlements").insert(row).select().single();if(r.error)throw r.error;
+    SETTLEMENTS.push(r.data);ABR.done=r.data.id;ABR.replaceAsk=null;ABR.replaceOk=false;_histMemo=null;_tgMemo=null;
+    render();window.scrollTo(0,0);toast("Abrechnung übernommen – Saldo ab "+deDate(addDays(v.bis,1))+" neu");
+  }catch(e){toast("Konnte nicht übernommen werden: "+errMsg(e),true);}
+}
+async function abrDelete(){
+  var s=ABR.saved;if(!s)return;
+  try{var d=await sb.from("settlements").delete().eq("id",s.id);if(d.error)throw d.error;}catch(e){toast("Löschen fehlgeschlagen: "+errMsg(e),true);return;}
+  SETTLEMENTS=SETTLEMENTS.filter(function(x){return x.id!==s.id;});var cat=s.category;ABR=null;toast("Abrechnung gelöscht");go("#/vertraege?cat="+cat);
+}
+/* Korrektur-Knöpfe aus dem Bericht */
+async function abrFix(k){
+  var cat=ABR.cat,v=ABR.v,A=abrAnalyse(cat,v),cz=A.causes.find(function(x){return x.k===k;});if(!cz)return;
+  try{
+    if(k==="ende"){
+      var ex=readingInMonth(cat,v.dEnde);
+      await saveReadingData(cat,v.dEnde,v.zEnde,ex&&ex.startwert!=null&&isFinite(ex.startwert)?Number(ex.startwert):NaN,ex?ex.id:null);
+      ABR.fixed[k]="Endstand "+fmtVal(cat,v.zEnde)+" "+CATS[cat].unit+" am "+deDate(v.dEnde)+" gespeichert";
+    }else if(k==="preis"||k==="grund"){
+      var t=A.tariffs[0];if(!t)return;
+      var obj={anbieter:t.anbieter,grundpreisJahr:isFinite(A.bp.grund)?A.bp.grund:t.grundpreisJahr,abschlag:t.abschlag,gueltigAb:t.gueltigAb,laufzeit:t.laufzeit,kuendigungsfrist:t.kuendigungsfrist,vertragsstart:t.vertragsstart,kundennummer:t.kundennummer};
+      if(cat==="wasser")obj.wasserKanal=k==="preis"?A.bp.preis:t.wasserKanal;else obj.arbeitspreis=k==="preis"?A.bp.preis:t.arbeitspreis;
+      var oldG=Number(t.grundpreisJahr);
+      await saveTariffData(cat,obj,t.id);
+      /* Preis nach dem Zeitraum: neuer Tarif ab dem Folgetag (übernimmt den bisherigen App-Preis, falls der Beleg nichts anderes nennt) */
+      if(k==="preis"&&v.bis&&isFinite(v.preis)&&Math.abs(v.preis-A.bp.preis)>1e-6&&!STATE[cat].tariffs.some(function(x){return x.gueltigAb>v.bis;})){
+        var nt={anbieter:t.anbieter,grundpreisJahr:isFinite(v.grund)?v.grund:oldG,abschlag:abschlagForDate(cat,v.bis)||t.abschlag,gueltigAb:addDays(v.bis,1),laufzeit:t.laufzeit,kuendigungsfrist:t.kuendigungsfrist,vertragsstart:t.vertragsstart,kundennummer:t.kundennummer};
+        if(cat==="wasser")nt.wasserKanal=v.preis;else nt.arbeitspreis=v.preis;
+        await saveTariffData(cat,nt,null);
+      }
+      ABR.fixed[k]=k==="preis"?"Tarif angepasst":"Grundpreis angepasst";
+    }else if(k==="abschlaege"){abschlagSheet(cat);return;}
+    else if(k==="abschlagneu"){
+      if(cz.near){await deleteAbschlagSilent(cat,cz.near);}
+      await saveAbschlagData(cat,v.neuerAbschlag,cz.ab);
+      ABR.fixed[k]="Abschlag "+eur(v.neuerAbschlag)+" ab "+deDate(cz.ab)+" gespeichert";
+    }
+    _histMemo=null;_tgMemo=null;render();toast("Gespeichert");
+  }catch(e){toast("Fehlgeschlagen: "+errMsg(e),true);}
+}
+async function deleteAbschlagSilent(cat,id){
+  var d=await sb.from("abschlag_changes").delete().eq("id",id);if(d.error)throw d.error;
+  STATE[cat].abschlagChanges=(STATE[cat].abschlagChanges||[]).filter(function(a){return a.id!==id;});_histMemo=null;_tgMemo=null;
+}
 
 /* ---- Mehr: Einstellungen, Haushalt, Daten, Info ---- */
 var MH={invite:null,memAsk:null,leaveAsk:false,restoreAsk:null,notifAsk:null,clearAsk:false,csvCat:null,installEvt:null};
@@ -2559,7 +2911,7 @@ function mehrInfo(){
     '<div class="card"><div class="nm" style="font-weight:900;margin-bottom:8px">So rechnet AllTrack</div><ul class="calc">'+
       '<li><b>Verbrauch</b> = aktueller − letzter Zählerstand</li><li><b>Grundkosten</b> = Grundpreis pro Jahr ÷ 12</li>'+
       '<li><b>Verbrauchskosten</b> = Verbrauch × Arbeitspreis (Wasser: × Wasser+Kanal)</li><li><b>Gas in kWh</b> = m³ × Wandelfaktor × Zustandszahl × Brennwert</li>'+
-      '<li><b>Differenz</b> = Abschlag − Gesamtkosten · Plus = Guthaben</li><li>Eine Ablesung am 1. zählt zum Vormonat.</li><li>Fehlende Monate werden gleichmäßig verteilt (geschätzt).</li></ul></div>'+
+      '<li><b>Differenz</b> = Abschlag − Gesamtkosten · Plus = Guthaben</li><li><b>Offener Saldo</b> = Differenzen seit der letzten übernommenen Jahresabrechnung bzw. seit Beginn beim aktuellen Anbieter</li><li>Eine Ablesung am 1. zählt zum Vormonat.</li><li>Fehlende Monate werden gleichmäßig verteilt (geschätzt).</li></ul></div>'+
     '<div class="card" style="margin-top:12px"><div class="nm" style="font-weight:900;margin-bottom:6px">Version '+APP_VERSION+'</div><p class="mut-t" style="font-weight:700;margin:0 0 12px">Stand dieser Fassung: '+stand+'</p><button class="btn sm soft" data-a="upd-check">Nach Updates suchen</button></div>'+
     '<div class="card" style="margin-top:12px"><div class="nm" style="font-weight:900;margin-bottom:6px">Umgebung</div><p class="mut-t" style="font-weight:700;margin:0 0 12px">'+(IS_TEST?"Du bist in der Testumgebung – getrennte Testdaten.":"Du bist in der Live-Umgebung mit deinen echten Daten.")+'</p>'+
       '<a class="btn sm soft" href="'+(IS_TEST?LIVE_URL:TEST_URL)+'">'+(IS_TEST?"Zur Live-Umgebung":"Zur Testumgebung")+'</a> <button class="btn sm soft" data-a="design-classic">Klassisches Design</button></div>';
@@ -2820,9 +3172,9 @@ function buildReportHtml(){
     var c=CATS[cat],cur=tariffForDate(cat,todayISO());
     var rows=history(cat).filter(function(r){return !r.baseline&&isFinite(r.gesamtkosten);});
     var last12=rows.slice(-12),bu=c.billUnit||c.unit;
-    var g=cur?tariffGroups(cat).find(function(x){return x.tid===cur.id;}):null,saldo=g?g.saldo:0;totalSaldo+=saldo;
+    var si=saldoInfo(cat),saldo=si?si.saldo:0;totalSaldo+=saldo;
     body+='<h2>'+c.icon+' '+c.label+'</h2>';
-    body+='<div class="muted">Aktueller Tarif: '+(cur?escapeHtml(cur.anbieter||"(ohne Namen)")+' · Grundpreis '+eur(cur.grundpreisJahr)+'/Jahr':"—")+' · Tarif-Saldo '+eur(saldo)+'</div>';
+    body+='<div class="muted">Aktueller Tarif: '+(cur?escapeHtml(cur.anbieter||"(ohne Namen)")+' · Grundpreis '+eur(cur.grundpreisJahr)+'/Jahr':"—")+' · Offener Saldo '+saldoSince(si)+': '+eur(saldo)+'</div>';
     if(last12.length){
       body+='<table><thead><tr><th>Monat</th><th>Verbrauch ('+bu+')</th><th>Kosten</th><th>Abschlag</th><th>Differenz</th></tr></thead><tbody>';
       last12.forEach(function(r){var pos=r.differenz>=0;body+='<tr><td>'+billLabel(r.reading.datum)+'</td><td>'+fmtVerb(cat,r.verbrauch)+'</td><td>'+eur(r.gesamtkosten)+'</td><td>'+eur(r.abschlag)+'</td><td class="'+(pos?"pos":"neg")+'">'+(pos?"+":"")+eur(r.differenz)+'</td></tr>';});
@@ -2830,7 +3182,7 @@ function buildReportHtml(){
       body+='<tr class="sum"><td>Summe ('+last12.length+' Mon.)</td><td>'+fmtVerb(cat,sV)+'</td><td>'+eur(sK)+'</td><td></td><td>'+(sD>=0?"+":"")+eur(sD)+'</td></tr></tbody></table>';
     }else{body+='<div class="muted">Noch keine abgerechneten Monate.</div>';}
   });
-  body+='<h2>Gesamt</h2><div>Gesamt-Saldo laufende Tarife: <b>'+(totalSaldo>=0?"+":"")+eur(totalSaldo)+'</b> ('+(totalSaldo>=0?"Guthaben":"Nachzahlung")+')</div>';
+  body+='<h2>Gesamt</h2><div>Offener Saldo: <b>'+(totalSaldo>=0?"+":"")+eur(totalSaldo)+'</b> ('+(totalSaldo>=0?"Guthaben":"Nachzahlung")+')</div>';
   return '<!doctype html><html lang="de"><head><meta charset="utf-8"><title>AllTrack Bericht '+today+'</title><style>'+css+'</style></head><body>'+body+'</body></html>';
 }
 
@@ -2862,8 +3214,9 @@ function render(){
   else if(r.name==="ablesen")c=screenAblesen(r.params);
   else if(r.name==="vertraege")c=screenVertraege(r.params);
   else if(r.name==="einrichtung")c=screenEinrichtung();
+  else if(r.name==="abrechnung")c=screenAbrechnung(r.params);
   else c=screenMehr(r.params);
-  root.innerHTML=shell(c,r.name,r.name==="ablesen"&&FLOW&&!FLOW.done&&FLOW.cats.length>0);
+  root.innerHTML=shell(c,r.name==="abrechnung"?"vertraege":r.name,r.name==="ablesen"&&FLOW&&!FLOW.done&&FLOW.cats.length>0);
 }
 
 /* ---- Aktionen (ein zentraler Klick-Verteiler) ---- */
@@ -2928,9 +3281,20 @@ function onAction(e){
   else if(a==="doc-del"){VT.docDel=b.getAttribute("data-id");docsSheet(b.getAttribute("data-cat"));}
   else if(a==="doc-del-yes"){docDelete(b.getAttribute("data-id"));}
   else if(a==="vt-beleg"){pickFile(b.getAttribute("data-cat"),"beleg");}
-  else if(a==="vt-abr"){pickFile(b.getAttribute("data-cat"),"abr");}
-  else if(a==="vt-abr-ab"){VT.abPrefill=Number(b.getAttribute("data-v"));VT.abDel=null;abschlagSheet(b.getAttribute("data-cat"));VT.abPrefill=null;}
   else if(a==="vt-conv"){convSheet();}
+  else if(a==="abr-cat"){ABR.cat=b.getAttribute("data-cat");ABR.step="beleg";ABR.docId=null;render();}
+  else if(a==="abr-upload"){var af=document.getElementById("abrFile");if(af)af.click();}
+  else if(a==="abr-doc"){ABR.docId=b.getAttribute("data-id");ABR.step="modell";ABR.err=null;render();window.scrollTo(0,0);}
+  else if(a==="abr-level"){ABR.level=b.getAttribute("data-v")==="max"?"max":"advanced";render();}
+  else if(a==="abr-run"){if(ABR&&ABR.docId&&!ABR.busy)abrRun();}
+  else if(a==="abr-reset"){ABR.step="beleg";ABR.docId=null;ABR.v=null;ABR.err=null;ABR.done=null;ABR.fixed={};render();window.scrollTo(0,0);}
+  else if(a==="abr-art"){ABR.art=b.getAttribute("data-v");[].slice.call(b.parentNode.children).forEach(function(x){x.classList.toggle("on",x===b);});}
+  else if(a==="abr-edit-toggle"){ABR.editOpen=!ABR.editOpen;}
+  else if(a==="abr-save"){abrSave();}
+  else if(a==="abr-save-replace"){closeSheet();ABR.replaceOk=true;abrSave();}
+  else if(a==="abr-fix"){abrFix(b.getAttribute("data-k"));}
+  else if(a==="abr-del"){ABR.delAsk=true;render();}
+  else if(a==="abr-del-yes"){abrDelete();}
   else if(a==="vt-tariff"){VT.tDel=null;tariffSheet(b.getAttribute("data-cat"),b.getAttribute("data-id"));}
   else if(a==="vt-tdel"){VT.tDel=b.getAttribute("data-id");tariffSheet(b.getAttribute("data-cat"),b.getAttribute("data-id"));}
   else if(a==="vt-tdel-yes"){VT.tDel=null;deleteTariff(b.getAttribute("data-cat"),b.getAttribute("data-id"));}
@@ -2978,6 +3342,7 @@ document.addEventListener("submit",function(e){
   else if(e.target.id==="tariffForm"){e.preventDefault();submitTariffForm();}
   else if(e.target.id==="abForm"){e.preventDefault();(async function(){var cat=VT.abCat;var bt=parseNum(($("#ab_betrag")||{}).value),iso=($("#ab_gueltig")||{}).value;
     try{await saveAbschlagData(cat,bt,iso);closeSheet();render();toast("Abschlag ab "+deDate(iso)+": "+eur(bt));}catch(x){abschlagSheet(cat,errMsg(x));}})();}
+  else if(e.target.id==="abrForm"){e.preventDefault();abrReadForm();ABR.editOpen=true;render();}
   else if(e.target.id==="convForm"){e.preventDefault();(async function(){var wf=parseNum(($("#cv_wf")||{}).value),zz=parseNum(($("#cv_zz")||{}).value),bw=parseNum(($("#cv_bw")||{}).value);
     try{await saveConversion(wf,zz,bw);closeSheet();render();toast("Umrechnung gespeichert");}catch(x){convSheet(errMsg(x));}})();}
   else if(e.target.id==="flowForm"){e.preventDefault();if(FLOW&&!FLOW.busy)flowNext(false);}
@@ -2997,6 +3362,7 @@ document.addEventListener("change",function(e){
   var t=e.target;
   if(t.hasAttribute&&t.hasAttribute("data-vl-period")){VL.period=t.value;VL.sel=null;render();return;}
   if(t.id==="vtFile"){var vf=t.files&&t.files[0];t.value="";if(vf)onVtFile(vf);return;}
+  if(t.id==="abrFile"){var abf=t.files&&t.files[0];t.value="";if(abf)abrUpload(abf);return;}
   if(t.id==="impFile"){var imf=t.files&&t.files[0];t.value="";if(imf)onImpFile(imf);return;}
   if(t.hasAttribute&&t.hasAttribute("data-cfg")){cfgSave(t.getAttribute("data-cat"),t.getAttribute("data-cfg"),t.value);return;}
   if(t.id==="e_mc"&&VL.edit){VL.edit.iso=($("#e_iso")||{}).value||VL.edit.iso;VL.edit.z=($("#e_z")||{}).value||"";VL.edit.mc=t.checked;VL.edit.warn=null;drawEdit();return;}

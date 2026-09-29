@@ -1,12 +1,15 @@
-// Supabase Edge Function: tarif-extract (v11, AllTrack 7.0.0)
+// Supabase Edge Function: tarif-extract (v12, AllTrack 7.1.0)
 // Liest Tarif-/Vertragsdokumente, Jahres-/Schlussabrechnungen ODER Zaehler-Fotos
 // (PDF/Bild, base64) per Claude-API aus und gibt die Felder als JSON zurueck.
 // mode='tarif' (Default) | 'abrechnung' | 'zaehler'.
 // level='basic' | 'advanced' | 'max' -> Modell wird HIER fest zugeordnet.
+// Statt fileBase64 kann document_id kommen: dann laedt der Server das gespeicherte
+// Dokument selbst (nur fuer Mitglieder des Haushalts).
 // Jede Auswertung wird mit Tokens und Kosten in public.ai_calls protokolliert
 // (lesbar nur fuer Admins des Haushalts). API-Schluessel nur hier als Secret.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { encodeBase64 } from "jsr:@std/encoding/base64";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
@@ -15,7 +18,7 @@ const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 type Level = { model: string; maxTokens: number; effort?: string };
 const LEVELS: Record<string, Level> = {
   basic: { model: "claude-haiku-4-5", maxTokens: 1024 },
-  advanced: { model: "claude-sonnet-5-5", maxTokens: 4096, effort: "medium" },
+  advanced: { model: "claude-sonnet-5-5", maxTokens: 6000, effort: "medium" },
   max: { model: "claude-opus-5-5", maxTokens: 8000, effort: "medium" },
 };
 // Wird ein Modell abgeschaltet (Haiku 4.5: fruehestens 15.10.2026), springt die Stufe hierauf.
@@ -85,28 +88,36 @@ function buildTarifPrompt(category: string): string {
 function buildAbrechnungPrompt(category: string): string {
   const cat = catName(category);
   const unit = category === "wasser" ? "Kubikmeter (m3)" : "Kilowattstunden (kWh)";
+  const preisEinheit = category === "wasser" ? "EUR pro m3 (Wasser + Abwasser/Kanal zusammen)" : "EUR pro kWh";
   return [
-    `Du bist ein praeziser Pruef-Assistent fuer deutsche Energie-/Wasser-JAHRESABRECHNUNGEN (Schlussrechnungen).`,
-    `Das angehaengte Dokument ist die Jahres-/Schlussabrechnung eines ${cat}-Vertrags. Lies die Abrechnungswerte aus.`,
+    `Du bist ein praeziser Pruef-Assistent fuer deutsche Energie-/Wasser-JAHRESABRECHNUNGEN und SCHLUSSRECHNUNGEN.`,
+    `Das angehaengte Dokument ist die Abrechnung eines ${cat}-Vertrags. Lies alle Werte aus, die fuer eine Nachpruefung noetig sind.`,
     ``,
     `Gib AUSSCHLIESSLICH ein JSON-Objekt zurueck (kein Markdown, keine Erklaerung) mit genau diesen Schluesseln:`,
     `- "anbieter": Versorger (string oder null).`,
     `- "kategorie": "strom" | "gas" | "wasser".`,
-    `- "zeitraumVon": Beginn des Abrechnungszeitraums, ISO "YYYY-MM-DD" oder null.`,
-    `- "zeitraumBis": Ende des Abrechnungszeitraums, ISO "YYYY-MM-DD" oder null.`,
+    `- "schlussrechnung": true wenn es eine Schluss-/Endabrechnung (Vertragsende, Umzug, Anbieterwechsel) ist, sonst false.`,
+    `- "zeitraumVon": erster Tag des Abrechnungszeitraums, ISO "YYYY-MM-DD" oder null.`,
+    `- "zeitraumBis": letzter Tag des Abrechnungszeitraums, ISO "YYYY-MM-DD" oder null.`,
+    `- "zaehlernummer": Zaehlernummer (string oder null).`,
+    `- "zaehlerstandStart": Anfangszaehlerstand als Zahl oder null. "datumStart": Datum dieses Stands, ISO oder null.`,
+    `- "zaehlerstandEnde": Endzaehlerstand als Zahl oder null. "datumEnde": Datum dieses Stands, ISO oder null.`,
+    `- "standArtEnde": "abgelesen" | "geschaetzt" | "" (wie der Endstand ermittelt wurde, falls angegeben).`,
+    `- "zaehlerwechsel": true wenn im Zeitraum ein Zaehler getauscht wurde, sonst false.`,
     `- "verbrauch": Gesamtverbrauch im Zeitraum in ${unit} als Zahl (bei Gas in kWh, NICHT in m3) oder null.`,
-    `- "zaehlerstandStart": Anfangszaehlerstand als Zahl oder null.`,
-    `- "zaehlerstandEnde": Endzaehlerstand als Zahl oder null.`,
-    `- "gesamtkosten": Gesamtkosten des Zeitraums in EURO brutto (Summe aller Kostenbestandteile), NICHT der Nachzahlungsbetrag. Zahl oder null.`,
-    `- "summeAbschlaege": Summe der im Zeitraum gezahlten Abschlaege/Vorauszahlungen in EURO. Zahl oder null.`,
-    `- "ergebnisBetrag": Betrag der Schlussrechnung in EURO als POSITIVE Zahl, oder null.`,
-    `- "ergebnisArt": "nachzahlung" (du musst nachzahlen) oder "guthaben" (du bekommst Geld zurueck) oder null.`,
-    `- "neuerAbschlag": neuer monatlicher Abschlag ab naechster Periode in EURO. Zahl oder null.`,
-    `- "rechnungsnummer": string oder null.`,
-    `- "kundennummer": string oder null.`,
-    `- "hinweise": kurzer deutscher Hinweis zu Annahmen/Unsicherheiten; "" wenn eindeutig.`,
+    `- "arbeitspreis": Arbeitspreis brutto in ${preisEinheit}. Falls ct angegeben, durch 100 teilen. Bei mehreren Preisen den zuletzt gueltigen. Zahl oder null.`,
+    `- "grundpreisJahr": Grundpreis brutto in EURO pro JAHR (ct/Tag => *365/100; EUR/Monat => *12). Bei mehreren den zuletzt gueltigen. Zahl oder null.`,
+    `- "preise": Liste aller Preisphasen im Zeitraum, je {"von":"YYYY-MM-DD","bis":"YYYY-MM-DD","arbeitspreis":Zahl,"grundpreisJahr":Zahl} (brutto, Einheiten wie oben). Leere Liste, wenn nicht erkennbar.`,
+    `- "gesamtkosten": Gesamtkosten des Zeitraums in EURO brutto (Summe aller Kostenbestandteile inkl. Steuern/Abgaben), NICHT der Nachzahlungsbetrag. Zahl oder null.`,
+    `- "summeAbschlaege": Summe der im Zeitraum gezahlten bzw. berechneten Abschlaege in EURO. Zahl oder null.`,
+    `- "anzahlAbschlaege": Anzahl dieser Abschlaege als Zahl oder null.`,
+    `- "ergebnisBetrag": Betrag der Rechnung (Guthaben oder Nachzahlung) in EURO als POSITIVE Zahl, oder null.`,
+    `- "ergebnisArt": "nachzahlung" (Kunde zahlt nach) oder "guthaben" (Kunde bekommt Geld zurueck) oder null.`,
+    `- "neuerAbschlag": neuer monatlicher Abschlag in EURO oder null. "neuerAbschlagAb": ab wann, ISO oder null.`,
+    `- "rechnungsnummer": string oder null. "kundennummer": string oder null. "rechnungsdatum": ISO oder null.`,
+    `- "hinweise": kurzer deutscher Hinweis zu Annahmen/Unsicherheiten (z. B. geschaetzter Endstand, Bonus, Sonderposten); "" wenn eindeutig.`,
     ``,
-    `Regeln: Alle Geldbetraege BRUTTO in EURO, Punkt als Dezimaltrennzeichen, keine Einheiten/Tausenderpunkte im Wert. Unbekannte Werte: null, nicht raten.`,
+    `Regeln: Alle Geldbetraege BRUTTO in EURO, Punkt als Dezimaltrennzeichen, keine Einheiten/Tausenderpunkte im Wert. Zaehlerstaende exakt wie gedruckt (Tausenderpunkte weglassen). Unbekannte Werte: null, nicht raten.`,
   ].join("\n");
 }
 
@@ -259,6 +270,23 @@ async function logCall(sh: Record<string, string> | null, row: Record<string, un
   }
 }
 
+type Doc = { household_id: string; storage_path: string; mime_type: string | null; category: string | null };
+// Gespeichertes Dokument (Metadaten im Schema der Umgebung, Datei im Bucket "documents").
+async function loadDoc(id: string, env: string, sh: Record<string, string>): Promise<{ doc: Doc; b64: string } | { err: string; status: number }> {
+  const prof: Record<string, string> = env === "test" ? { "accept-profile": "test" } : {};
+  const r = await fetch(`${SB_URL}/rest/v1/documents?select=household_id,storage_path,mime_type,category&id=eq.${encodeURIComponent(id)}`, { headers: { ...sh, ...prof } });
+  if (!r.ok) return { err: "Dokument nicht lesbar.", status: 500 };
+  const rows = await r.json();
+  if (!Array.isArray(rows) || !rows.length) return { err: "Dokument nicht gefunden.", status: 404 };
+  const doc = rows[0] as Doc;
+  const path = doc.storage_path.split("/").map(encodeURIComponent).join("/");
+  const fr = await fetch(`${SB_URL}/storage/v1/object/documents/${path}`, { headers: sh });
+  if (!fr.ok) return { err: "Datei nicht im Speicher gefunden.", status: 404 };
+  const buf = new Uint8Array(await fr.arrayBuffer());
+  if (buf.length > 6_700_000) return { err: "Datei ist zu gross fuer die KI-Auswertung (max. ca. 6 MB).", status: 413 };
+  return { doc, b64: encodeBase64(buf) };
+}
+
 function costUsd(model: string, inp: number, out: number): number {
   const p = PRICES[model] || [0, 0];
   return Math.round(((inp * p[0] + out * p[1]) / 1_000_000) * 1_000_000) / 1_000_000;
@@ -304,6 +332,7 @@ Deno.serve(async (req: Request) => {
     level?: string;
     household_id?: string;
     env?: string;
+    document_id?: string;
   };
   try {
     payload = await req.json();
@@ -311,9 +340,10 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Ungueltige Anfrage." }, 400);
   }
 
-  const { fileBase64, mimeType, category } = payload;
-  if (!fileBase64) return json({ error: "Keine Datei empfangen." }, 400);
-  if (fileBase64.length > MAX_B64) return json({ error: "Datei ist zu gross fuer die KI-Auswertung (max. ca. 6 MB)." }, 413);
+  let { fileBase64, mimeType, category } = payload;
+  const docId = typeof payload.document_id === "string" && /^[0-9a-f-]{36}$/i.test(payload.document_id) ? payload.document_id : null;
+  if (!fileBase64 && !docId) return json({ error: "Keine Datei empfangen." }, 400);
+  if (fileBase64 && fileBase64.length > MAX_B64) return json({ error: "Datei ist zu gross fuer die KI-Auswertung (max. ca. 6 MB)." }, 413);
 
   const auth = req.headers.get("Authorization") || "";
   // Tageskontingent pro Person (Missbrauchsschutz).
@@ -333,6 +363,18 @@ Deno.serve(async (req: Request) => {
     ? payload.household_id
     : null;
   if (hh && (!me || !sh || !(await isMember(hh, me.id, sh)))) hh = null;
+
+  // Gespeichertes Dokument: nur Mitglieder des Haushalts, dem das Dokument gehoert.
+  if (docId) {
+    if (!sh) return json({ error: "Server nicht vollstaendig eingerichtet." }, 500);
+    const got = await loadDoc(docId, payload.env === "test" ? "test" : "live", sh);
+    if ("err" in got) return json({ error: got.err }, got.status);
+    if (!me || !(await isMember(got.doc.household_id, me.id, sh))) return json({ error: "Kein Zugriff auf dieses Dokument." }, 403);
+    fileBase64 = got.b64;
+    mimeType = got.doc.mime_type || "application/pdf";
+    if (!category && got.doc.category) category = got.doc.category;
+    hh = got.doc.household_id;
+  }
 
   const cat = category === "gas" || category === "wasser" ? category : "strom";
   const mode = payload.mode === "abrechnung" ? "abrechnung" : payload.mode === "zaehler" ? "zaehler" : "tarif";

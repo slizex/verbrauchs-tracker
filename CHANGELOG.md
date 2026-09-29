@@ -3,6 +3,27 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg, Version, Umgebung* (`APP_VERSION` in `index.html`).
 
+## 7.1.0 – 29.09.2026
+
+**Jahresabrechnungen**
+- Eigene Seite *Jahresabrechnung* (aus Verträgen, dem Dokumenten-Archiv, der Startseite und dem klassischen Design):
+  Beleg hochladen oder vorhandenes PDF wählen → Modell wählen → Bericht.
+- Modellwahl nur Gründlich · Claude Sonnet 5.5 (≈ 6 ct) und Maximal · Claude Opus 5.5 (≈ 12 ct); die letzte Wahl ist pro Person vorausgewählt.
+- Bericht: Beleg und App im Vergleich (Verbrauch, Kosten, Abschläge, Ergebnis), Abweichungen ab 5 % oder 10 €,
+  Ursachen mit Korrektur-Knöpfen (Endstand, Arbeits-/Grundpreis, Abschläge, neuer Abschlag), Monatsaufstellung, Hinweise der KI.
+- Werte laut Beleg lassen sich vor dem Übernehmen korrigieren; übernehmen und löschen dürfen alle Mitglieder.
+
+**Offener Saldo**
+- Der Saldo startet nach einer übernommenen Jahresabrechnung neu (Stichtag: Ende des Abrechnungszeitraums).
+- Er läuft pro Anbieter: Preisänderungen beim selben Anbieter laufen weiter, ein Anbieterwechsel beginnt neu.
+- Startseite, Verträge, Verlauf, PDF-Bericht und klassisches Design zeigen denselben Wert.
+- Verlauf: echte Abrechnungen als eigener Block, berechnete Jahre heißen „Jahressumme (berechnet)“.
+- Vorschlag „Jahresabrechnung da?“, sobald 12 oder mehr Monate offen sind.
+
+**Kleinigkeiten**
+- Dateien, die nur nach einer Kennung benannt sind, heißen in der Liste jetzt nach Art und Datum (z. B. „Abrechnung 01.03.2026.pdf“).
+- Klassisches Design: alte Abrechnungsprüfung entfernt, der Knopf führt zur neuen Seite und wieder zurück.
+
 ## 7.0.1 – 29.09.2026
 
 - Ablesen: Das Schließen-Kreuz im Ablese-Formular löste zusätzlich ein Absenden aus (Konsolenfehler, im ungünstigen Fall halber Speichervorgang). Behoben.
