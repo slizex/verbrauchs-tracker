@@ -307,10 +307,10 @@ html.testenv body::before{content:"";position:fixed;top:0;left:0;right:0;height:
 .chart{display:block;width:100%;height:auto;margin-top:6px;overflow:visible}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;font-weight:700;color:var(--muted);margin:4px 2px 0}
 .legend span{display:inline-flex;align-items:center;gap:6px}
-.lg{display:inline-block;width:14px;height:10px;border-radius:3px}
-.lg.dash{height:0;border-top:2px dashed var(--muted);border-radius:0}
-.lg.dot{height:0;border-top:2.5px dotted var(--text);border-radius:0}
-.lg.fc{border:1.5px dashed;background:transparent}
+.lgd{display:inline-block;width:14px;height:10px;border-radius:3px}
+.lgd.dash{height:0;border-top:2px dashed var(--muted);border-radius:0}
+.lgd.dot{height:0;border-top:2.5px dotted var(--text);border-radius:0}
+.lgd.fc{border:1.5px dashed;background:transparent}
 .cinfo{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-weight:800}
 .vlist2{display:grid;gap:6px}
 .vsep{display:flex;align-items:center;gap:8px;padding:12px 6px 4px;color:var(--muted);font-weight:800;font-size:.84rem}
@@ -508,7 +508,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.2.0";
+var APP_VERSION="7.2.1";
 /* Pfad …/ = live, …/test/ = Testumgebung (eigener Datenbereich "test") */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var IS_TEST=/\/test\/$/.test(APP_PATH);
@@ -2072,7 +2072,7 @@ function screenVerlauf(p){
       '<button class="'+(VL.metric==="kosten"?"on":"")+'" data-a="vl-metric" data-v="kosten">Kosten</button><button class="'+(VL.metric==="verbrauch"?"on":"")+'" data-a="vl-metric" data-v="verbrauch">Verbrauch</button></div>'+
       '<select class="sel" data-vl-period aria-label="Zeitraum"><option value="12"'+(VL.period==="12"?" selected":"")+'>12 Monate</option>'+years.map(function(y){return '<option value="'+y+'"'+(VL.period===y?" selected":"")+'>'+y+'</option>';}).join("")+'</select></div>'+
     chartSvg(cat,items)+
-    '<div class="legend"><span><i class="lg bar" style="background:var(--'+cat+')"></i>'+(VL.metric==="kosten"?"Kosten":"Verbrauch")+'</span><span><i class="lg dash"></i>Vorjahr</span>'+(VL.metric==="kosten"?'<span><i class="lg dot"></i>Abschlag</span>':"")+(VL.period==="12"?'<span><i class="lg fc" style="border-color:var(--'+cat+')"></i>Prognose</span>':"")+'</div>'+
+    '<div class="legend"><span><i class="lgd bar" style="background:var(--'+cat+')"></i>'+(VL.metric==="kosten"?"Kosten":"Verbrauch")+'</span><span><i class="lgd dash"></i>Vorjahr</span>'+(VL.metric==="kosten"?'<span><i class="lgd dot"></i>Abschlag</span>':"")+(VL.period==="12"?'<span><i class="lgd fc" style="border-color:var(--'+cat+')"></i>Prognose</span>':"")+'</div>'+
     chartInfo(cat,items)+'</section>';
   var tabs='<div class="seg wide" role="group" aria-label="Ansicht" style="margin:18px 0 12px"><button class="'+(VL.view==="monate"?"on":"")+'" data-a="vl-view" data-v="monate">Monate</button><button class="'+(VL.view==="jahre"?"on":"")+'" data-a="vl-view" data-v="jahre">Jahresvergleich</button></div>';
   return '<h1 class="pt">Verlauf</h1>'+chips+'<div class="grid grid-2 vlgrid'+(VL.view==="jahre"?" years":"")+'"><div>'+card+'</div><div>'+tabs+(VL.view==="jahre"?yearCompare(cat):monthList(cat))+'</div></div>';

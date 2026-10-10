@@ -3,6 +3,11 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg, Version, Umgebung* (`APP_VERSION` in `index.html`).
 
+## 7.2.1 – 10.10.2026
+
+- Große Knöpfe (z. B. *Speichern & weiter*, *Anmelden*, *Analyse starten*) sind wieder rund statt fast eckig.
+  Ursache: Die Legende im Verlaufsdiagramm nutzte denselben Klassennamen wie die Knopfgröße; sie heißt jetzt anders, ihr Aussehen bleibt gleich.
+
 ## 7.2.0 – 29.09.2026
 
 **Klassisches Design archiviert**
