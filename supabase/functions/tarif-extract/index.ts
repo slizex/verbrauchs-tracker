@@ -1,15 +1,14 @@
-// Supabase Edge Function: tarif-extract (v12, AllTrack 7.1.0)
+// Supabase Edge Function: tarif-extract (v13, AllTrack 7.2.1)
 // Liest Tarif-/Vertragsdokumente, Jahres-/Schlussabrechnungen ODER Zaehler-Fotos
 // (PDF/Bild, base64) per Claude-API aus und gibt die Felder als JSON zurueck.
 // mode='tarif' (Default) | 'abrechnung' | 'zaehler'.
 // level='basic' | 'advanced' | 'max' -> Modell wird HIER fest zugeordnet.
 // Statt fileBase64 kann document_id kommen: dann laedt der Server das gespeicherte
 // Dokument selbst (nur fuer Mitglieder des Haushalts).
+// Nur fuer angemeldete Nutzer: ohne Nutzer-Token 401 {code:"login"}, bevor die KI laeuft.
 // Jede Auswertung wird mit Tokens und Kosten in public.ai_calls protokolliert
 // (lesbar nur fuer Admins des Haushalts). API-Schluessel nur hier als Secret.
-
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { encodeBase64 } from "jsr:@std/encoding/base64";
+// Ohne jsr-Importe: die liessen das Buendeln beim Deploy oft mit Timeout scheitern.
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
@@ -214,6 +213,19 @@ async function withinQuota(authHeader: string): Promise<{ ok: boolean; limited: 
   }
 }
 
+// Nutzer-Token? Der oeffentliche anon-Schluessel ist ebenfalls ein gueltig signiertes JWT
+// (verify_jwt prueft nur die Signatur), traegt aber die Rolle "anon" und kein sub.
+function rolleAngemeldet(authHeader: string): boolean {
+  const teil = authHeader.replace(/^Bearer\s+/i, "").split(".")[1];
+  if (!teil) return false;
+  try {
+    const p = JSON.parse(atob(teil.replace(/-/g, "+").replace(/_/g, "/")));
+    return p.role === "authenticated" && typeof p.sub === "string" && p.sub.length > 0;
+  } catch (_) {
+    return false;
+  }
+}
+
 // Wer ruft auf? (id + E-Mail aus dem Nutzer-Token)
 async function whoAmI(authHeader: string): Promise<{ id: string; email: string } | null> {
   const key = publicKey();
@@ -270,6 +282,15 @@ async function logCall(sh: Record<string, string> | null, row: Record<string, un
   }
 }
 
+// base64 ohne Bibliothek; in Stuecken, damit fromCharCode nicht zu viele Argumente bekommt.
+function toBase64(buf: Uint8Array): string {
+  let s = "";
+  for (let i = 0; i < buf.length; i += 0x8000) {
+    s += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  }
+  return btoa(s);
+}
+
 type Doc = { household_id: string; storage_path: string; mime_type: string | null; category: string | null };
 // Gespeichertes Dokument (Metadaten im Schema der Umgebung, Datei im Bucket "documents").
 async function loadDoc(id: string, env: string, sh: Record<string, string>): Promise<{ doc: Doc; b64: string } | { err: string; status: number }> {
@@ -284,7 +305,7 @@ async function loadDoc(id: string, env: string, sh: Record<string, string>): Pro
   if (!fr.ok) return { err: "Datei nicht im Speicher gefunden.", status: 404 };
   const buf = new Uint8Array(await fr.arrayBuffer());
   if (buf.length > 6_700_000) return { err: "Datei ist zu gross fuer die KI-Auswertung (max. ca. 6 MB).", status: 413 };
-  return { doc, b64: encodeBase64(buf) };
+  return { doc, b64: toBase64(buf) };
 }
 
 function costUsd(model: string, inp: number, out: number): number {
@@ -313,6 +334,11 @@ async function callClaude(lv: Level, docBlock: unknown, prompt: string): Promise
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Nur POST." }, 405);
+
+  // Nur angemeldete Nutzer - der anon-Schluessel steht oeffentlich in der App.
+  const auth = req.headers.get("Authorization") || "";
+  const me = rolleAngemeldet(auth) ? await whoAmI(auth) : null;
+  if (!me) return json({ error: "Bitte anmelden.", code: "login" }, 401);
 
   if (!ANTHROPIC_API_KEY) {
     return json(
@@ -345,7 +371,6 @@ Deno.serve(async (req: Request) => {
   if (!fileBase64 && !docId) return json({ error: "Keine Datei empfangen." }, 400);
   if (fileBase64 && fileBase64.length > MAX_B64) return json({ error: "Datei ist zu gross fuer die KI-Auswertung (max. ca. 6 MB)." }, 413);
 
-  const auth = req.headers.get("Authorization") || "";
   // Tageskontingent pro Person (Missbrauchsschutz).
   const q = await withinQuota(auth);
   if (!q.ok && q.limited) {
@@ -358,18 +383,17 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Das Tagesbudget fuer KI-Auswertungen ist erreicht. Bitte morgen erneut versuchen." }, 429);
   }
 
-  const me = await whoAmI(auth);
   let hh: string | null = typeof payload.household_id === "string" && /^[0-9a-f-]{36}$/i.test(payload.household_id)
     ? payload.household_id
     : null;
-  if (hh && (!me || !sh || !(await isMember(hh, me.id, sh)))) hh = null;
+  if (hh && (!sh || !(await isMember(hh, me.id, sh)))) hh = null;
 
   // Gespeichertes Dokument: nur Mitglieder des Haushalts, dem das Dokument gehoert.
   if (docId) {
     if (!sh) return json({ error: "Server nicht vollstaendig eingerichtet." }, 500);
     const got = await loadDoc(docId, payload.env === "test" ? "test" : "live", sh);
     if ("err" in got) return json({ error: got.err }, got.status);
-    if (!me || !(await isMember(got.doc.household_id, me.id, sh))) return json({ error: "Kein Zugriff auf dieses Dokument." }, 403);
+    if (!(await isMember(got.doc.household_id, me.id, sh))) return json({ error: "Kein Zugriff auf dieses Dokument." }, 403);
     fileBase64 = got.b64;
     mimeType = got.doc.mime_type || "application/pdf";
     if (!category && got.doc.category) category = got.doc.category;
@@ -395,8 +419,8 @@ Deno.serve(async (req: Request) => {
 
   const baseRow = {
     household_id: hh,
-    user_id: me ? me.id : null,
-    user_email: me ? me.email : null,
+    user_id: me.id,
+    user_email: me.email,
     env: payload.env === "test" ? "test" : "live",
     mode,
     level,
