@@ -2,10 +2,7 @@
    Strategie: network-first (online immer aktuell), Offline-Fallback auf die App-Hülle.
    Supabase-Anfragen (Daten/Anmeldung) gehen IMMER direkt ins Netz – nie aus dem Cache.
 
-   Dieser Service Worker läuft auch in der Android-App: die APK lädt die Web-App von
-   dieser Adresse (server.url in archive/mobile/capacitor.config.json), damit Änderungen ohne
-   neue Installation ankommen. Damit ist er zugleich das Offline-Netz der App – beim
-   Seitenaufruf wartet er höchstens NAV_TIMEOUT auf das Netz und nimmt sonst die
+   Beim Seitenaufruf wartet er höchstens NAV_TIMEOUT auf das Netz und nimmt sonst die
    zuletzt geladene Fassung. */
 var CACHE = 'vt-shell-v8'; // Version 7.2.0: klassisches Design archiviert – neuer Name räumt dessen alte Kopie aus dem Speicher
 var NAV_TIMEOUT = 5000;
