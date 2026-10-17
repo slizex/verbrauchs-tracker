@@ -507,7 +507,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.3.0";
+var APP_VERSION="7.4.0";
 /* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var DB_SCHEMA="public";
@@ -518,6 +518,8 @@ var sbPub=sb.schema("public");
 /* ================= 2. Rechenlogik (unverändert übernommen) ================= */
 /* --- Globale Zustände (wie im klassischen Design) --- */
 var currentUser=null,enteredUserId=null;
+/* Neue Konten starten "offen", bis der Superadmin sie in All-Home freigibt (die Datenbank zeigt ihnen solange nichts) */
+var FREIGABE=null;
 var LOAD_FAILED=false;
 var HOUSEHOLDS=[],activeHousehold=null;
 var BACKUPS=[],BACKUP_MAX=3;
@@ -1149,13 +1151,16 @@ async function authLogin(email,pass){
   try{var r=await sb.auth.signInWithPassword({email:email,password:pass});return r.error?loginErrorText(r.error):null;}
   catch(e){return loginErrorText(e);}
 }
-async function authSignup(email,pass){
+async function authSignup(email,pass,vorname,nachname){
+  if(!vorname||!nachname)return {err:"Bitte Vor- und Nachname eingeben."};
   if(!email||!pass)return {err:"Bitte E-Mail und Passwort eingeben."};
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))return {err:"Bitte eine gültige E-Mail-Adresse eingeben."};
   if(pass.length<8)return {err:"Das Passwort braucht mindestens 8 Zeichen."};
   try{
-    var r=await sb.auth.signUp({email:email,password:pass});
+    var r=await sb.auth.signUp({email:email,password:pass,options:{emailRedirectTo:location.origin+location.pathname,
+      data:{vorname:String(vorname).slice(0,80),nachname:String(nachname).slice(0,80),app:"alltrack"}}});
     if(r.error)return {err:loginErrorText(r.error)};
-    return {ok:(r.data&&r.data.session)?"Konto erstellt – du wirst angemeldet …":"Konto erstellt. Bitte bestätige die E-Mail und melde dich dann an."};
+    return {ok:(r.data&&r.data.session)?"Konto erstellt – du wirst angemeldet …":"Fast fertig! Bitte bestätige deine E-Mail-Adresse über den Link in unserer Mail an "+email+". Danach gibt der Administrator dein Konto frei.",angemeldet:!!(r.data&&r.data.session)};
   }catch(e){return {err:loginErrorText(e)};}
 }
 async function authForgot(email){
@@ -1163,7 +1168,8 @@ async function authForgot(email){
   try{
     var r=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
     if(r.error)return {err:loginErrorText(r.error)};
-    return {ok:"E-Mail ist unterwegs. Der Link darin führt dich zurück, dann vergibst du ein neues Passwort."};
+    /* Der Server verrät aus Datenschutzgründen nicht, ob es die Adresse gibt – darum ehrlich formulieren */
+    return {ok:"Falls es ein Konto mit "+email+" gibt, ist jetzt eine E-Mail unterwegs. Der Link darin führt dich zurück, dann vergibst du ein neues Passwort. Nichts angekommen? Schreibweise und Spam-Ordner prüfen."};
   }catch(e){return {err:loginErrorText(e)};}
 }
 async function authSetPassword(p){
@@ -1175,8 +1181,17 @@ async function authLogout(){
   try{unsubscribeRealtime();}catch(e){}
   try{await sb.auth.signOut();}catch(e){}
 }
+/* Bei einem Technikfehler nicht aussperren – die Datenbank schützt ohnehin */
+async function meineFreigabe(){
+  try{var r=await sbPub.rpc("meine_freigabe");return (r&&!r.error&&r.data)?r.data:"freigegeben";}catch(e){return "freigegeben";}
+}
+async function freigabePruefen(){
+  var s=await sb.auth.getSession(),ses=s&&s.data?s.data.session:null;
+  if((await meineFreigabe())==="offen"){authMsg("Noch nicht freigegeben – bitte später noch einmal.","err");return;}
+  enteredUserId=null;FREIGABE=null;handleSession(ses);
+}
 function resetSession(){
-  SETTLEMENTS=[];ABR=null;
+  SETTLEMENTS=[];ABR=null;FREIGABE=null;
   unsubscribeRealtime();enteredUserId=null;currentUser=null;HOUSEHOLDS=[];activeHousehold=null;
   STATE=defaults();BACKUPS=[];DISMISSED_NOTIFS=[];USER_PREFS=null;MEMBERS=[];IAM_ADMIN=false;LOAD_FAILED=false;
 }
@@ -1186,6 +1201,8 @@ async function handleSession(session){
     if(enteredUserId===session.user.id){currentUser=session.user;return;}
     enteredUserId=session.user.id;currentUser=session.user;
     BOOTED=true;LOADING=true;render();
+    FREIGABE=await meineFreigabe();
+    if(FREIGABE==="offen"){LOADING=false;render();return;}
     try{await fetchUserPrefs();}catch(e){}
     await loadAll();
     LOADING=false;render();
@@ -3179,8 +3196,26 @@ function buildReportHtml(){
 }
 
 /* ---- Anmeldung ---- */
+function screenWarten(){
+  return '<div class="auth"><div class="authc"><img class="logo" src="icon.svg" alt="">'+
+    '<h1>Fast geschafft</h1><p>Dein Konto <b>'+esc((currentUser&&currentUser.email)||"")+'</b> wartet auf die Freigabe durch den Administrator. Sobald es freigegeben ist, kannst du AllTrack und All-Home nutzen.</p>'+
+    '<div class="amsg" id="amsg"></div><button class="btn lg full" type="button" data-a="freigabe-pruefen">Erneut prüfen</button>'+
+    '<div class="arow"><button type="button" class="lnk" data-a="logout">Abmelden</button></div></div></div>';
+}
+function screenSignup(){
+  return '<div class="auth"><form class="authc" id="authForm" novalidate><img class="logo" src="icon.svg" alt="">'+
+    '<h1>Neues Konto</h1><p>Nach der Bestätigung deiner E-Mail-Adresse gibt der Administrator dein Konto frei.</p>'+
+    '<label class="fld"><span>Vorname</span><input class="inp" id="a_vorname" type="text" autocomplete="given-name" maxlength="80"></label>'+
+    '<label class="fld"><span>Nachname</span><input class="inp" id="a_nachname" type="text" autocomplete="family-name" maxlength="80"></label>'+
+    '<label class="fld"><span>E-Mail</span><input class="inp" id="a_mail" type="email" autocomplete="username" inputmode="email"></label>'+
+    '<label class="fld"><span>Passwort</span><input class="inp" id="a_pass" type="password" autocomplete="new-password" minlength="8"></label>'+
+    '<div class="amsg" id="amsg"></div><button class="btn lg full" type="submit" data-mode="signup">Konto anlegen</button>'+
+    '<div class="arow"><button type="button" class="lnk" data-a="auth-login">Ich habe schon ein Konto</button></div>'+
+  '</form></div>';
+}
 function screenAuth(){
   var reset=AUTH_MODE==="reset";
+  if(AUTH_MODE==="signup")return screenSignup();
   return '<div class="auth"><form class="authc" id="authForm" novalidate><img class="logo" src="icon.svg" alt="">'+
     '<h1>'+(reset?"Neues Passwort":"AllTrack")+'</h1><p>'+(reset?"Vergib jetzt ein neues Passwort.":"Strom, Wasser und Gas im Blick.")+'</p>'+
     (reset
@@ -3199,6 +3234,7 @@ function render(){
   var root=$("#root");
   if(!BOOTED){root.innerHTML='<div class="auth"><div class="sk" style="width:58px;height:58px;border-radius:18px"></div></div>';return;}
   if(!currentUser||AUTH_MODE==="reset"){root.innerHTML=screenAuth();return;}
+  if(FREIGABE==="offen"){root.innerHTML=screenWarten();return;}
   var r=route(),c;
   if(r.name==="start")c=screenStart();
   else if(r.name==="verlauf")c=screenVerlauf(r.params);
@@ -3307,13 +3343,21 @@ function onAction(e){
   else if(a==="flow-cam"){var inp=document.querySelector('input[data-photo="'+b.getAttribute("data-cat")+'"]');if(inp)inp.click();}
   else if(a==="flow-force"){closeSheet();flowNext(true);}
   else if(a==="flow-force-all"){closeSheet();flowSaveAll(true);}
-  else if(a==="signup"){doAuth("signup");}
+  else if(a==="signup"){var sm=(($("#a_mail")||{}).value)||"";AUTH_MODE="signup";render();if($("#a_mail"))$("#a_mail").value=sm;if($("#a_vorname"))$("#a_vorname").focus();}
+  else if(a==="auth-login"){AUTH_MODE="login";render();}
+  else if(a==="freigabe-pruefen"){freigabePruefen();}
   else if(a==="forgot"){doAuth("forgot");}
 }
 async function doAuth(mode){
   var mail=(($("#a_mail")||{}).value||"").trim(),pass=($("#a_pass")||{}).value||"";
   if(mode==="login"){authMsg("Anmeldung läuft …");var er=await authLogin(mail,pass);if(er)authMsg(er,"err");}
-  else if(mode==="signup"){authMsg("Konto wird erstellt …");var r=await authSignup(mail,pass);authMsg(r.err||r.ok,r.err?"err":"ok");}
+  else if(mode==="signup"){
+    authMsg("Konto wird erstellt …");
+    var r=await authSignup(mail,pass,((($("#a_vorname")||{}).value)||"").trim(),((($("#a_nachname")||{}).value)||"").trim());
+    if(r.err){authMsg(r.err,"err");return;}
+    if(!r.angemeldet){AUTH_MODE="login";render();if($("#a_mail"))$("#a_mail").value=mail;}
+    authMsg(r.ok,"ok");
+  }
   else if(mode==="forgot"){authMsg("E-Mail wird gesendet …");var f=await authForgot(mail);authMsg(f.err||f.ok,f.err?"err":"ok");}
   else if(mode==="setpass"){
     authMsg("Passwort wird gespeichert …");var e2=await authSetPassword((($("#a_new")||{}).value)||"");

@@ -3,6 +3,13 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
 
+## 7.4.0 – 17.10.2026
+
+- Neue Konten brauchen eine Freigabe: Die Registrierung fragt Vor- und Nachname ab, danach wartet das Konto,
+  bis der Administrator es freigibt (per Mail oder in All-Home unter *Mehr → Registrierungen*). Bis dahin sieht es keine Daten.
+- *Passwort vergessen*: Die Meldung sagt jetzt ehrlich, dass nur bei einem bestehenden Konto eine Mail kommt,
+  und erinnert an Schreibweise und Spam-Ordner.
+
 ## 7.3.0 – 17.10.2026
 
 - Die Testumgebung (`/test/` mit eigenem Datenbereich) ist entfernt. AllTrack hat nur noch die Live-Fassung mit deinen echten Daten;
