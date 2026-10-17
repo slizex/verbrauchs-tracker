@@ -1,4 +1,4 @@
-// Supabase Edge Function: tarif-extract (v13, AllTrack 7.2.1)
+// Supabase Edge Function: tarif-extract (v14, AllTrack 7.3.0 – ohne Testumgebung)
 // Liest Tarif-/Vertragsdokumente, Jahres-/Schlussabrechnungen ODER Zaehler-Fotos
 // (PDF/Bild, base64) per Claude-API aus und gibt die Felder als JSON zurueck.
 // mode='tarif' (Default) | 'abrechnung' | 'zaehler'.
@@ -292,10 +292,9 @@ function toBase64(buf: Uint8Array): string {
 }
 
 type Doc = { household_id: string; storage_path: string; mime_type: string | null; category: string | null };
-// Gespeichertes Dokument (Metadaten im Schema der Umgebung, Datei im Bucket "documents").
-async function loadDoc(id: string, env: string, sh: Record<string, string>): Promise<{ doc: Doc; b64: string } | { err: string; status: number }> {
-  const prof: Record<string, string> = env === "test" ? { "accept-profile": "test" } : {};
-  const r = await fetch(`${SB_URL}/rest/v1/documents?select=household_id,storage_path,mime_type,category&id=eq.${encodeURIComponent(id)}`, { headers: { ...sh, ...prof } });
+// Gespeichertes Dokument (Metadaten in public.documents, Datei im Bucket "documents").
+async function loadDoc(id: string, sh: Record<string, string>): Promise<{ doc: Doc; b64: string } | { err: string; status: number }> {
+  const r = await fetch(`${SB_URL}/rest/v1/documents?select=household_id,storage_path,mime_type,category&id=eq.${encodeURIComponent(id)}`, { headers: sh });
   if (!r.ok) return { err: "Dokument nicht lesbar.", status: 500 };
   const rows = await r.json();
   if (!Array.isArray(rows) || !rows.length) return { err: "Dokument nicht gefunden.", status: 404 };
@@ -357,7 +356,6 @@ Deno.serve(async (req: Request) => {
     mode?: string;
     level?: string;
     household_id?: string;
-    env?: string;
     document_id?: string;
   };
   try {
@@ -391,7 +389,7 @@ Deno.serve(async (req: Request) => {
   // Gespeichertes Dokument: nur Mitglieder des Haushalts, dem das Dokument gehoert.
   if (docId) {
     if (!sh) return json({ error: "Server nicht vollstaendig eingerichtet." }, 500);
-    const got = await loadDoc(docId, payload.env === "test" ? "test" : "live", sh);
+    const got = await loadDoc(docId, sh);
     if ("err" in got) return json({ error: got.err }, got.status);
     if (!(await isMember(got.doc.household_id, me.id, sh))) return json({ error: "Kein Zugriff auf dieses Dokument." }, 403);
     fileBase64 = got.b64;
@@ -421,7 +419,7 @@ Deno.serve(async (req: Request) => {
     household_id: hh,
     user_id: me.id,
     user_email: me.email,
-    env: payload.env === "test" ? "test" : "live",
+    env: "live",
     mode,
     level,
   };
