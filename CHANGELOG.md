@@ -3,6 +3,11 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg, Version, Umgebung* (`APP_VERSION` in `index.html`).
 
+## 7.2.2 – 17.10.2026
+
+- Offline-Speicher: Ein Update räumt nur noch die eigenen alten Kopien von AllTrack weg.
+  Bisher löschte es auch die Offline-Kopie von All-Home, das unter derselben Adresse slizex.github.io läuft.
+
 ## 7.2.1 – 10.10.2026
 
 - Große Knöpfe (z. B. *Speichern & weiter*, *Anmelden*, *Analyse starten*) sind wieder rund statt fast eckig.

@@ -24,7 +24,8 @@ self.addEventListener('install', function (e) {
 self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys().then(function (keys) {
-      return Promise.all(keys.map(function (k) { if (k !== CACHE) return caches.delete(k); }));
+      /* Nur eigene alte Hüllen löschen: All-Home teilt den Ursprung slizex.github.io und damit den Cache-Speicher. */
+      return Promise.all(keys.map(function (k) { if (k.indexOf('vt-shell-') === 0 && k !== CACHE) return caches.delete(k); }));
     }).then(function () { return self.clients.claim(); })
   );
 });
