@@ -222,7 +222,6 @@ a{color:inherit;text-decoration:none}
 #toast button{font-weight:900;text-decoration:underline;text-underline-offset:3px}
 .updbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;background:var(--ink);color:var(--ink-fg);padding:8px 8px 8px 16px;border-radius:18px;font-weight:800;font-size:.9rem}
 .updbar>span{display:flex;align-items:center;gap:8px}
-html.testenv body::before{content:"";position:fixed;top:0;left:0;right:0;height:3px;background:#7c3aed;z-index:100;pointer-events:none}
 .kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px;display:grid;gap:2px}
 .kpi span{color:var(--muted);font-weight:800;font-size:.84rem}.kpi b{font-size:1.5rem;font-weight:900}.kpi small{color:var(--muted);font-weight:700}
@@ -508,17 +507,12 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.2.2";
-/* Pfad …/ = live, …/test/ = Testumgebung (eigener Datenbereich "test") */
+var APP_VERSION="7.3.0";
+/* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
-var IS_TEST=/\/test\/$/.test(APP_PATH);
-var BASE=APP_PATH.replace(/test\/$/,"");
-var LIVE_URL=location.origin+BASE;
-var TEST_URL=location.origin+BASE+"test/";
-var DB_SCHEMA=IS_TEST?"test":"public";
-if(IS_TEST){document.documentElement.classList.add("testenv");document.title="TEST · AllTrack";}
+var DB_SCHEMA="public";
 var sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true},db:{schema:DB_SCHEMA}});
-/* Haushalte (Mitgliedschaft) liegen immer im public-Schema – auch in der Testumgebung. */
+/* Haushalte (Mitgliedschaft) liegen im public-Schema. */
 var sbPub=sb.schema("public");
 
 /* ================= 2. Rechenlogik (unverändert übernommen) ================= */
@@ -939,7 +933,7 @@ async function aiInvoke(body){
   return data;
 }
 /* Jeder KI-Aufruf trägt Stufe, Haushalt und Umgebung – die Edge Function protokolliert damit die Kosten. */
-function aiBody(o){MH.ki=null;return Object.assign({level:aiLevel(),household_id:activeHousehold,env:IS_TEST?"test":"live"},o);}
+function aiBody(o){MH.ki=null;return Object.assign({level:aiLevel(),household_id:activeHousehold,env:"live"},o);}
 function abrNum(v){return (v==null||v===""||!isFinite(Number(v)))?null:Number(v);}
 function periodAppSums(cat,von,bis){
   var rows=history(cat)||[],v=0,k=0,ab=0,d=0,n=0;
@@ -1718,7 +1712,6 @@ function shell(content,cur,noNav){
       if(n[0]==="ablesen")return '<a class="sb sb-read" href="#/ablesen"'+(cur==="ablesen"?' aria-current="page"':"")+'>'+ic("gauge")+' Jetzt ablesen</a>';
       return '<a class="sb" href="#/'+n[0]+'"'+(cur===n[0]?' aria-current="page"':"")+'>'+ic(n[1])+n[2]+'</a>';
     }).join("")+
-    (IS_TEST?'<div class="pill mut" style="margin-top:auto;align-self:flex-start">Testumgebung</div>':"")+
   '</nav>';
   var bottom='<nav class="bnav" aria-label="Hauptnavigation">'+NAV.map(function(n){
     var on=cur===n[0]?' aria-current="page"':"";
@@ -2823,7 +2816,7 @@ function screenMehr(p){
       mrow("doc","Sicherung & Export","Cloud-Backups, Excel, PDF, Import",null,'href="#/mehr?p=daten"')+
       (MH.installEvt?mrow("home","App installieren","Als Symbol auf den Startbildschirm",null,'data-a="install"'):"")+'</div></section>';
   var info='<section class="mg mg-info"><div class="mgrp">Info</div><div class="mlist">'+
-      mrow("info","Rechenweg, Version, Umgebung","Version "+APP_VERSION+(IS_TEST?" · Testumgebung":""),null,'href="#/mehr?p=info"')+
+      mrow("info","Rechenweg und Version","Version "+APP_VERSION,null,'href="#/mehr?p=info"')+
       mrow("logout","Abmelden",esc(currentUser&&currentUser.email||""),'<span></span>','data-a="logout"')+'</div></section>';
   /* Handy: Haushalt, Persönlich, Daten, Info. Desktop: zwei ausgewogene Spalten. */
   return '<h1 class="pt">Mehr</h1><div class="mcols"><div>'+hh+daten+'</div><div>'+pers+info+'</div></div>';
@@ -2908,14 +2901,12 @@ function mehrDaten(){
 }
 function mehrInfo(){
   var ms=Date.parse(document.lastModified||""),stand=isFinite(ms)?new Date(ms).toLocaleString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})+" Uhr":"unbekannt";
-  return subHead("Rechenweg, Version, Umgebung")+
+  return subHead("Rechenweg und Version")+
     '<div class="card"><div class="nm" style="font-weight:900;margin-bottom:8px">So rechnet AllTrack</div><ul class="calc">'+
       '<li><b>Verbrauch</b> = aktueller − letzter Zählerstand</li><li><b>Grundkosten</b> = Grundpreis pro Jahr ÷ 12</li>'+
       '<li><b>Verbrauchskosten</b> = Verbrauch × Arbeitspreis (Wasser: × Wasser+Kanal)</li><li><b>Gas in kWh</b> = m³ × Wandelfaktor × Zustandszahl × Brennwert</li>'+
       '<li><b>Differenz</b> = Abschlag − Gesamtkosten · Plus = Guthaben</li><li><b>Offener Saldo</b> = Differenzen seit der letzten übernommenen Jahresabrechnung bzw. seit Beginn beim aktuellen Anbieter</li><li>Eine Ablesung am 1. zählt zum Vormonat.</li><li>Fehlende Monate werden gleichmäßig verteilt (geschätzt).</li></ul></div>'+
-    '<div class="card" style="margin-top:12px"><div class="nm" style="font-weight:900;margin-bottom:6px">Version '+APP_VERSION+'</div><p class="mut-t" style="font-weight:700;margin:0 0 12px">Stand dieser Fassung: '+stand+'</p><button class="btn sm soft" data-a="upd-check">Nach Updates suchen</button></div>'+
-    '<div class="card" style="margin-top:12px"><div class="nm" style="font-weight:900;margin-bottom:6px">Umgebung</div><p class="mut-t" style="font-weight:700;margin:0 0 12px">'+(IS_TEST?"Du bist in der Testumgebung – getrennte Testdaten.":"Du bist in der Live-Umgebung mit deinen echten Daten.")+'</p>'+
-      '<a class="btn sm soft" href="'+(IS_TEST?LIVE_URL:TEST_URL)+'">'+(IS_TEST?"Zur Live-Umgebung":"Zur Testumgebung")+'</a></div>';
+    '<div class="card" style="margin-top:12px"><div class="nm" style="font-weight:900;margin-bottom:6px">Version '+APP_VERSION+'</div><p class="mut-t" style="font-weight:700;margin:0 0 12px">Stand dieser Fassung: '+stand+'</p><button class="btn sm soft" data-a="upd-check">Nach Updates suchen</button></div>';
 }
 
 /* ---- KI-Kosten (nur Admins; Protokoll schreibt die Edge Function) ---- */
@@ -3199,7 +3190,6 @@ function screenAuth(){
        '<label class="fld"><span>Passwort</span><input class="inp" id="a_pass" type="password" autocomplete="current-password"></label>'+
        '<div class="amsg" id="amsg"></div><button class="btn lg full" type="submit" data-mode="login">Anmelden</button>'+
        '<div class="arow"><button type="button" class="lnk" data-a="signup">Neues Konto</button><button type="button" class="lnk" data-a="forgot">Passwort vergessen?</button></div>')+
-    (IS_TEST?'<p class="pill mut" style="margin-top:18px">Testumgebung</p>':"")+
   '</form></div>';
 }
 function authMsg(t,kind){var m=$("#amsg");if(m){m.textContent=t||"";m.className="amsg"+(kind?" "+kind:"");}}

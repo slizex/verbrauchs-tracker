@@ -1,7 +1,12 @@
 # Änderungen an AllTrack
 
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
-Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg, Version, Umgebung* (`APP_VERSION` in `index.html`).
+Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
+
+## 7.3.0 – 17.10.2026
+
+- Die Testumgebung (`/test/` mit eigenem Datenbereich) ist entfernt. AllTrack hat nur noch die Live-Fassung mit deinen echten Daten;
+  der Umschalter unter *Mehr → Rechenweg und Version* entfällt.
 
 ## 7.2.2 – 17.10.2026
 
