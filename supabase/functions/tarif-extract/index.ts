@@ -1,4 +1,4 @@
-// Supabase Edge Function: tarif-extract (v14, AllTrack 7.3.0 – ohne Testumgebung)
+// Supabase Edge Function: tarif-extract (v15, AllTrack 7.4.1 – Grenzen aus der All-Home-Zentrale)
 // Liest Tarif-/Vertragsdokumente, Jahres-/Schlussabrechnungen ODER Zaehler-Fotos
 // (PDF/Bild, base64) per Claude-API aus und gibt die Felder als JSON zurueck.
 // mode='tarif' (Default) | 'abrechnung' | 'zaehler'.
@@ -27,10 +27,11 @@ const PRICES: Record<string, [number, number]> = {
   "claude-sonnet-5-5": [2, 10],
   "claude-opus-5-5": [4, 20],
 };
-// Missbrauchsschutz: Dateigroesse, Aufrufe pro Person und Tag, Kosten aller Nutzer pro Tag.
+// Missbrauchsschutz: Dateigroesse, Aufrufe pro Person und Tag, Kosten aller Nutzer pro Tag und Monat.
+// Die Grenzen stellt der Superadmin in der All-Home-Zentrale ein (public.ki_einstellungen, gemeinsam mit All-Home);
+// nur wenn die Datenbank nicht antwortet, gelten diese Rueckfallwerte.
 const MAX_B64 = 9_000_000;
-const DAILY_LIMIT = 60;
-const GLOBAL_DAILY_USD = 5;
+const RUECKFALL = { limit: 60, tag: 5, monat: 50 };
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -192,18 +193,20 @@ function secretHeaders(): Record<string, string> | null {
 const SB_URL = Deno.env.get("SUPABASE_URL") || "";
 
 // Zaehlt den Aufruf auf das Tageskontingent des Users an. Liefert true, wenn erlaubt.
-// Fail-open bei Infrastruktur-Fehlern (z. B. RPC fehlt), fail-closed nur bei echtem Limit.
-async function withinQuota(authHeader: string): Promise<{ ok: boolean; limited: boolean }> {
+// Fail-open bei Infrastruktur-Fehlern (z. B. RPC fehlt), fail-closed nur bei echtem Limit
+// und bei gesperrten bzw. nicht freigegebenen Konten.
+async function withinQuota(authHeader: string, limit: number): Promise<{ ok: boolean; limited: boolean; gesperrt?: boolean }> {
   const key = publicKey();
   if (!SB_URL || !key || !authHeader) return { ok: true, limited: false };
   try {
     const r = await fetch(`${SB_URL}/rest/v1/rpc/ai_usage_bump`, {
       method: "POST",
       headers: { "content-type": "application/json", "apikey": key, "authorization": authHeader },
-      body: JSON.stringify({ p_max: DAILY_LIMIT }),
+      body: JSON.stringify({ p_max: limit }),
     });
     if (r.ok) return { ok: true, limited: false };
     const t = await r.text();
+    if (/nicht freigegeben/.test(t)) return { ok: false, limited: false, gesperrt: true };
     if (/ai_quota_exceeded/.test(t)) return { ok: false, limited: true };
     console.error("ai_usage_bump non-ok (Kontingent inaktiv):", r.status, t);
     return { ok: true, limited: false };
@@ -251,6 +254,31 @@ async function isMember(hh: string, uid: string, sh: Record<string, string>): Pr
     return Array.isArray(rows) && rows.length > 0;
   } catch (_) {
     return false;
+  }
+}
+
+// Grenzen und bisherige Kosten (Tag/Monat, beide Apps) in einem Aufruf
+type Grenzen = { limit?: number; tag?: number; monat?: number; heute?: number; monat_kosten?: number };
+async function grenzen(sh: Record<string, string>): Promise<Grenzen | null> {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/ki_grenzen`, { method: "POST", headers: { ...sh, "content-type": "application/json" }, body: "{}" });
+    return r.ok ? await r.json() : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+// Abgewiesenen Aufruf ins Ereignisprotokoll der Zentrale (best effort)
+async function abgewiesen(sh: Record<string, string> | null, me: { id: string; email: string }, hh: string | null, grund: string, mode: string): Promise<void> {
+  if (!sh || !SB_URL) return;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/ki_abgewiesen_melden`, {
+      method: "POST", headers: { ...sh, "content-type": "application/json" },
+      body: JSON.stringify({ p_user: me.id, p_email: me.email, p_household: hh, p_grund: grund, p_modus: mode }),
+    });
+    if (!r.ok) console.error("ki_abgewiesen_melden:", r.status, await r.text());
+  } catch (e) {
+    console.error("ki_abgewiesen_melden:", String(e));
   }
 }
 
@@ -369,22 +397,37 @@ Deno.serve(async (req: Request) => {
   if (!fileBase64 && !docId) return json({ error: "Keine Datei empfangen." }, 400);
   if (fileBase64 && fileBase64.length > MAX_B64) return json({ error: "Datei ist zu gross fuer die KI-Auswertung (max. ca. 6 MB)." }, 413);
 
-  // Tageskontingent pro Person (Missbrauchsschutz).
-  const q = await withinQuota(auth);
-  if (!q.ok && q.limited) {
-    return json({ error: `Tageslimit fuer KI-Auswertungen erreicht (${DAILY_LIMIT}/Tag). Bitte morgen erneut versuchen.` }, 429);
-  }
-
   const sh = secretHeaders();
-  // Tagesbudget ueber alle Nutzer (Schutz vor Kostenexplosion bei offener Registrierung).
-  if (sh && (await costToday(sh)) >= GLOBAL_DAILY_USD) {
-    return json({ error: "Das Tagesbudget fuer KI-Auswertungen ist erreicht. Bitte morgen erneut versuchen." }, 429);
-  }
-
   let hh: string | null = typeof payload.household_id === "string" && /^[0-9a-f-]{36}$/i.test(payload.household_id)
     ? payload.household_id
     : null;
   if (hh && (!sh || !(await isMember(hh, me.id, sh)))) hh = null;
+  const modus = payload.mode === "abrechnung" ? "abrechnung" : payload.mode === "zaehler" ? "zaehler" : "tarif";
+  const g = sh ? await grenzen(sh) : null;
+
+  // Tageskontingent pro Person (Missbrauchsschutz); gesperrte Konten bekommen keine KI.
+  const limit = Number(g?.limit) || RUECKFALL.limit;
+  const q = await withinQuota(auth, limit);
+  if (!q.ok && q.gesperrt) return json({ error: "Dein Konto ist nicht freigegeben.", code: "gesperrt" }, 403);
+  if (!q.ok && q.limited) {
+    await abgewiesen(sh, me, hh, "limit", modus);
+    return json({ error: `Tageslimit fuer KI-Auswertungen erreicht (${limit}/Tag). Bitte morgen erneut versuchen.` }, 429);
+  }
+
+  // Tages- und Monatsbudget ueber alle Nutzer und beide Apps (Schutz vor Kostenexplosion).
+  if (g) {
+    if (Number(g.heute) >= Number(g.tag ?? RUECKFALL.tag)) {
+      await abgewiesen(sh, me, hh, "budget", modus);
+      return json({ error: "Das Tagesbudget fuer KI-Auswertungen ist erreicht. Bitte morgen erneut versuchen." }, 429);
+    }
+    if (Number(g.monat_kosten) >= Number(g.monat ?? RUECKFALL.monat)) {
+      await abgewiesen(sh, me, hh, "budget_monat", modus);
+      return json({ error: "Das Monatsbudget fuer KI-Auswertungen ist erreicht." }, 429);
+    }
+  } else if (sh && (await costToday(sh)) >= RUECKFALL.tag) {
+    await abgewiesen(sh, me, hh, "budget", modus);
+    return json({ error: "Das Tagesbudget fuer KI-Auswertungen ist erreicht. Bitte morgen erneut versuchen." }, 429);
+  }
 
   // Gespeichertes Dokument: nur Mitglieder des Haushalts, dem das Dokument gehoert.
   if (docId) {
@@ -399,7 +442,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const cat = category === "gas" || category === "wasser" ? category : "strom";
-  const mode = payload.mode === "abrechnung" ? "abrechnung" : payload.mode === "zaehler" ? "zaehler" : "tarif";
+  const mode = modus;
   const level = LEVELS[payload.level || ""] ? (payload.level as string) : "basic";
   let lv = LEVELS[level];
   const mt = mimeType || "application/pdf";
@@ -445,6 +488,10 @@ Deno.serve(async (req: Request) => {
     let msg = "KI-Aufruf fehlgeschlagen (" + aResp.status + ").";
     if (aResp.status === 401) msg = "KI-Schluessel ungueltig (401). Bitte ANTHROPIC_API_KEY pruefen.";
     if (aResp.status === 429) msg = "KI-Limit erreicht (429). Bitte spaeter erneut versuchen.";
+    if (aResp.status === 402 || /credit balance|insufficient|billing|payment required|out of credits/i.test(detail)) {
+      msg = "Das KI-Guthaben ist aufgebraucht. Bitte spaeter erneut versuchen.";
+      await abgewiesen(sh, me, hh, "ki_guthaben", mode);
+    } else if (aResp.status === 429) await abgewiesen(sh, me, hh, "ki_limit", mode);
     await logCall(sh, { ...baseRow, model: lv.model, ok: false });
     return json({ error: msg, detail }, 502);
   }

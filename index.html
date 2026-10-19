@@ -507,7 +507,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.4.0";
+var APP_VERSION="7.4.1";
 /* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var DB_SCHEMA="public";
@@ -1187,7 +1187,8 @@ async function meineFreigabe(){
 }
 async function freigabePruefen(){
   var s=await sb.auth.getSession(),ses=s&&s.data?s.data.session:null;
-  if((await meineFreigabe())==="offen"){authMsg("Noch nicht freigegeben – bitte später noch einmal.","err");return;}
+  var fr=await meineFreigabe();
+  if(fr==="offen"||fr==="gesperrt"){authMsg(fr==="gesperrt"?"Das Konto ist weiterhin gesperrt.":"Noch nicht freigegeben – bitte später noch einmal.","err");return;}
   enteredUserId=null;FREIGABE=null;handleSession(ses);
 }
 function resetSession(){
@@ -1202,7 +1203,7 @@ async function handleSession(session){
     enteredUserId=session.user.id;currentUser=session.user;
     BOOTED=true;LOADING=true;render();
     FREIGABE=await meineFreigabe();
-    if(FREIGABE==="offen"){LOADING=false;render();return;}
+    if(FREIGABE==="offen"||FREIGABE==="gesperrt"){LOADING=false;render();return;}
     try{await fetchUserPrefs();}catch(e){}
     await loadAll();
     LOADING=false;render();
@@ -3198,7 +3199,9 @@ function buildReportHtml(){
 /* ---- Anmeldung ---- */
 function screenWarten(){
   return '<div class="auth"><div class="authc"><img class="logo" src="icon.svg" alt="">'+
-    '<h1>Fast geschafft</h1><p>Dein Konto <b>'+esc((currentUser&&currentUser.email)||"")+'</b> wartet auf die Freigabe durch den Administrator. Sobald es freigegeben ist, kannst du AllTrack und All-Home nutzen.</p>'+
+    (FREIGABE==="gesperrt"
+      ?'<h1>Konto gesperrt</h1><p>Dein Konto <b>'+esc((currentUser&&currentUser.email)||"")+'</b> ist gesperrt. Wende dich an den Administrator.</p>'
+      :'<h1>Fast geschafft</h1><p>Dein Konto <b>'+esc((currentUser&&currentUser.email)||"")+'</b> wartet auf die Freigabe durch den Administrator. Sobald es freigegeben ist, kannst du AllTrack und All-Home nutzen.</p>')+
     '<div class="amsg" id="amsg"></div><button class="btn lg full" type="button" data-a="freigabe-pruefen">Erneut prüfen</button>'+
     '<div class="arow"><button type="button" class="lnk" data-a="logout">Abmelden</button></div></div></div>';
 }
@@ -3234,7 +3237,7 @@ function render(){
   var root=$("#root");
   if(!BOOTED){root.innerHTML='<div class="auth"><div class="sk" style="width:58px;height:58px;border-radius:18px"></div></div>';return;}
   if(!currentUser||AUTH_MODE==="reset"){root.innerHTML=screenAuth();return;}
-  if(FREIGABE==="offen"){root.innerHTML=screenWarten();return;}
+  if(FREIGABE==="offen"||FREIGABE==="gesperrt"){root.innerHTML=screenWarten();return;}
   var r=route(),c;
   if(r.name==="start")c=screenStart();
   else if(r.name==="verlauf")c=screenVerlauf(r.params);

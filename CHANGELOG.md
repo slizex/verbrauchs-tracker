@@ -3,10 +3,17 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
 
+## 7.4.1 – 19.10.2026
+
+- Gesperrte Konten: Sperrt der Administrator ein Konto (in All-Home unter *Mehr → Zentrale*), zeigt AllTrack nur noch
+  „Konto gesperrt“ – keine Daten, keine KI.
+- Die KI-Grenzen (Tages- und Monatsbudget, Aufrufe je Person) gelten jetzt gemeinsam mit All-Home und werden dort eingestellt;
+  abgewiesene KI-Aufrufe erscheinen im Ereignisprotokoll der Zentrale (KI-Funktion `tarif-extract` v15).
+
 ## 7.4.0 – 17.10.2026
 
 - Neue Konten brauchen eine Freigabe: Die Registrierung fragt Vor- und Nachname ab, danach wartet das Konto,
-  bis der Administrator es freigibt (per Mail oder in All-Home unter *Mehr → Registrierungen*). Bis dahin sieht es keine Daten.
+  bis der Administrator es freigibt (per Mail oder in All-Home unter *Mehr → Zentrale*). Bis dahin sieht es keine Daten.
 - *Passwort vergessen*: Die Meldung sagt jetzt ehrlich, dass nur bei einem bestehenden Konto eine Mail kommt,
   und erinnert an Schreibweise und Spam-Ordner.
 
