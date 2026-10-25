@@ -3,6 +3,11 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
 
+## 7.5.1 – 25.10.2026
+
+- Download-Eintrag (*Mehr → Android-App*) und der Hinweis in der alten App erscheinen erst, wenn die neue App
+  veröffentlicht ist – vorher führte der Link ins Leere.
+
 ## 7.5.0 – 25.10.2026
 
 **Android-App** (neu gebaut nach dem Vorbild der All-Home-App; Ordner `android-app/`, Kennung `de.slizex.alltrack`)

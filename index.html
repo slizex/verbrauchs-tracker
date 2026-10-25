@@ -549,7 +549,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.5.0";
+var APP_VERSION="7.5.1";
 /* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var DB_SCHEMA="public";
@@ -3689,9 +3689,11 @@ async function appEinrichtenFertig(){
 /* ================= Mehr › App ================= */
 function appMehrZeile(){
   if(istApp()&&APP)return mrow("phone","App","Sperre, Erinnerung · Version "+esc(APP.version||"?"),null,'href="#/mehr?p=app"');
-  return mrow("phone","Android-App","Herunterladen"+(APP_UPDATE&&APP_UPDATE.version?" · Version "+esc(APP_UPDATE.version):""),null,'href="#/mehr?p=app"');
+  if(!APP_UPDATE)return "";   /* noch keine App veröffentlicht – der Download-Link führte ins Leere */
+  return mrow("phone","Android-App","Herunterladen · Version "+esc(APP_UPDATE.version),null,'href="#/mehr?p=app"');
 }
 function mehrApp(){
+  if(!(istApp()&&APP)&&!APP_UPDATE)return subHead("Android-App")+'<div class="card empty"><h3>Noch nicht veröffentlicht</h3></div>';
   if(!(istApp()&&APP))return subHead("Android-App")+
     '<div class="card"><div class="appdl-kopf"><span class="di">'+ic("phone",22)+'</span><span class="db"><span class="dn">AllTrack für Android</span>'+
       '<span class="dm">'+(APP_UPDATE&&APP_UPDATE.version?"Version "+esc(APP_UPDATE.version)+" · ":"")+'mit App-Sperre, Ablese-Erinnerung und Scanner</span></span></div>'+appDownloadHtml()+'</div>';
@@ -3768,7 +3770,7 @@ function appKarten(){
   if(appUpdateFrei())return '<section class="card appupd"><span class="di">'+ic("download",20)+'</span>'+
     '<span class="db"><span class="dn">App-Update</span><span class="dm" id="appUpdStand">'+(APP_UPD?appUpdText():esc(APP_UPDATE.version)+" statt "+esc(APP.version||"?"))+'</span></span>'+
     '<button class="btn sm" data-a="app-update"'+(APP_UPD?" disabled":"")+'>'+(APP_UPD?"Lädt …":"Aktualisieren")+'</button></section>';
-  if(istAlteApp())return '<section class="card appupd"><span class="di">'+ic("phone",20)+'</span>'+
+  if(istAlteApp()&&APP_UPDATE)return '<section class="card appupd"><span class="di">'+ic("phone",20)+'</span>'+
     '<span class="db"><span class="dn">Neue AllTrack-App</span><span class="dm">Diese App wird nicht mehr weiterentwickelt. Neue App installieren, danach diese hier deinstallieren.</span></span>'+
     '<a class="btn sm" href="'+esc(APP_LINK)+'" target="_blank" rel="noopener">Herunterladen</a></section>';
   return "";
