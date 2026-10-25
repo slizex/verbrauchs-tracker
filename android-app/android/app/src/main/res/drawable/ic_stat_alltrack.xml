@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kleines Symbol in der Benachrichtigungsleiste (weiß, Android färbt es) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group
+        android:scaleX="0.05917"
+        android:scaleY="0.05917"
+        android:translateX="-3.148"
+        android:translateY="-3.266">
+        <path android:fillColor="#FFFFFFFF" android:pathData="M170,323a23,23 0 0 1 46,0v26a23,23 0 0 1 -46,0z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M238,283a23,23 0 0 1 46,0v66a23,23 0 0 1 -46,0z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M306,243a23,23 0 0 1 46,0v106a23,23 0 0 1 -46,0z" />
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M256,104L408,226L408,392Q408,412 388,412L124,412Q104,412 104,392L104,226Z"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineJoin="round"
+            android:strokeWidth="30" />
+    </group>
+</vector>

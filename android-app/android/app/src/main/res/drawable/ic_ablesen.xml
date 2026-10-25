@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Symbol des Kurzbefehls „Zähler ablesen“ (Messuhr wie in der Navigation von AllTrack) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:fillColor="#F7F4EF" android:pathData="M24,0a24,24 0 1 1 0,48a24,24 0 1 1 0,-48z" />
+    <group
+        android:scaleX="1.25"
+        android:scaleY="1.25"
+        android:translateX="9"
+        android:translateY="8">
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M3.5,15a8.5,8.5 0 1 1 17,0M12,15l4.2,-4.6M5,19h14"
+            android:strokeColor="#231F1A"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2" />
+        <path android:fillColor="#231F1A" android:pathData="M12,13.6a1.4,1.4 0 1 1 0,2.8a1.4,1.4 0 1 1 0,-2.8z" />
+    </group>
+</vector>

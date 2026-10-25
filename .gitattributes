@@ -1,0 +1,10 @@
+# Android-App: Gradle-Wrapper, Shell-Skripte und die Offline-Seite (CSP-Prüfsumme über LF) behalten LF
+android-app/android/gradlew text eol=lf
+android-app/www/*.html text eol=lf
+*.sh text eol=lf
+
+# Binärdateien nicht anfassen
+*.jar binary
+*.png binary
+*.p12 binary
+*.apk binary

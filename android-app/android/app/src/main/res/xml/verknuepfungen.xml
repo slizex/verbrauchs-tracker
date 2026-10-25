@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Langes Tippen aufs App-Symbol → „Zähler ablesen“ (erster fälliger Zähler, sonst die Ablesen-Übersicht) -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="ablesen"
+        android:enabled="true"
+        android:icon="@drawable/ic_ablesen"
+        android:shortcutShortLabel="@string/kurz_ablesen"
+        android:shortcutLongLabel="@string/kurz_ablesen_lang">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="alltrack://ablesen"
+            android:targetClass="de.slizex.alltrack.MainActivity"
+            android:targetPackage="de.slizex.alltrack" />
+    </shortcut>
+</shortcuts>

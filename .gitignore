@@ -18,3 +18,9 @@ desktop.ini
 *.local.json
 *.local.html
 *.local.js
+
+# Android-App: Abhängigkeiten und Signaturschlüssel nie ins Repo
+android-app/node_modules/
+*.p12
+*.jks
+*.keystore

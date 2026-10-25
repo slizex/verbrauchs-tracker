@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nur diese privaten Ordner dürfen an andere Apps gereicht werden:
+     teilen/   – Kopie für „Öffnen mit / Teilen“ (wird aufgeräumt)
+     updates/  – heruntergeladene APK für den Android-Installer
+     Pictures/ – Zählerfoto: die Kamera-App schreibt hinein, AllTrack liest es und räumt beim nächsten Start auf -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="teilen" path="teilen/" />
+    <cache-path name="updates" path="updates/" />
+    <external-files-path name="fotos" path="Pictures/" />
+</paths>

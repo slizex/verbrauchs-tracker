@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AllTrack</string>
+    <string name="title_activity_main">AllTrack</string>
+    <string name="package_name">de.slizex.alltrack</string>
+    <string name="custom_url_scheme">de.slizex.alltrack</string>
+    <string name="kurz_ablesen">Ablesen</string>
+    <string name="kurz_ablesen_lang">Zähler ablesen</string>
+</resources>

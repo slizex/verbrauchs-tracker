@@ -1,0 +1,26 @@
+{
+  "appId": "de.slizex.alltrack",
+  "appName": "AllTrack",
+  "webDir": "www",
+  "server": {
+    "url": "https://slizex.github.io/verbrauchs-tracker/",
+    "errorPath": "offline.html",
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false,
+    "appendUserAgent": "AllTrackApp"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_alltrack",
+      "iconColor": "#EC6431"
+    },
+    "SystemBars": {
+      "initialViewportFitValueHint": "cover"
+    }
+  }
+}
