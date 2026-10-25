@@ -3,8 +3,11 @@
    Supabase-Anfragen (Daten/Anmeldung) gehen IMMER direkt ins Netz – nie aus dem Cache.
 
    Beim Seitenaufruf wartet er höchstens NAV_TIMEOUT auf das Netz und nimmt sonst die
-   zuletzt geladene Fassung. */
-var CACHE = 'vt-shell-v8'; // Version 7.2.0: klassisches Design archiviert – neuer Name räumt dessen alte Kopie aus dem Speicher
+   zuletzt geladene Fassung.
+
+   Die Seite selbst und .json fragt er immer beim Server nach (ETag/304): GitHub Pages erlaubt sonst
+   10 Minuten Zwischenspeicher, und die Android-App zeigte nach einem Update noch die alte Fassung. */
+var CACHE = 'vt-shell-v9'; // Version 7.5.0: Seite und .json immer beim Server nachfragen (Android-App)
 var NAV_TIMEOUT = 5000;
 
 self.addEventListener('install', function (e) {
@@ -41,7 +44,8 @@ function networkFirst(req, url, timeoutMs) {
   return new Promise(function (resolve) {
     var settled = false, timer = null;
     function finish(v) { if (settled) return; settled = true; if (timer) clearTimeout(timer); resolve(v); }
-    fetch(req).then(function (res) {
+    var frisch = req.mode === 'navigate' || /\/(index\.html)?$/.test(url.pathname) || /\.json$/.test(url.pathname);
+    fetch(frisch && url.origin === location.origin ? new Request(req, { cache: 'no-cache' }) : req).then(function (res) {
       if (res && res.status === 200 && url.origin === location.origin) {
         var copy = res.clone();
         caches.open(CACHE).then(function (c) { c.put(req, copy); });

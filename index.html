@@ -69,9 +69,9 @@ a{color:inherit;text-decoration:none}
 /* ================= App-Rahmen ================= */
 .shell{min-height:100vh}
 /* width:100% – sonst schrumpft die Rasterzelle (margin:auto) auf Inhaltsbreite und jede Seite sitzt woanders */
-.main{padding:18px 16px calc(var(--nav-h) + 52px + env(safe-area-inset-bottom));width:100%;max-width:1180px;margin:0 auto;min-width:0}
+.main{padding:18px 16px calc(var(--nav-h) + 52px + var(--unten));width:100%;max-width:1180px;margin:0 auto;min-width:0}
 .side{display:none}
-.bnav{position:fixed;left:0;right:0;bottom:0;z-index:40;height:calc(var(--nav-h) + env(safe-area-inset-bottom));padding:6px 8px env(safe-area-inset-bottom);background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);align-items:stretch}
+.bnav{position:fixed;left:0;right:0;bottom:0;z-index:40;height:calc(var(--nav-h) + var(--unten));padding:6px 8px var(--unten);background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);align-items:stretch}
 .nb{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;padding:0 0 10px;color:var(--muted);font-size:.72rem;font-weight:700;border-radius:14px;transition:color .15s}
 .nb[aria-current="page"]{color:var(--text)}
 .nb[aria-current="page"] .nbi{background:var(--surface-2)}
@@ -192,7 +192,7 @@ a{color:inherit;text-decoration:none}
 /* Bottom-Sheet / Popover */
 .scrim{position:fixed;inset:0;z-index:80;background:rgba(21,19,15,.38);opacity:0;transition:opacity .2s}
 .scrim.on{opacity:1}
-.sheet{position:fixed;z-index:81;left:0;right:0;bottom:0;max-height:86vh;overflow:auto;background:var(--surface);border-radius:26px 26px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom));box-shadow:var(--sh-3);transform:translateY(100%);transition:transform .26s var(--ease)}
+.sheet{position:fixed;z-index:81;left:0;right:0;bottom:0;max-height:86vh;overflow:auto;background:var(--surface);border-radius:26px 26px 0 0;padding:10px 18px calc(22px + var(--unten));box-shadow:var(--sh-3);transform:translateY(100%);transition:transform .26s var(--ease)}
 .sheet.on{transform:none}
 .sheet .grab{width:42px;height:5px;border-radius:9px;background:var(--line-2);margin:4px auto 12px}
 .sheet h3{margin:4px 0 12px;font-size:1.15rem;font-weight:900}
@@ -213,11 +213,11 @@ a{color:inherit;text-decoration:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 /* Toast */
-#toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 18px + env(safe-area-inset-bottom));transform:translate(-50%,20px);z-index:90;width:max-content;max-width:calc(100% - 28px);background:var(--ink);color:var(--ink-fg);padding:12px 16px;border-radius:16px;font-weight:800;box-shadow:var(--sh-3);opacity:0;pointer-events:none;transition:opacity .2s,transform .25s var(--ease);display:flex;align-items:center;gap:12px}
+#toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 18px + var(--unten));transform:translate(-50%,20px);z-index:90;width:max-content;max-width:calc(100% - 28px);background:var(--ink);color:var(--ink-fg);padding:12px 16px;border-radius:16px;font-weight:800;box-shadow:var(--sh-3);opacity:0;pointer-events:none;transition:opacity .2s,transform .25s var(--ease);display:flex;align-items:center;gap:12px}
 #toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 #toast.err{background:var(--neg);color:#fff}
 /* bei offenem Fenster oben, damit keine Knoepfe verdeckt werden */
-#toast.top{bottom:auto;top:calc(14px + env(safe-area-inset-top));transform:translate(-50%,-20px)}
+#toast.top{bottom:auto;top:calc(14px + var(--oben));transform:translate(-50%,-20px)}
 #toast.top.on{transform:translate(-50%,0)}
 #toast button{font-weight:900;text-decoration:underline;text-underline-offset:3px}
 .updbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;background:var(--ink);color:var(--ink-fg);padding:8px 8px 8px 16px;border-radius:18px;font-weight:800;font-size:.9rem}
@@ -481,6 +481,48 @@ a.vsep.abr span{color:var(--text)}
   .main{max-width:1560px}
   .vgrid2{grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
 }
+/* ================= 7.5.0: Android-App ================= */
+/* Statusleiste: Die App (WebView ab 140) und iPhone-Vollbild zeichnen bis ganz oben. env() liefert der Browser,
+   --safe-area-inset-* setzt Capacitor; im normalen Browser ist beides 0 und nichts verschiebt sich. */
+:root{--oben:max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px));--unten:max(env(safe-area-inset-bottom,0px),var(--safe-area-inset-bottom,0px))}
+.shell{padding-top:var(--oben)}
+.auth{padding-top:calc(24px + var(--oben))}
+@media (min-width:900px){.side{top:var(--oben);height:calc(100vh - var(--oben))}}
+/* Beim Scrollen läuft nichts unter die Uhr: Streifen in Hintergrundfarbe */
+body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--oben);background:var(--bg);z-index:60;pointer-events:none}
+/* Karte oben auf der Startseite: neue App-Version bzw. Umstieg aus der alten App */
+.appupd{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:14px 16px}
+.appupd .di{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--info-bg);color:var(--info);flex:none}
+.appupd .db{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}
+.appupd .dn{font-weight:900}
+.appupd .dm{color:var(--muted);font-weight:700;font-size:.86rem}
+.appupd .btn{flex:none;white-space:nowrap}
+/* Versionszeile unter der Anmeldung (nur in der App) */
+.authc .appv{margin:16px 0 0;text-align:center;font-size:.8rem;font-weight:700;color:var(--muted)}
+/* Mehr › App */
+.appver{display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:800}
+.appdl-kopf{display:flex;align-items:center;gap:12px}
+.appdl-kopf .di{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:var(--surface-2);flex:none}
+.appdl-kopf .db{display:flex;flex-direction:column;min-width:0}
+.appdl-kopf .dn{font-weight:900}
+.appdl-kopf .dm{color:var(--muted);font-weight:700;font-size:.86rem}
+.appdl{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.appdl-l{display:flex;flex-direction:column;gap:4px;min-width:0}
+.appdl-l .kk{color:var(--muted);font-size:.86rem;font-weight:800}
+/* Adresse bricht nur an den Schrägstrichen um (<wbr>), nie mitten im Wort */
+.appdl-url{font-size:.84rem;font-weight:700;overflow-wrap:break-word;user-select:all;-webkit-user-select:all}
+.appdl-k{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.appdl-k .btn{flex:1 1 140px;white-space:nowrap}
+/* Dokument-Ansicht: ganze Fläche, Kopf mit Schließen / Öffnen mit / Teilen */
+#appAnsicht{position:fixed;inset:0;z-index:120;background:var(--bg);display:flex;flex-direction:column}
+body.ansicht-open{overflow:hidden}
+.aa-kopf{display:flex;align-items:center;gap:6px;padding:calc(8px + var(--oben)) 8px 8px;border-bottom:1px solid var(--line);background:var(--surface)}
+.aa-titel{flex:1 1 auto;min-width:0;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aa-flaeche{flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;padding:12px 12px calc(12px + var(--unten));touch-action:pan-x pan-y}
+.aa-seiten{width:100%;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.aa-seite{width:100%;aspect-ratio:1/1.414;background:#fff;border-radius:6px;box-shadow:var(--sh-1);display:grid;place-items:center;overflow:hidden}
+.aa-bild{display:block;width:100%;height:auto;border-radius:6px;background:#fff}
+.aa-leer{display:grid;place-items:center;min-height:50vh;color:var(--muted);font-weight:700;text-align:center;padding:16px}
 </style>
 </head>
 <body>
@@ -507,7 +549,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.4.1";
+var APP_VERSION="7.5.0";
 /* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var DB_SCHEMA="public";
@@ -1068,6 +1110,7 @@ async function loadFromDB(){
   try{await fetchDismissedNotifs();}catch(e){}
   try{await fetchUserPrefs();}catch(e){}
   try{subscribeRealtime();}catch(e){}
+  appPlanSpaeter();   /* App: Ablese-Erinnerung zum neuen Stand */
 }
 async function fetchUserPrefs(){
   if(!currentUser){USER_PREFS=null;return;}
@@ -1120,6 +1163,7 @@ async function loadAll(){
 async function afterDataLoaded(){
   try{await fetchMembers();}catch(e){}
   render(); /* Mitglieder/Admin-Status sind jetzt bekannt */
+  appNachLaden();
   try{await maybeAutoBackup();}catch(e){}
   try{flushQueue();}catch(e){}
 }
@@ -1160,7 +1204,7 @@ async function authSignup(email,pass,vorname,nachname){
     var r=await sb.auth.signUp({email:email,password:pass,options:{emailRedirectTo:location.origin+location.pathname,
       data:{vorname:String(vorname).slice(0,80),nachname:String(nachname).slice(0,80),app:"alltrack"}}});
     if(r.error)return {err:loginErrorText(r.error)};
-    return {ok:(r.data&&r.data.session)?"Konto erstellt – du wirst angemeldet …":"Fast fertig! Bitte bestätige deine E-Mail-Adresse über den Link in unserer Mail an "+email+". Danach gibt der Administrator dein Konto frei.",angemeldet:!!(r.data&&r.data.session)};
+    return {ok:(r.data&&r.data.session)?"Konto erstellt – du wirst angemeldet …":"Fast fertig! Bitte bestätige deine E-Mail-Adresse: Code aus unserer Mail an "+email+" eingeben oder den Link öffnen. Danach gibt der Administrator dein Konto frei.",angemeldet:!!(r.data&&r.data.session)};
   }catch(e){return {err:loginErrorText(e)};}
 }
 async function authForgot(email){
@@ -1169,7 +1213,7 @@ async function authForgot(email){
     var r=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
     if(r.error)return {err:loginErrorText(r.error)};
     /* Der Server verrät aus Datenschutzgründen nicht, ob es die Adresse gibt – darum ehrlich formulieren */
-    return {ok:"Falls es ein Konto mit "+email+" gibt, ist jetzt eine E-Mail unterwegs. Der Link darin führt dich zurück, dann vergibst du ein neues Passwort. Nichts angekommen? Schreibweise und Spam-Ordner prüfen."};
+    return {ok:"Falls es ein Konto mit "+email+" gibt, ist jetzt eine E-Mail unterwegs. Code hier eingeben oder den Link in der Mail öffnen. Nichts angekommen? Schreibweise und Spam-Ordner prüfen."};
   }catch(e){return {err:loginErrorText(e)};}
 }
 async function authSetPassword(p){
@@ -1177,7 +1221,35 @@ async function authSetPassword(p){
   try{var r=await sb.auth.updateUser({password:p});if(r.error)return loginErrorText(r.error);pendingRecovery=false;return null;}
   catch(e){return loginErrorText(e);}
 }
+/* Code aus der Mail (Registrierung, Passwort vergessen) – in der App öffnet ein Mail-Link nur den Browser.
+   Die Mailvorlagen teilt AllTrack mit All-Home (ein Supabase-Projekt); sie enthalten Code und Link. */
+async function authCode(email,code){
+  code=String(code||"").replace(/\D/g,"");
+  if(!email)return "Bitte deine E-Mail-Adresse eingeben.";
+  if(code.length<6||code.length>10)return "Bitte den Code aus der Mail eingeben (nur Ziffern).";
+  var art=(AUTH_CODE&&AUTH_CODE.art)||"recovery";
+  /* vor dem Prüfen setzen: die neue Sitzung soll zum Passwort-Formular führen, nicht in die App */
+  if(art==="recovery")pendingRecovery=true;
+  try{
+    var r=await sb.auth.verifyOtp({email:email,token:code,type:art});
+    if(r.error){if(art==="recovery")pendingRecovery=false;return /expired|invalid/i.test(errMsg(r.error))?"Der Code ist falsch oder abgelaufen.":loginErrorText(r.error);}
+    AUTH_CODE=null;
+    return null;
+  }catch(e){if(art==="recovery")pendingRecovery=false;return loginErrorText(e);}
+}
+async function authCodeNeu(email){
+  if(!email)return {err:"Bitte deine E-Mail-Adresse eingeben."};
+  var art=(AUTH_CODE&&AUTH_CODE.art)||"recovery";
+  try{
+    var r=art==="signup"?await sb.auth.resend({type:"signup",email:email,options:{emailRedirectTo:location.origin+location.pathname}})
+                        :await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+    if(r.error)return {err:loginErrorText(r.error)};
+    AUTH_CODE={mail:email,art:art};
+    return {ok:"Neuer Code ist unterwegs."};
+  }catch(e){return {err:loginErrorText(e)};}
+}
 async function authLogout(){
+  try{await appAbmelden();}catch(e){}
   try{unsubscribeRealtime();}catch(e){}
   try{await sb.auth.signOut();}catch(e){}
 }
@@ -1259,7 +1331,7 @@ async function saveReadingData(cat,iso,z,sw,editId){
   if(isOffline()){
     if(editing)throw new Error("Bearbeiten geht erst wieder online.");
     var q=loadQueue();q.push({t:"reading",household_id:activeHousehold,cat:cat,datum:iso,zaehlerstand:z,startwert:(isFinite(sw)?sw:null)});saveQueue(q);
-    applyLocalReading(cat,iso,z,sw);_histMemo=null;_tgMemo=null;
+    applyLocalReading(cat,iso,z,sw);_histMemo=null;_tgMemo=null;appPlanSpaeter();
     return {queued:true};
   }
   var start=isFinite(sw)?sw:null,res;
@@ -1272,7 +1344,7 @@ async function saveReadingData(cat,iso,z,sw,editId){
     if(res.error)throw res.error;
     STATE[cat].readings.push(rowToReading(res.data));
   }
-  _histMemo=null;_tgMemo=null;
+  _histMemo=null;_tgMemo=null;appPlanSpaeter();
   return {id:res.data.id};
 }
 /* Offline gesammelte Ablesungen übertragen, sobald wieder Netz da ist. */
@@ -1637,6 +1709,7 @@ function buildSuggestions(){
 
 /* ================= 5. Oberfläche ================= */
 var AUTH_MODE="login",LOADING=false,HERO_OPEN=false;
+var AUTH_CODE=null;   /* {mail, art:"signup"|"recovery"} – wofür der Code aus der Mail gilt */
 function $(s,r){return (r||document).querySelector(s);}
 var esc=escapeHtml;
 
@@ -1671,7 +1744,16 @@ var ICONS={
   user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   house:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v11h14V9"/><path d="M10 20v-5h4v5"/>',
   camera:'<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.3l1.5-2h5.4l1.5 2h1.3A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.5"/>',
-  sparkles:'<path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.4l-1.8-4.9L5 9.7l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>'
+  sparkles:'<path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.4l-1.8-4.9L5 9.7l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+  /* Android-App */
+  phone:'<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/>',
+  lock:'<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/>',
+  shield:'<path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.2-7.5 9.5-4.3-1.3-7.5-4.9-7.5-9.5V6z"/>',
+  bell:'<path d="M6 9a6 6 0 0 1 12 0c0 6.5 2.5 8 2.5 8h-17S6 15.5 6 9"/><path d="M10.3 20.5a2 2 0 0 0 3.4 0"/>',
+  download:'<path d="M12 4v11"/><path d="m7 10.5 5 5 5-5"/><path d="M5 20h14"/>',
+  share:'<circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="m8.2 13.3 7.6 4"/><path d="m15.8 6.7-7.6 4"/>',
+  extern:'<path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  scan:'<path d="M4 8V6a2 2 0 0 1 2-2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v2"/><path d="M20 16v2a2 2 0 0 1-2 2h-2"/><path d="M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M8 10h8"/><path d="M8 14h8"/>'
 };
 function ic(n,s){return '<svg class="ico" width="'+(s||20)+'" height="'+(s||20)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[n]||"")+'</svg>';}
 function catBadge(cat,sm){return '<span class="cb '+cat+(sm?" sm":"")+'">'+ic(cat,sm?16:20)+'</span>';}
@@ -1680,6 +1762,7 @@ function catBadge(cat,sm){return '<span class="cb '+cat+(sm?" sm":"")+'">'+ic(ca
 function applyTheme(dark){
   document.documentElement.classList.toggle("dark",!!dark);
   var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",dark?"#15130f":"#f7f4ef");
+  systemLeisten();
 }
 function isDark(){return document.documentElement.classList.contains("dark");}
 
@@ -1775,7 +1858,7 @@ function dueOrFresh(){
 function screenStart(){
   var name=activeHouseholdName()||(LOAD_FAILED||LOADING?"AllTrack":"Mein Haushalt"),multi=HOUSEHOLDS.length>1;
   var top='<div class="top"><div><div class="greet">'+greeting()+'</div>'+
-    '<button class="hh'+(multi?" can":"")+'"'+(multi?' data-a="hh-pick"':' tabindex="-1"')+'>'+esc(name)+(multi?ic("down",22):"")+'</button></div></div>';
+    '<button class="hh'+(multi?" can":"")+'"'+(multi?' data-a="hh-pick"':' tabindex="-1"')+'>'+esc(name)+(multi?ic("down",22):"")+'</button></div></div>'+appKarten();
   if(LOADING)return top+'<div class="grid"><div class="sk" style="height:150px"></div><div class="sk" style="height:76px"></div><div class="tiles"><div class="sk" style="height:150px"></div><div class="sk" style="height:150px"></div></div></div>';
   if(LOAD_FAILED)return top+loadFailedNote();
   var cats=householdCats(),any=cats.some(hasData);
@@ -2209,7 +2292,7 @@ async function deleteReading(cat,id){
   if(isOffline()){toast("Löschen geht erst wieder online.",true);return;}
   try{
     var d=await sb.from("readings").delete().eq("id",r.id);if(d.error)throw d.error;
-    STATE[cat].readings=STATE[cat].readings.filter(function(x){return x.id!==r.id;});_histMemo=null;_tgMemo=null;
+    STATE[cat].readings=STATE[cat].readings.filter(function(x){return x.id!==r.id;});_histMemo=null;_tgMemo=null;appPlanSpaeter();
     closeSheet();render();
     toast("Ablesung "+billLabel(r.datum)+" gelöscht",false,function(){restoreReading(cat,r);});
   }catch(e){toast("Löschen fehlgeschlagen: "+errMsg(e),true);}
@@ -2311,6 +2394,7 @@ async function saveConversion(wf,zz,bw){
 /* Dokumente */
 async function docOpen(id){
   var d=(documentsCache||[]).find(function(x){return String(x.id)===String(id);});if(!d)return;
+  if(istApp()){appDokAnsicht(d);return;}   /* die App-Hülle kennt keine neuen Fenster */
   var w=window.open("","_blank");
   try{var r=await sb.storage.from("documents").createSignedUrl(d.storage_path,120);if(r.error)throw r.error;
     if(w)w.location=r.data.signedUrl;else location.href=r.data.signedUrl;}
@@ -2591,6 +2675,7 @@ function convSheet(err){
 }
 function pickFile(cat,purpose){
   VT.pick={cat:cat,purpose:purpose};
+  if(appScannerNutzen()){appQuelleWaehlen("vt");return;}   /* App: scannen oder Datei wählen */
   var inp=document.getElementById("vtFile");
   if(!inp){inp=document.createElement("input");inp.type="file";inp.id="vtFile";inp.hidden=true;inp.accept="application/pdf,image/*";document.body.appendChild(inp);}
   inp.click();
@@ -2799,6 +2884,7 @@ var MH={invite:null,memAsk:null,leaveAsk:false,restoreAsk:null,notifAsk:null,cle
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();MH.installEvt=e;if(route().name==="mehr")render();});
 window.addEventListener("appinstalled",function(){MH.installEvt=null;toast("App installiert");});
 function downloadFile(filename,mime,text){
+  if(istApp()){appSpeichern(new Blob([text],{type:mime}),filename);return;}   /* App: „Speichern unter“ statt Download */
   var blob=new Blob([text],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }
@@ -2813,6 +2899,7 @@ function mehrPage(page){
   if(page==="daten"){if(MH.bkHH!==activeHousehold){MH.bkHH=activeHousehold;loadBackups().then(function(){if(route().name==="mehr")render();},function(){});}return mehrDaten();}
   if(page==="info")return mehrInfo();
   if(page==="ki")return mehrKI();
+  if(page==="app")return mehrApp();
   return subHead("Mehr")+'<div class="card empty"><h3>Seite nicht gefunden</h3></div>';
 }
 function screenMehr(p){
@@ -2829,10 +2916,11 @@ function screenMehr(p){
       '<div class="mrow2"><span class="mi">'+ic(isDark()?"moon":"sun")+'</span><span class="mt2"><b>Dunkles Design</b></span>'+sw(isDark(),"theme","Dunkles Design")+'</div>'+
       mrow("sparkles","Intelligente Vorschläge",sc.on?"an":"aus",null,'href="#/mehr?p=vorschlaege"')+
       mrow("camera","KI-Modell",AI_LEVELS[aiLevel()].name+" · "+AI_LEVELS[aiLevel()].model,null,'data-a="ai-level"')+
-      (IAM_ADMIN?mrow("wallet","KI-Kosten","Wer, wann, welches Modell",null,'href="#/mehr?p=ki"'):"")+'</div></section>';
+      (IAM_ADMIN?mrow("wallet","KI-Kosten","Wer, wann, welches Modell",null,'href="#/mehr?p=ki"'):"")+
+      appMehrZeile()+'</div></section>';
   var daten='<section class="mg mg-daten"><div class="mgrp">Daten</div><div class="mlist">'+
       mrow("doc","Sicherung & Export","Cloud-Backups, Excel, PDF, Import",null,'href="#/mehr?p=daten"')+
-      (MH.installEvt?mrow("home","App installieren","Als Symbol auf den Startbildschirm",null,'data-a="install"'):"")+'</div></section>';
+      (MH.installEvt&&!istApp()?mrow("home","App installieren","Als Symbol auf den Startbildschirm",null,'data-a="install"'):"")+'</div></section>';
   var info='<section class="mg mg-info"><div class="mgrp">Info</div><div class="mlist">'+
       mrow("info","Rechenweg und Version","Version "+APP_VERSION,null,'href="#/mehr?p=info"')+
       mrow("logout","Abmelden",esc(currentUser&&currentUser.email||""),'<span></span>','data-a="logout"')+'</div></section>';
@@ -3083,6 +3171,7 @@ async function importCsvNow(){
   }catch(e){_histMemo=null;_tgMemo=null;render();toast("Import abgebrochen: "+errMsg(e),true);}
 }
 function printReport(){
+  if(istApp()){appDrucken(buildReportHtml());return;}   /* App: Android-Druckdialog, dort auch „Als PDF speichern“ */
   var w=window.open("","_blank");if(!w){toast("Bitte Pop-ups für AllTrack erlauben.",true);return;}
   w.document.open();w.document.write(buildReportHtml());w.document.close();
   setTimeout(function(){try{w.focus();w.print();}catch(e){}},400);
@@ -3214,11 +3303,22 @@ function screenSignup(){
     '<label class="fld"><span>Passwort</span><input class="inp" id="a_pass" type="password" autocomplete="new-password" minlength="8"></label>'+
     '<div class="amsg" id="amsg"></div><button class="btn lg full" type="submit" data-mode="signup">Konto anlegen</button>'+
     '<div class="arow"><button type="button" class="lnk" data-a="auth-login">Ich habe schon ein Konto</button></div>'+
-  '</form></div>';
+  appVersionZeile()+'</form></div>';
+}
+function screenCode(){
+  var neu=AUTH_CODE&&AUTH_CODE.art==="signup";
+  return '<div class="auth"><form class="authc" id="authForm" novalidate><img class="logo" src="icon.svg" alt="">'+
+    '<h1>Code aus der Mail</h1><p>'+(neu?"Zum Bestätigen deiner E-Mail-Adresse.":"Zum Zurücksetzen deines Passworts.")+'</p>'+
+    '<label class="fld"><span>E-Mail</span><input class="inp" id="a_mail" type="email" autocomplete="username" inputmode="email" value="'+esc((AUTH_CODE&&AUTH_CODE.mail)||"")+'"></label>'+
+    '<label class="fld"><span>Code</span><input class="inp" id="a_code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12"></label>'+
+    '<div class="amsg" id="amsg"></div><button class="btn lg full" type="submit" data-mode="code">Bestätigen</button>'+
+    '<div class="arow"><button type="button" class="lnk" data-a="auth-login">Zur Anmeldung</button><button type="button" class="lnk" data-a="code-neu">Neuen Code senden</button></div>'+
+  appVersionZeile()+'</form></div>';
 }
 function screenAuth(){
   var reset=AUTH_MODE==="reset";
   if(AUTH_MODE==="signup")return screenSignup();
+  if(AUTH_MODE==="code")return screenCode();
   return '<div class="auth"><form class="authc" id="authForm" novalidate><img class="logo" src="icon.svg" alt="">'+
     '<h1>'+(reset?"Neues Passwort":"AllTrack")+'</h1><p>'+(reset?"Vergib jetzt ein neues Passwort.":"Strom, Wasser und Gas im Blick.")+'</p>'+
     (reset
@@ -3228,7 +3328,7 @@ function screenAuth(){
        '<label class="fld"><span>Passwort</span><input class="inp" id="a_pass" type="password" autocomplete="current-password"></label>'+
        '<div class="amsg" id="amsg"></div><button class="btn lg full" type="submit" data-mode="login">Anmelden</button>'+
        '<div class="arow"><button type="button" class="lnk" data-a="signup">Neues Konto</button><button type="button" class="lnk" data-a="forgot">Passwort vergessen?</button></div>')+
-  '</form></div>';
+  appVersionZeile()+'</form></div>';
 }
 function authMsg(t,kind){var m=$("#amsg");if(m){m.textContent=t||"";m.className="amsg"+(kind?" "+kind:"");}}
 
@@ -3236,6 +3336,7 @@ function authMsg(t,kind){var m=$("#amsg");if(m){m.textContent=t||"";m.className=
 function render(){
   var root=$("#root");
   if(!BOOTED){root.innerHTML='<div class="auth"><div class="sk" style="width:58px;height:58px;border-radius:18px"></div></div>';return;}
+  if(appUpdatePflicht()){root.innerHTML=appPflichtHtml();return;}
   if(!currentUser||AUTH_MODE==="reset"){root.innerHTML=screenAuth();return;}
   if(FREIGABE==="offen"||FREIGABE==="gesperrt"){root.innerHTML=screenWarten();return;}
   var r=route(),c;
@@ -3292,6 +3393,24 @@ function onAction(e){
   else if(a==="imp-csv-yes"){importCsvNow();}
   else if(a==="upd-check"){updCheck(true);}
   else if(a==="upd-reload"){applyUpdate();}
+  /* Android-App */
+  else if(a==="app-e-wahl"){appEinrichtenWahl(b);}
+  else if(a==="app-einrichten-ok"){appEinrichtenFertig();}
+  else if(a==="app-sperre"){appSperreUmschalten();}
+  else if(a==="app-schutz"){appSchutzUmschalten();}
+  else if(a==="app-ablesen"){appAblesenSchalten(!appAblesenCfg().an,false);}
+  else if(a==="app-ablesen-zeit"){appAblesenZeitBlatt();}
+  else if(a==="app-update"){appAktualisieren();}
+  else if(a==="app-link-teilen"){appLinkTeilen();}
+  else if(a==="geteilt-was"){geteiltWaehle(b.getAttribute("data-v"),null);}
+  else if(a==="geteilt-cat"){geteiltWaehle(null,b.getAttribute("data-cat"));}
+  else if(a==="geteilt-ja"){geteiltUebernehmen();}
+  else if(a==="geteilt-nein"){geteiltVerwerfen();}
+  else if(a==="ansicht-zu"){ansichtZu();}
+  else if(a==="ansicht-oeffnen"){if(APP_ANSICHT&&APP_ANSICHT.blob)appWeitergeben(APP_ANSICHT.blob,APP_ANSICHT.name,"oeffnen");}
+  else if(a==="ansicht-teilen"){if(APP_ANSICHT&&APP_ANSICHT.blob)appWeitergeben(APP_ANSICHT.blob,APP_ANSICHT.name,"teilen");}
+  else if(a==="app-q-scan"){var qz=b.getAttribute("data-z");closeSheet(true);appScannen(qz);}
+  else if(a==="app-q-datei"){var qd=appDateiInput(b.getAttribute("data-z"));closeSheet(true);if(qd)qd.click();}
   else if(a==="setup-start"){SETUP.step=1;}
   else if(a==="setup-cat"){setupToggle(b.getAttribute("data-cat"));}
   else if(a==="setup-next"){SETUP.step=Math.min(3,SETUP.step+1);render();window.scrollTo(0,0);}
@@ -3313,7 +3432,7 @@ function onAction(e){
   else if(a==="vt-conv"){convSheet();}
   else if(a==="vt-wechsel"){wechselSheet(b.getAttribute("data-cat"));}
   else if(a==="abr-cat"){ABR.cat=b.getAttribute("data-cat");ABR.step="beleg";ABR.docId=null;render();}
-  else if(a==="abr-upload"){var af=document.getElementById("abrFile");if(af)af.click();}
+  else if(a==="abr-upload"){if(appScannerNutzen())appQuelleWaehlen("abr");else{var af=document.getElementById("abrFile");if(af)af.click();}}
   else if(a==="abr-doc"){ABR.docId=b.getAttribute("data-id");ABR.step="modell";ABR.err=null;render();window.scrollTo(0,0);}
   else if(a==="abr-level"){ABR.level=b.getAttribute("data-v")==="max"?"max":"advanced";render();}
   else if(a==="abr-run"){if(ABR&&ABR.docId&&!ABR.busy)abrRun();}
@@ -3350,6 +3469,7 @@ function onAction(e){
   else if(a==="auth-login"){AUTH_MODE="login";render();}
   else if(a==="freigabe-pruefen"){freigabePruefen();}
   else if(a==="forgot"){doAuth("forgot");}
+  else if(a==="code-neu"){doAuth("code-neu");}
 }
 async function doAuth(mode){
   var mail=(($("#a_mail")||{}).value||"").trim(),pass=($("#a_pass")||{}).value||"";
@@ -3358,10 +3478,23 @@ async function doAuth(mode){
     authMsg("Konto wird erstellt …");
     var r=await authSignup(mail,pass,((($("#a_vorname")||{}).value)||"").trim(),((($("#a_nachname")||{}).value)||"").trim());
     if(r.err){authMsg(r.err,"err");return;}
-    if(!r.angemeldet){AUTH_MODE="login";render();if($("#a_mail"))$("#a_mail").value=mail;}
+    if(!r.angemeldet){AUTH_CODE={mail:mail,art:"signup"};AUTH_MODE="code";render();}
     authMsg(r.ok,"ok");
   }
-  else if(mode==="forgot"){authMsg("E-Mail wird gesendet …");var f=await authForgot(mail);authMsg(f.err||f.ok,f.err?"err":"ok");}
+  else if(mode==="forgot"){
+    authMsg("E-Mail wird gesendet …");var f=await authForgot(mail);
+    if(f.err){authMsg(f.err,"err");return;}
+    AUTH_CODE={mail:mail,art:"recovery"};AUTH_MODE="code";render();authMsg(f.ok,"ok");
+  }
+  else if(mode==="code"){
+    var art=(AUTH_CODE&&AUTH_CODE.art)||"recovery";
+    authMsg("Code wird geprüft …");var ec=await authCode(mail,(($("#a_code")||{}).value)||"");
+    if(ec){authMsg(ec,"err");return;}
+    /* Passwort vergessen: die Sitzung führt über handleSession zum Formular „Neues Passwort“.
+       Registrierung: die Sitzung führt zur Freigabe-Seite – bis der Administrator freigibt. */
+    if(art!=="recovery"){AUTH_MODE="login";toast("E-Mail bestätigt");}
+  }
+  else if(mode==="code-neu"){var cn=await authCodeNeu(mail);authMsg(cn.err||cn.ok,cn.err?"err":"ok");}
   else if(mode==="setpass"){
     authMsg("Passwort wird gespeichert …");var e2=await authSetPassword((($("#a_new")||{}).value)||"");
     if(e2){authMsg(e2,"err");return;}
@@ -3382,6 +3515,7 @@ document.addEventListener("submit",function(e){
     try{await saveAbschlagData(cat,bt,iso);closeSheet();render();toast("Abschlag ab "+deDate(iso)+": "+eur(bt));}catch(x){abschlagSheet(cat,errMsg(x));}})();}
   else if(e.target.id==="abrForm"){e.preventDefault();abrReadForm();ABR.editOpen=true;render();}
   else if(e.target.id==="wxForm"){e.preventDefault();}
+  else if(e.target.id==="appZeitForm"){e.preventDefault();appAblesenZeitSpeichern();}
   else if(e.target.id==="convForm"){e.preventDefault();(async function(){var wf=parseNum(($("#cv_wf")||{}).value),zz=parseNum(($("#cv_zz")||{}).value),bw=parseNum(($("#cv_bw")||{}).value);
     try{await saveConversion(wf,zz,bw);closeSheet();render();toast("Umrechnung gespeichert");}catch(x){convSheet(errMsg(x));}})();}
   else if(e.target.id==="flowForm"){e.preventDefault();if(FLOW&&!FLOW.busy)flowNext(false);}
@@ -3412,6 +3546,599 @@ document.addEventListener("change",function(e){
   else if(t.hasAttribute("data-photo")){var f=t.files&&t.files[0];t.value="";if(f)onPhoto(t.getAttribute("data-photo"),f);}
 });
 
+/* ================= Android-App (ab 7.5.0) =================
+   Die App (android-app/ im Repo) lädt genau diese Seite und reicht über Capacitor native
+   Funktionen herein: Plugin „AllTrack“, App, LocalNotifications, SystemBars. Im Browser gibt es
+   window.Capacitor nicht – dort bleibt hier fast alles stumm. Neue Web-Funktionen brauchen deshalb
+   keine neue APK. Vorbild ist die All-Home-App (gleiche Bausteine, eigener Schlüssel). */
+var APP=null;              /* AllTrack.info(): version, code, sperre, sperreMoeglich, schutz, eingerichtet */
+var APP_UPDATE=null;       /* android-app.json: version, code, mindest, url, sha256, groesse */
+var APP_UPDATE_AM=0;
+var APP_UPD=null;          /* laufendes Update: {geladen, gesamt} */
+var APP_ZIEL=null;         /* Sprung (Kurzbefehl, Erinnerung, All-Home), bis die Daten geladen sind: {ziel, hh} */
+var APP_SCAN_FEHLT=false;  /* Google-Scanner fehlt → nur noch Dateiauswahl */
+var APP_EINRICHTEN_GEZEIGT=false;
+var APP_PLAN_AM=0,APP_PLAN_T=null;
+var APP_GETEILT=null,APP_GETEILT_WAHL=null,APP_GETEILT_LAEUFT=false;
+var APP_ANSICHT=null;      /* Dokument-Ansicht: {d, blob, name, pdf, seiten, url, zoom} */
+var APP_ABLESEN_KEY="vt_app_ablesen";   /* Ablese-Erinnerung je Gerät: {an, tag, zeit} */
+/* Öffentlicher Download-Link – zeigt immer auf die neueste veröffentlichte Version, ohne GitHub-Konto */
+var APP_LINK="https://github.com/slizex/verbrauchs-tracker/releases/latest/download/alltrack.apk";
+
+function istApp(){
+  try{return !!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&Capacitor.Plugins&&Capacitor.Plugins.AllTrack);}
+  catch(e){return false;}
+}
+/* Die alte App vom Juli (de.verbrauchstracker.app) lädt dieselbe Seite, kennt das Plugin „AllTrack“ aber nicht. */
+function istAlteApp(){
+  try{return !!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()&&!(Capacitor.Plugins&&(Capacitor.Plugins.AllTrack||Capacitor.Plugins.AllHome)));}
+  catch(e){return false;}
+}
+function appP(n){try{return (window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins[n])||null;}catch(e){return null;}}
+function base64Blob(b64,mime){
+  var bin=atob(b64||""),n=bin.length,b=new Uint8Array(n);
+  for(var i=0;i<n;i++)b[i]=bin.charCodeAt(i);
+  return new Blob([b],{type:mime||"application/octet-stream"});
+}
+/* Wechselt die Seite und wartet, bis sie gezeichnet ist (hashchange schließt offene Blätter) */
+function geheZu(hash){
+  return new Promise(function(ok){
+    if(location.hash===hash){render();ok();return;}
+    window.addEventListener("hashchange",function(){setTimeout(ok,0);},{once:true});
+    location.hash=hash;
+  });
+}
+
+/* ================= Start ================= */
+async function appStart(){
+  appUpdatePruefen(true);   /* auch im Browser und in der alten App: Version für Download und Hinweis */
+  if(!istApp())return;
+  document.documentElement.classList.add("in-app");
+  var A=appP("AllTrack");
+  try{APP=await A.info();}catch(e){APP={};}
+  A.addListener("geteilt",function(){geteiltAbholen();});
+  A.addListener("updateFortschritt",appUpdateFortschritt);
+  var Ap=appP("App");
+  if(Ap){
+    Ap.addListener("backButton",appZurueck);
+    Ap.addListener("appUrlOpen",function(d){appLink(d&&d.url);});
+    Ap.addListener("resume",appWiederDa);
+  }
+  var LN=appP("LocalNotifications");
+  if(LN)LN.addListener("localNotificationActionPerformed",function(a){
+    var x=a&&a.notification&&a.notification.extra;
+    if(x&&x.ziel)appSprung(x.ziel,x.hh||null);
+  });
+  systemLeisten();
+  render();   /* Versionszeile auf der Anmeldeseite */
+}
+/* Nach dem Laden der Daten: Sprungziel, Geteiltes, Einrichtung */
+async function appNachLaden(){
+  if(!istApp()||!currentUser||LOAD_FAILED)return;
+  if(APP_ZIEL){var z=APP_ZIEL;APP_ZIEL=null;await appSprung(z.ziel,z.hh);}
+  await geteiltAbholen();   /* Geteiltes zuerst – die Einrichtung wartet, solange ein Blatt offen ist */
+  appEinrichtenZeigen();   /* die Erinnerung plant loadFromDB() schon (appPlanSpaeter) */
+}
+function appWiederDa(){
+  if(!istApp())return;
+  appUpdatePruefen(false);
+  if(currentUser&&!LOADING&&Date.now()-APP_PLAN_AM>10*60*1000)appPlanen();
+}
+/* Statusleiste passend zu Hell/Dunkel der App (nicht des Handys) */
+function systemLeisten(){
+  var S=appP("SystemBars");if(!S||!istApp())return;
+  try{S.setStyle({style:isDark()?"DARK":"LIGHT"});}catch(e){}
+}
+
+/* Zurück-Taste: erst Ansicht/Blatt schließen, dann eine Seite zurück, auf der Startseite minimieren */
+function appZurueck(){
+  if(APP_ANSICHT){ansichtZu();return;}
+  if(sheetEl){closeSheet();return;}
+  if(currentUser&&route().name!=="start"){if(window.history.length>1)window.history.back();else go("#/start");return;}
+  var Ap=appP("App");if(Ap&&Ap.minimizeApp)Ap.minimizeApp();
+}
+/* alltrack://ablesen (Kurzbefehl) und alltrack://start (All-Home). Andere Ziele öffnen nur die Startseite. */
+function appLink(url){
+  var m=/^alltrack:\/\/([a-z]+)/i.exec(String(url||""));if(!m)return;
+  appSprung(m[1].toLowerCase()==="ablesen"?"ablesen":"start",null);
+}
+async function appSprung(ziel,hh){
+  if(!currentUser||LOADING||!activeHousehold||FREIGABE==="offen"||FREIGABE==="gesperrt"){APP_ZIEL={ziel:ziel,hh:hh};return;}
+  if(hh&&hh!==activeHousehold&&HOUSEHOLDS.some(function(h){return h.id===hh;}))await switchHousehold(hh);
+  if(APP_ANSICHT)ansichtZu();
+  closeSheet(true);
+  if(ziel==="ablesen"){
+    /* frischer Durchgang über die fälligen Zähler – außer es ist schon etwas eingetippt */
+    if(FLOW&&(FLOW.done||!Object.keys(FLOW.v).some(function(c){return FLOW.v[c].z;})))FLOW=null;
+    go("#/ablesen");
+  }else go("#/start");
+}
+
+/* ================= Einrichtung (einmal je Gerät) ================= */
+function appEinrichtenZeigen(){
+  if(!istApp()||!APP||APP.eingerichtet||APP_EINRICHTEN_GEZEIGT||sheetEl)return;
+  APP_EINRICHTEN_GEZEIGT=true;
+  var c=appAblesenCfg();
+  openSheet('<h3>App einrichten</h3><div class="mlist">'+
+    '<div class="mrow2'+(APP.sperreMoeglich?"":" off")+'"><span class="mi">'+ic("lock")+'</span><span class="mt2"><b>App-Sperre</b><small>'+
+      (APP.sperreMoeglich?"Fingerabdruck, Gesicht oder Geräte-PIN":"Erst eine Bildschirmsperre am Handy einrichten")+'</small></span>'+
+      sw(APP.sperreMoeglich,"app-e-wahl","App-Sperre",' data-k="sperre"'+(APP.sperreMoeglich?"":" disabled"))+'</div>'+
+    '<div class="mrow2"><span class="mi">'+ic("bell")+'</span><span class="mt2"><b>Ablese-Erinnerung</b><small>'+esc(appAblesenText(c))+'</small></span>'+
+      sw(true,"app-e-wahl","Ablese-Erinnerung",' data-k="ablesen"')+'</div>'+
+    '</div><p class="mut-t" style="font-weight:700;font-size:.86rem;margin:10px 4px 0">Beides lässt sich später unter Mehr › App ändern.</p>'+
+    '<div class="factions"><button class="btn lg full" data-a="app-einrichten-ok">Fertig</button></div>');
+}
+/* Schalter im Einrichtungs-Blatt: nur umlegen, gespeichert wird bei „Fertig“ */
+function appEinrichtenWahl(b){
+  if(b.disabled)return;
+  var an=!b.classList.contains("on");
+  b.classList.toggle("on",an);b.setAttribute("aria-checked",an?"true":"false");
+}
+async function appEinrichtenFertig(){
+  var sp=sheetEl&&sheetEl.querySelector('[data-k="sperre"]'),ab=sheetEl&&sheetEl.querySelector('[data-k="ablesen"]');
+  var sperre=!!(sp&&sp.classList.contains("on")&&!sp.disabled),ablesen=!!(ab&&ab.classList.contains("on"));
+  var A=appP("AllTrack");
+  closeSheet();
+  if(sperre){try{var r=await A.sperreSetzen({an:true});APP.sperre=!!(r&&r.an);}catch(e){}}
+  if(ablesen)await appAblesenSchalten(true,true);
+  try{await A.eingerichtet();}catch(e){}
+  APP.eingerichtet=true;
+  if(route().name==="mehr")render();
+}
+
+/* ================= Mehr › App ================= */
+function appMehrZeile(){
+  if(istApp()&&APP)return mrow("phone","App","Sperre, Erinnerung · Version "+esc(APP.version||"?"),null,'href="#/mehr?p=app"');
+  return mrow("phone","Android-App","Herunterladen"+(APP_UPDATE&&APP_UPDATE.version?" · Version "+esc(APP_UPDATE.version):""),null,'href="#/mehr?p=app"');
+}
+function mehrApp(){
+  if(!(istApp()&&APP))return subHead("Android-App")+
+    '<div class="card"><div class="appdl-kopf"><span class="di">'+ic("phone",22)+'</span><span class="db"><span class="dn">AllTrack für Android</span>'+
+      '<span class="dm">'+(APP_UPDATE&&APP_UPDATE.version?"Version "+esc(APP_UPDATE.version)+" · ":"")+'mit App-Sperre, Ablese-Erinnerung und Scanner</span></span></div>'+appDownloadHtml()+'</div>';
+  var c=appAblesenCfg(),neu=appUpdateFrei();
+  return subHead("App")+
+    '<div class="mlist">'+
+      '<div class="mrow2'+(APP.sperreMoeglich||APP.sperre?"":" off")+'"><span class="mi">'+ic("lock")+'</span><span class="mt2"><b>App-Sperre</b><small>'+
+        (APP.sperreMoeglich?"Fingerabdruck, Gesicht oder Geräte-PIN · nach 5 Minuten im Hintergrund":"Erst eine Bildschirmsperre am Handy einrichten")+'</small></span>'+
+        sw(!!APP.sperre,"app-sperre","App-Sperre",(APP.sperreMoeglich||APP.sperre)?"":" disabled")+'</div>'+
+      '<div class="mrow2"><span class="mi">'+ic("shield")+'</span><span class="mt2"><b>Bildschirmschutz</b><small>Keine Screenshots, keine Vorschau in der App-Übersicht</small></span>'+
+        sw(!!APP.schutz,"app-schutz","Bildschirmschutz")+'</div>'+
+      '<div class="mrow2"><span class="mi">'+ic("bell")+'</span><span class="mt2"><b>Ablese-Erinnerung</b><small>Monatlich, wenn Zähler fällig sind · alle Haushalte</small></span>'+
+        sw(c.an,"app-ablesen","Ablese-Erinnerung")+'</div>'+
+      (c.an?mrow("clock","Tag und Uhrzeit","Am "+c.tag+". um "+c.zeit+" Uhr",null,'data-a="app-ablesen-zeit"'):"")+
+    '</div>'+
+    '<div class="mgrp">Version</div><div class="card">'+
+      '<div class="appver"><span>AllTrack-App</span><b>'+esc(APP.version||"?")+'</b></div>'+
+      (neu?'<button class="btn full" style="margin-top:12px" data-a="app-update"'+(APP_UPD?" disabled":"")+'>'+ic("download",18)+' '+(APP_UPD?"Lädt …":"Auf "+esc(APP_UPDATE.version)+" aktualisieren")+'</button>':"")+
+      appDownloadHtml()+'</div>';
+}
+/* Download-Link: sichtbar, herunterladen, teilen (oder kopieren, wo es keinen Teilen-Dialog gibt) */
+function appDownloadHtml(){
+  var teilbar=(istApp()&&appP("AllTrack"))||(!istApp()&&navigator.share);
+  return '<div class="appdl"><div class="appdl-l"><span class="kk">Download-Link</span>'+
+      '<span class="appdl-url">'+esc(APP_LINK.replace(/^https:\/\//,"")).replace(/\//g,"/<wbr>")+'</span></div>'+
+    '<div class="appdl-k">'+
+      '<a class="btn sm'+(istApp()?" soft":"")+'" href="'+esc(APP_LINK)+'" target="_blank" rel="noopener">'+ic("download",16)+' Herunterladen</a>'+
+      '<button class="btn sm soft" data-a="app-link-teilen">'+ic(teilbar?"share":"doc",16)+' '+(teilbar?"Link teilen":"Link kopieren")+'</button>'+
+    '</div></div>';
+}
+async function appLinkTeilen(){
+  var text="AllTrack für Android – herunterladen und installieren:\n"+APP_LINK,A=appP("AllTrack");
+  try{
+    if(istApp()&&A){await A.textTeilen({text:text,titel:"Link teilen"});return;}
+    if(navigator.share){await navigator.share({title:"AllTrack für Android",text:text});return;}
+  }catch(e){if(e&&e.name==="AbortError")return;}
+  copyText(APP_LINK);
+}
+async function appSperreUmschalten(){
+  var A=appP("AllTrack");if(!A||!APP)return;
+  try{
+    var r=await A.sperreSetzen({an:!APP.sperre});
+    APP.sperre=!!(r&&r.an);
+    if(r&&r.grund==="nicht-moeglich")toast("Erst eine Bildschirmsperre am Handy einrichten.",true);
+    else toast(APP.sperre?"App-Sperre an":"App-Sperre aus");
+  }catch(e){toast(errMsg(e),true);}
+  render();
+}
+async function appSchutzUmschalten(){
+  var A=appP("AllTrack");if(!A||!APP)return;
+  try{var r=await A.schutzSetzen({an:!APP.schutz});APP.schutz=!!(r&&r.an);toast(APP.schutz?"Bildschirmschutz an":"Bildschirmschutz aus");}
+  catch(e){toast(errMsg(e),true);}
+  render();
+}
+
+/* ================= App-Update ================= */
+async function appUpdatePruefen(sofort){
+  if(!sofort&&Date.now()-APP_UPDATE_AM<6*3600*1000)return;
+  APP_UPDATE_AM=Date.now();
+  try{
+    var r=await fetch("android-app.json?t="+Date.now(),{cache:"no-store"});
+    if(!r.ok)return;
+    var j=await r.json();
+    if(!j||!(j.code>0)||!/^https:\/\/github\.com\/slizex\/verbrauchs-tracker\/releases\/download\//.test(String(j.url||"")))return;
+    var vorher=APP_UPDATE?APP_UPDATE.code:0;
+    APP_UPDATE={version:String(j.version||""),code:+j.code,mindest:+j.mindest||0,url:String(j.url),sha256:String(j.sha256||""),groesse:+j.groesse||0};
+    if(APP_UPDATE.code!==vorher&&BOOTED)render();
+  }catch(e){}
+}
+function appUpdatePflicht(){return !!(istApp()&&APP&&APP.code&&APP_UPDATE&&APP.code<APP_UPDATE.mindest);}
+function appUpdateFrei(){return !!(istApp()&&APP&&APP.code&&APP_UPDATE&&APP_UPDATE.code>APP.code);}
+/* Karten oben auf der Startseite: neue App-Version bzw. Umstieg aus der alten App */
+function appKarten(){
+  if(appUpdateFrei())return '<section class="card appupd"><span class="di">'+ic("download",20)+'</span>'+
+    '<span class="db"><span class="dn">App-Update</span><span class="dm" id="appUpdStand">'+(APP_UPD?appUpdText():esc(APP_UPDATE.version)+" statt "+esc(APP.version||"?"))+'</span></span>'+
+    '<button class="btn sm" data-a="app-update"'+(APP_UPD?" disabled":"")+'>'+(APP_UPD?"Lädt …":"Aktualisieren")+'</button></section>';
+  if(istAlteApp())return '<section class="card appupd"><span class="di">'+ic("phone",20)+'</span>'+
+    '<span class="db"><span class="dn">Neue AllTrack-App</span><span class="dm">Diese App wird nicht mehr weiterentwickelt. Neue App installieren, danach diese hier deinstallieren.</span></span>'+
+    '<a class="btn sm" href="'+esc(APP_LINK)+'" target="_blank" rel="noopener">Herunterladen</a></section>';
+  return "";
+}
+/* Website braucht eine neuere Hülle: nur noch das Update */
+function appPflichtHtml(){
+  return '<div class="auth"><div class="authc"><img class="logo" src="icon.svg" alt="">'+
+    '<h1>App-Update nötig</h1><p>Diese Version ('+esc(APP.version||"?")+') wird nicht mehr unterstützt.</p>'+
+    '<p class="mut-t" id="appUpdStand">'+(APP_UPD?appUpdText():"")+'</p>'+
+    '<button class="btn lg full" data-a="app-update"'+(APP_UPD?" disabled":"")+'>'+(APP_UPD?"Lädt …":"Auf "+esc(APP_UPDATE.version)+" aktualisieren")+'</button>'+
+  '</div></div>';
+}
+function appUpdText(){
+  if(!APP_UPD)return "";
+  var g=APP_UPD.gesamt||APP_UPDATE.groesse||0;
+  return esc(APP_UPDATE.version)+(g>0?" · "+Math.min(100,Math.round(APP_UPD.geladen*100/g))+" %":"");
+}
+function appUpdateFortschritt(p){
+  if(!APP_UPD)return;
+  APP_UPD.geladen=+(p&&p.geladen)||0;if(p&&p.gesamt>0)APP_UPD.gesamt=+p.gesamt;
+  var e=$("#appUpdStand");if(e)e.textContent=appUpdText();
+}
+async function appAktualisieren(){
+  if(!APP_UPDATE||APP_UPD)return;
+  var A=appP("AllTrack");if(!A)return;
+  APP_UPD={geladen:0,gesamt:APP_UPDATE.groesse||0};render();
+  try{
+    var r=await A.appAktualisieren({url:APP_UPDATE.url,sha256:APP_UPDATE.sha256});
+    if(r&&r.status==="keine-erlaubnis")toast("Ohne die Erlaubnis „Apps installieren“ geht es nicht – bitte erneut tippen und erlauben.",true);
+  }catch(e){toast(errMsg(e),true);}
+  APP_UPD=null;render();
+}
+/* Versionszeile unter der Anmeldung – zeigt, dass Brücke und Plugin laufen */
+function appVersionZeile(){return istApp()&&APP&&APP.version?'<p class="appv">AllTrack-App '+esc(APP.version)+'</p>':"";}
+
+/* ================= Teilen an AllTrack =================
+   Jede App kann Dateien an AllTrack schicken – hochgeladen oder von der KI gelesen wird erst,
+   wenn man hier sagt, was es ist und zu welchem Zähler es gehört. */
+var GETEILT_WAS=[["abrechnung","Jahresabrechnung","Die KI prüft sie gegen deine Ablesungen"],["tarif","Tarif oder Vertrag","Die KI liest die Preise in einen Tarif"],["foto","Zählerfoto","Die KI liest den Zählerstand"],["ablegen","Nur ablegen","Unter Verträge › Dokumente"]];
+function groesseTxt(b){return b>=1048576?(b/1048576).toLocaleString("de-DE",{maximumFractionDigits:1})+" MB":Math.max(1,Math.round((b||0)/1024))+" KB";}
+async function geteiltAbholen(){
+  if(!istApp()||APP_GETEILT_LAEUFT||!currentUser||LOADING||LOAD_FAILED||!activeHousehold)return;   /* nach dem Laden ruft appNachLaden erneut */
+  if(FREIGABE==="offen"||FREIGABE==="gesperrt")return;
+  if(APP_GETEILT&&sheetEl)return;
+  try{
+    var l=await appP("AllTrack").geteilteDateien(),liste=(l&&l.dateien)||[];
+    if(!liste.length)return;
+    APP_GETEILT=liste;APP_GETEILT_WAHL={was:null,cat:null};
+    if(APP_ANSICHT)ansichtZu();
+    openSheet(geteiltHtml());
+  }catch(e){toast(errMsg(e),true);}
+}
+/* Welche Wege passen: ein Bild kann ein Zählerfoto sein, mehrere Dateien lassen sich nur ablegen */
+function geteiltWege(){
+  var l=APP_GETEILT||[],eins=l.length===1,bild=eins&&/^image\//.test(l[0].mime||"");
+  return GETEILT_WAS.filter(function(w){return w[0]==="ablegen"||(eins&&(w[0]!=="foto"||bild));});
+}
+function geteiltZaehler(was){
+  return was==="ablegen"?householdCats():householdCats().filter(function(c){return STATE[c].tariffs.length>0;});
+}
+function geteiltHtml(){
+  var l=APP_GETEILT||[],w=APP_GETEILT_WAHL||{},cats=w.was?geteiltZaehler(w.was):[];
+  return '<h3>'+(l.length===1?"Eine Datei von einer anderen App":l.length+" Dateien von einer anderen App")+'</h3>'+
+    '<div class="mlist">'+l.map(function(x){return '<div class="mrow2"><span class="mi">'+ic(/^image\//.test(x.mime||"")?"camera":"doc")+'</span><span class="mt2"><b class="ell">'+esc(x.name||"Datei")+'</b><small>'+esc(groesseTxt(x.groesse))+'</small></span></div>';}).join("")+'</div>'+
+    '<div class="mgrp">Was ist das?</div>'+
+    geteiltWege().map(function(x){return '<button class="opt" data-a="geteilt-was" data-v="'+x[0]+'"><span class="mt2"><b>'+x[1]+'</b><small class="mut-t" style="display:block;font-weight:700;font-size:.8rem">'+x[2]+'</small></span>'+(w.was===x[0]?'<span class="ck">'+ic("check")+'</span>':"")+'</button>';}).join("")+
+    (w.was?'<div class="mgrp">Für welchen Zähler?</div>'+
+      (cats.length?'<div class="chips" style="flex-wrap:wrap">'+cats.map(function(c){return '<button class="chip'+(w.cat===c?" on":"")+'" data-a="geteilt-cat" data-cat="'+c+'" style="--c:var(--'+c+')">'+ic(c,16)+CATS[c].label+'</button>';}).join("")+'</div>'
+        :'<p class="mut-t" style="font-weight:700">Erst einen Tarif anlegen.</p>'):"")+
+    '<p class="mut-t" style="font-weight:700;font-size:.86rem;margin:12px 4px 0">Haushalt: '+esc(activeHouseholdName()||"Haushalt")+'</p>'+
+    '<div class="factions"><button class="btn lg full" data-a="geteilt-ja"'+(w.was&&w.cat?"":" disabled")+'>Übernehmen</button>'+
+    '<button class="btn soft full" data-a="geteilt-nein">Verwerfen</button></div>';
+}
+function geteiltNeuZeichnen(){if(sheetEl&&APP_GETEILT)sheetEl.innerHTML='<div class="grab"></div>'+geteiltHtml();}
+function geteiltWaehle(was,cat){
+  if(!APP_GETEILT_WAHL)return;
+  if(was){APP_GETEILT_WAHL.was=was;if(geteiltZaehler(was).indexOf(APP_GETEILT_WAHL.cat)<0)APP_GETEILT_WAHL.cat=null;}
+  if(cat)APP_GETEILT_WAHL.cat=cat;
+  var cs=APP_GETEILT_WAHL.was?geteiltZaehler(APP_GETEILT_WAHL.was):[];
+  if(!APP_GETEILT_WAHL.cat&&cs.length===1)APP_GETEILT_WAHL.cat=cs[0];
+  geteiltNeuZeichnen();
+}
+async function geteiltVerwerfen(){
+  APP_GETEILT=null;APP_GETEILT_WAHL=null;
+  try{await appP("AllTrack").geteiltFertig();}catch(e){}
+  closeSheet();toast("Verworfen");
+}
+async function geteiltUebernehmen(){
+  var liste=APP_GETEILT,w=APP_GETEILT_WAHL;if(!liste||!w||!w.was||!w.cat||APP_GETEILT_LAEUFT)return;
+  var A=appP("AllTrack");
+  APP_GETEILT_LAEUFT=true;
+  try{
+    var dateien=[];
+    for(var i=0;i<liste.length;i++){
+      var d=await A.geteilteDatei({i:liste[i].i});
+      dateien.push(new File([base64Blob(d.daten,d.mime)],d.name||"Datei",{type:d.mime}));
+    }
+    await A.geteiltFertig();
+    APP_GETEILT=null;APP_GETEILT_WAHL=null;
+    closeSheet(true);
+    var cat=w.cat,f=dateien[0];
+    if(w.was==="abrechnung"){ABR=null;abrStart({cat:cat});await geheZu("#/abrechnung?cat="+cat);abrUpload(f);}
+    else if(w.was==="tarif"){VT.form=null;await geheZu("#/vertraege?cat="+cat);tariffFromAI(cat,f);}
+    else if(w.was==="foto"){FLOW=null;startFlow({cat:cat});await geheZu("#/ablesen?cat="+cat);onPhoto(cat,f);}
+    else{await geheZu("#/vertraege?cat="+cat);for(var k=0;k<dateien.length;k++)await uploadBeleg(cat,dateien[k]);}
+  }catch(e){toast(errMsg(e),true);}
+  finally{APP_GETEILT_LAEUFT=false;}
+}
+
+/* ================= Dateien: Speichern unter / Teilen / Drucken ================= */
+async function appSpeichern(blob,name){
+  var A=appP("AllTrack");
+  try{
+    var r=await A.dateiSpeichern({name:name,mime:(blob.type||"application/octet-stream").split(";")[0],daten:await fileToBase64(blob)});
+    if(r&&r.gespeichert)toast("Gespeichert");
+    return !!(r&&r.gespeichert);
+  }catch(e){toast(errMsg(e),true);return false;}
+}
+async function appWeitergeben(blob,name,art){
+  try{await appP("AllTrack").dateiWeitergeben({name:name,mime:(blob.type||"application/octet-stream").split(";")[0],daten:await fileToBase64(blob),art:art});}
+  catch(e){toast(errMsg(e),true);}
+}
+async function appDrucken(html){
+  try{await appP("AllTrack").drucken({html:html,titel:"AllTrack-Bericht "+todayISO()});}
+  catch(e){toast(errMsg(e),true);}
+}
+
+/* ================= Dokument-Ansicht in der App =================
+   PDFs zeichnet Androids eigener PDF-Renderer seitenweise als Bild, Bilder zeigt die Seite direkt.
+   Nichts landet in „Downloads“. */
+async function appDokAnsicht(d){
+  var A=appP("AllTrack");
+  ansichtZu();
+  APP_ANSICHT={d:d,laedt:true};
+  ansichtZeichnen();
+  try{
+    var dl=await sb.storage.from("documents").download(d.storage_path);
+    if(dl.error)throw new Error("Dokument konnte nicht geladen werden.");
+    if(!APP_ANSICHT||APP_ANSICHT.d!==d)return;
+    var blob=dl.data,pdf=/pdf/i.test(d.mime_type||blob.type||"")||/\.pdf$/i.test(d.filename||"");
+    APP_ANSICHT={d:d,blob:blob,name:dateiNameFuer(d,pdf),pdf:pdf,seiten:0,zoom:1};
+    if(pdf){
+      var r=await A.pdfOeffnen({daten:await fileToBase64(blob)});
+      if(!APP_ANSICHT||APP_ANSICHT.d!==d)return;
+      APP_ANSICHT.seiten=(r&&r.seiten)||0;
+    }else APP_ANSICHT.url=URL.createObjectURL(blob);
+    ansichtZeichnen();
+    if(pdf)ansichtSeitenLaden();
+  }catch(e){
+    if(APP_ANSICHT&&APP_ANSICHT.d===d){APP_ANSICHT.fehler=errMsg(e);ansichtZeichnen();}
+  }
+}
+function dateiNameFuer(d,pdf){
+  var n=String(docName(d)||"dokument").replace(/[\\/:*?"<>|]+/g,"_");
+  if(pdf&&!/\.pdf$/i.test(n))n+=".pdf";
+  if(!pdf&&!/\.(jpe?g|png|webp|heic)$/i.test(n))n+=".jpg";
+  return n;
+}
+function ansichtZeichnen(){
+  var v=APP_ANSICHT,e=$("#appAnsicht");
+  if(!v){if(e)e.remove();document.body.classList.remove("ansicht-open");return;}
+  if(!e){e=document.createElement("div");e.id="appAnsicht";e.setAttribute("role","dialog");e.setAttribute("aria-modal","true");document.body.appendChild(e);}
+  document.body.classList.add("ansicht-open");
+  var kopf='<div class="aa-kopf"><button class="ibtn" data-a="ansicht-zu" aria-label="Schließen">'+ic("x")+'</button>'+
+    '<div class="aa-titel">'+esc(docName(v.d))+'</div>'+
+    (v.blob?'<button class="ibtn" data-a="ansicht-oeffnen" aria-label="Öffnen mit" title="Öffnen mit">'+ic("extern")+'</button>'+
+      '<button class="ibtn" data-a="ansicht-teilen" aria-label="Teilen" title="Teilen">'+ic("share")+'</button>':"")+
+    '</div>';
+  var inhalt;
+  if(v.fehler)inhalt='<div class="aa-leer">'+esc(v.fehler)+'</div>';
+  else if(v.laedt)inhalt='<div class="aa-leer"><span class="spin"></span></div>';
+  else if(v.pdf){
+    var s="";for(var i=0;i<v.seiten;i++)s+='<div class="aa-seite" data-i="'+i+'"><span class="spin"></span></div>';
+    inhalt='<div class="aa-seiten" id="aaSeiten">'+s+'</div>';
+  }else inhalt='<div class="aa-seiten" id="aaSeiten"><img class="aa-bild" src="'+esc(v.url)+'" alt=""></div>';
+  e.innerHTML=kopf+'<div class="aa-flaeche" id="aaFlaeche">'+inhalt+'</div>';
+  zoomAn($("#aaFlaeche"));
+}
+/* Seiten nacheinander holen – 2× Bildschirmbreite, damit Zoomen scharf bleibt */
+async function ansichtSeitenLaden(){
+  var v=APP_ANSICHT,A=appP("AllTrack");if(!v||!v.pdf)return;
+  var breite=Math.min(2400,Math.round(Math.min(window.innerWidth,900)*(window.devicePixelRatio||1)*2));
+  for(var i=0;i<v.seiten;i++){
+    if(APP_ANSICHT!==v)return;
+    var el=document.querySelector('.aa-seite[data-i="'+i+'"]');
+    try{
+      var r=await A.pdfSeite({i:i,breite:breite});
+      if(APP_ANSICHT!==v)return;
+      el=document.querySelector('.aa-seite[data-i="'+i+'"]');
+      if(el){el.innerHTML='<img class="aa-bild" alt="Seite '+(i+1)+'" src="data:image/jpeg;base64,'+r.daten+'">';el.style.aspectRatio=r.breite+" / "+r.hoehe;}
+    }catch(e){if(el)el.textContent=errMsg(e);}
+  }
+}
+function ansichtZu(){
+  var v=APP_ANSICHT;if(!v)return;
+  APP_ANSICHT=null;
+  if(v.url)URL.revokeObjectURL(v.url);
+  if(v.pdf){var A=appP("AllTrack");if(A)A.pdfSchliessen().catch(function(){});}
+  ansichtZeichnen();
+}
+/* Zwei Finger: Seitenbreite 100–400 %, die Fläche scrollt in beide Richtungen */
+function zoomAn(f){
+  if(!f)return;
+  var start=null;
+  function abstand(ev){var a=ev.touches[0],b=ev.touches[1];return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);}
+  f.addEventListener("touchstart",function(ev){if(ev.touches.length===2&&APP_ANSICHT)start={d:abstand(ev),z:APP_ANSICHT.zoom||1};},{passive:true});
+  f.addEventListener("touchmove",function(ev){
+    if(!start||ev.touches.length!==2||!APP_ANSICHT)return;
+    ev.preventDefault();
+    var z=Math.max(1,Math.min(4,start.z*abstand(ev)/start.d)),s=$("#aaSeiten");
+    APP_ANSICHT.zoom=z;if(s)s.style.width=(z*100)+"%";
+  },{passive:false});
+  f.addEventListener("touchend",function(ev){if(ev.touches.length<2)start=null;},{passive:true});
+  f.addEventListener("dblclick",function(){if(!APP_ANSICHT)return;var s=$("#aaSeiten");APP_ANSICHT.zoom=(APP_ANSICHT.zoom||1)>1?1:2;if(s)s.style.width=(APP_ANSICHT.zoom*100)+"%";});
+}
+
+/* ================= Google-Dokumentenscanner =================
+   Für Tarifdokument und Jahresabrechnung: Scannen oder Datei wählen. Der Scanner liefert alle
+   Seiten als ein PDF; es läuft danach durch denselben Weg wie eine gewählte Datei. */
+function appScannerNutzen(){return istApp()&&!APP_SCAN_FEHLT;}
+function appQuelleWaehlen(ziel){
+  openSheet('<h3>Dokument hinzufügen</h3>'+
+    '<button class="opt" data-a="app-q-scan" data-z="'+ziel+'">'+ic("scan")+'<span class="mt2"><b>Scannen</b><small class="mut-t" style="display:block;font-weight:700;font-size:.8rem">Papier mit der Kamera, mehrere Seiten werden ein PDF</small></span></button>'+
+    '<button class="opt" data-a="app-q-datei" data-z="'+ziel+'">'+ic("doc")+'<span class="mt2"><b>Datei auswählen</b><small class="mut-t" style="display:block;font-weight:700;font-size:.8rem">PDF oder Foto vom Handy</small></span></button>');
+}
+function appDateiInput(ziel){
+  if(ziel==="abr")return document.getElementById("abrFile");
+  var inp=document.getElementById("vtFile");
+  if(!inp){inp=document.createElement("input");inp.type="file";inp.id="vtFile";inp.hidden=true;inp.accept="application/pdf,image/*";document.body.appendChild(inp);}
+  return inp;
+}
+async function appScannen(ziel){
+  var A=appP("AllTrack");
+  toast("Scanner wird geöffnet …");
+  try{
+    var r=await A.scannen({seiten:20});
+    if(!r||!r.seiten||!r.daten)return;   /* abgebrochen */
+    var f=new File([base64Blob(r.daten,"application/pdf")],"Scan "+deDate(todayISO())+".pdf",{type:"application/pdf"});
+    if(ziel==="abr"){if(ABR)abrUpload(f);}
+    else onVtFile(f);
+  }catch(e){
+    if(e&&e.code==="NICHT_VERFUEGBAR"){APP_SCAN_FEHLT=true;toast("Google-Scanner nicht verfügbar – bitte die Datei auswählen.",true);return;}
+    toast(errMsg(e),true);
+  }
+}
+
+/* ================= Ablese-Erinnerung =================
+   Lokal geplant, kein Server: bei jedem Öffnen und nach jeder Ablesung neu, für alle Haushalte.
+   Erinnert wird nur, wenn am gewählten Tag nach heutigem Stand noch Zähler fällig sind. */
+function appAblesenCfg(){
+  var c={an:false,tag:1,zeit:"09:00"};
+  try{
+    var j=JSON.parse(localStorage.getItem(APP_ABLESEN_KEY)||"null");
+    if(j&&typeof j==="object"){
+      c.an=j.an===true;
+      var t=parseInt(j.tag,10);if(t>=1&&t<=28)c.tag=t;
+      if(/^([01]\d|2[0-3]):[0-5]\d$/.test(String(j.zeit||"")))c.zeit=j.zeit;
+    }
+  }catch(e){}
+  return c;
+}
+function appAblesenText(c){return "Monatlich am "+c.tag+". um "+c.zeit+" Uhr, wenn Zähler fällig sind";}
+function appAblesenSetzen(c){try{localStorage.setItem(APP_ABLESEN_KEY,JSON.stringify({an:!!c.an,tag:c.tag,zeit:c.zeit}));}catch(e){}}
+async function appAblesenSchalten(an,still){
+  var LN=appP("LocalNotifications");if(!LN)return;
+  if(an){
+    try{
+      var p=await LN.checkPermissions();
+      if(p.display!=="granted")p=await LN.requestPermissions();
+      if(p.display!=="granted"){toast("Benachrichtigungen sind für AllTrack ausgeschaltet (Android-Einstellungen).",true);an=false;}
+    }catch(e){an=false;}
+  }
+  var c=appAblesenCfg();c.an=an;appAblesenSetzen(c);
+  await appPlanen();
+  if(!still)toast(an?"Ablese-Erinnerung an":"Ablese-Erinnerung aus");
+  if(route().name==="mehr")render();
+}
+function appAblesenZeitBlatt(){
+  var c=appAblesenCfg(),tage="";
+  for(var t=1;t<=28;t++)tage+='<option value="'+t+'"'+(t===c.tag?" selected":"")+'>'+t+'.</option>';
+  openSheet('<h3>Ablese-Erinnerung</h3><form id="appZeitForm" novalidate>'+
+    '<label class="fld"><span>Tag im Monat</span><select class="inp" id="app_tag">'+tage+'</select></label>'+
+    '<label class="fld"><span>Uhrzeit</span><input class="inp" id="app_zeit" type="time" value="'+esc(c.zeit)+'" required></label>'+
+    '<p class="mut-t" style="font-weight:700;font-size:.86rem;margin:0 4px">Ein Stand vom 1. zählt noch zum Vormonat.</p>'+
+    '<div class="factions"><button class="btn lg full" type="submit">Speichern</button></div></form>');
+}
+async function appAblesenZeitSpeichern(){
+  var c=appAblesenCfg(),t=parseInt((($("#app_tag")||{}).value)||"",10),z=String((($("#app_zeit")||{}).value)||"");
+  if(!(t>=1&&t<=28)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(z)){toast("Bitte Tag und Uhrzeit wählen.",true);return;}
+  c.tag=t;c.zeit=z;appAblesenSetzen(c);
+  closeSheet();await appPlanen();render();toast("Erinnerung am "+t+". um "+z+" Uhr");
+}
+/* Kategorien eines Haushalts aus seiner Bereichs-Einstellung (wie householdCats) */
+function haushaltCats(h){
+  var cfg=h&&h.category_config;if(!cfg)return ["strom","wasser","gas"];
+  var out=["strom","wasser","gas"].filter(function(c){return cfg[c]&&cfg[c].enabled===true;});
+  return out.length?out:["strom","wasser","gas"];
+}
+/* Fällige Zähler zu einem Stichtag – dieselbe Regel wie dueOrFresh(): Tarif da und entweder noch kein
+   Stand oder der letzte Stand liegt vor dem Vormonat des Stichtags. */
+function faelligAm(cats,tarif,lesungen,stichtag){
+  var y=+stichtag.slice(0,4),m=+stichtag.slice(5,7),pIdx=y*12+(m-1)-1;
+  return cats.filter(function(c){
+    if(!tarif[c])return false;
+    var rs=lesungen[c]||[];
+    if(!rs.length)return true;
+    if(billIndex(rs[0])>pIdx)return false;
+    return billIndex(rs[rs.length-1])<pIdx;
+  });
+}
+async function haushaltStaende(h){
+  if(h.id===activeHousehold){
+    var t={},l={};
+    householdCats().forEach(function(c){t[c]=STATE[c].tariffs.length>0;l[c]=readingsAsc(c).map(function(r){return r.datum;});});
+    return {id:h.id,name:h.name||"",cats:householdCats(),tarif:t,lesungen:l};
+  }
+  var a=await Promise.all([
+    sb.from("tariffs").select("category").eq("household_id",h.id),
+    sb.from("readings").select("category,datum").eq("household_id",h.id)
+  ]);
+  if(a[0].error||a[1].error)throw a[0].error||a[1].error;
+  var tarif={},les={};
+  (a[0].data||[]).forEach(function(r){tarif[r.category]=true;});
+  (a[1].data||[]).forEach(function(r){(les[r.category]=les[r.category]||[]).push(r.datum);});
+  Object.keys(les).forEach(function(c){les[c].sort();});
+  return {id:h.id,name:h.name||"",cats:haushaltCats(h),tarif:tarif,lesungen:les};
+}
+/* Nach Ablesungen und Änderungen gebündelt neu planen */
+function appPlanSpaeter(){if(!istApp())return;clearTimeout(APP_PLAN_T);APP_PLAN_T=setTimeout(appPlanen,3000);}
+async function appPlanen(){
+  if(!istApp()||!currentUser)return;
+  var LN=appP("LocalNotifications");if(!LN)return;
+  APP_PLAN_AM=Date.now();
+  var c=appAblesenCfg(),liste=[];
+  if(c.an){try{var p=await LN.checkPermissions();if(p.display!=="granted")c.an=false;}catch(e){c.an=false;}}
+  if(c.an){
+    var haeuser=[];
+    for(var i=0;i<HOUSEHOLDS.length;i++){
+      try{haeuser.push(await haushaltStaende(HOUSEHOLDS[i]));}catch(e){/* ein Haushalt nicht erreichbar – die anderen trotzdem planen */}
+    }
+    var jetzt=new Date(),hm=c.zeit.split(":"),mehrere=HOUSEHOLDS.length>1;
+    /* dieser und die nächsten fünf Monate – bei jedem Öffnen kommt der nächste dazu */
+    for(var k=0;k<6;k++){
+      var at=new Date(jetzt.getFullYear(),jetzt.getMonth()+k,c.tag,+hm[0],+hm[1],0);
+      if(at.getTime()<=Date.now()+60*1000)continue;
+      var stich=at.getFullYear()+"-"+two(at.getMonth()+1)+"-"+two(at.getDate());
+      haeuser.forEach(function(d){
+        var f=faelligAm(d.cats,d.tarif,d.lesungen,stich);if(!f.length)return;
+        liste.push({at:at,text:f.map(function(x){return CATS[x].label;}).join(", ")+(mehrere&&d.name?" · "+d.name:""),hh:d.id});
+      });
+    }
+  }
+  try{
+    await LN.createChannel({id:"ablesen",name:"Ablese-Erinnerung",importance:4,visibility:0});
+    var offen=await LN.getPending();
+    if(offen&&offen.notifications&&offen.notifications.length)await LN.cancel({notifications:offen.notifications.map(function(n){return {id:n.id};})});
+    if(liste.length)await LN.schedule({notifications:liste.slice(0,40).map(function(x,i){
+      return {id:2000+i,title:"Zähler ablesen",body:x.text,channelId:"ablesen",smallIcon:"ic_stat_alltrack",
+        schedule:{at:x.at,allowWhileIdle:true},extra:{hh:x.hh,ziel:"ablesen"}};
+    })});
+  }catch(e){}
+}
+async function appAbmelden(){
+  if(!istApp())return;
+  APP_EINRICHTEN_GEZEIGT=false;APP_GETEILT=null;APP_GETEILT_WAHL=null;APP_ZIEL=null;
+  if(APP_ANSICHT)ansichtZu();
+  var LN=appP("LocalNotifications");if(!LN)return;
+  try{var o=await LN.getPending();if(o&&o.notifications&&o.notifications.length)await LN.cancel({notifications:o.notifications.map(function(n){return {id:n.id};})});}catch(e){}
+}
+
 /* ---- Start ---- */
 window.addEventListener("online",function(){netBarSync();if(currentUser&&LOAD_FAILED)retryLoad();else if(currentUser)flushQueue();});
 window.addEventListener("offline",netBarSync);
@@ -3427,6 +4154,7 @@ if("serviceWorker" in navigator&&location.protocol.indexOf("http")===0&&location
   navigator.serviceWorker.register(APP_PATH+"sw.js",{scope:APP_PATH}).catch(function(){});
 }
 render();
+appStart();
 sb.auth.onAuthStateChange(function(evt,session){
   setTimeout(function(){
     if(evt==="PASSWORD_RECOVERY")pendingRecovery=true;

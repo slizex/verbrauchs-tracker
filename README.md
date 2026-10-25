@@ -12,7 +12,22 @@ Aktuelle Version und Änderungen: [CHANGELOG.md](CHANGELOG.md).
 | `klassisch/` | leitet nur noch auf die App um (klassisches Design archiviert) |
 | `sw.js`, `manifest.webmanifest`, `icon-*` | installierbare Web-App (PWA) |
 | `supabase/functions/tarif-extract/` | Edge Function für die KI-Auswertung (Claude) |
+| `android-app/` | Android-App (Capacitor-Hülle, lädt die Live-Seite) – Version in `android-app/app-version.json` |
+| `android-app.json` | Update-Angabe für die App (Version, Download, SHA-256); `code` 0 = noch keine App |
+| `.github/workflows/android.yml` | Cloud-Bau der App: bauen, signieren, im Emulator prüfen, bei Tag `app-vX.Y.Z` veröffentlichen |
 | `archive/klassisch/` | archiviertes klassisches Design (Stand 7.1.0, nur als Text) |
+
+## Android-App
+
+Die App ist nur die Hülle um `https://slizex.github.io/verbrauchs-tracker/` und bringt native Funktionen mit
+(Sperre, Bildschirmschutz, Ablese-Erinnerung, Scanner, Teilen an AllTrack, PDF-Ansicht, Update in der App).
+Neue Web-Funktionen brauchen deshalb **keine** neue APK. Neu gebaut wird nur bei Änderungen in `android-app/`:
+
+1. `android-app/app-version.json` hochzählen (`code` +1, `name`), committen, Tag `app-vX.Y.Z` pushen.
+2. Der Cloud-Bau signiert mit den Secrets `ALLTRACK_KEYSTORE_B64` / `ALLTRACK_KEYSTORE_PASSWORT` und legt das Release an.
+3. Aus der Release-Meldung `url`, `sha256`, `groesse`, `code` in `android-app.json` übernehmen – dann erscheint die Update-Karte.
+
+Der Signaturschlüssel liegt nur lokal (nie im Repo); ohne ihn lässt sich keine installierte App mehr aktualisieren.
 
 ## Technik
 

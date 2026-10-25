@@ -3,6 +3,23 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
 
+## 7.5.0 – 25.10.2026
+
+**Android-App** (neu gebaut nach dem Vorbild der All-Home-App; Ordner `android-app/`, Kennung `de.slizex.alltrack`)
+- Die App lädt diese Seite live – Web-Änderungen brauchen keine neue APK. Download unter *Mehr → Android-App*.
+- In der App unter *Mehr → App*: App-Sperre (Fingerabdruck, Gesicht oder Geräte-PIN, nach 5 Minuten im Hintergrund),
+  Bildschirmschutz (Standard aus), Ablese-Erinnerung (Tag 1.–28. und Uhrzeit wählbar, für alle Haushalte, nur wenn Zähler fällig sind),
+  App-Version und Update. Beim ersten Start fragt die App einmal nach Sperre und Erinnerung.
+- Tarifdokument und Jahresabrechnung lassen sich in der App scannen (Googles Dokumentenscanner, mehrere Seiten werden ein PDF).
+- AllTrack steht im Teilen-Menü von Android: Jahresabrechnung, Tarif/Vertrag, Zählerfoto oder nur ablegen – erst nach Rückfrage.
+- Dokumente öffnen in der App selbst; Sicherung und Excel-Export gehen über „Speichern unter“, der PDF-Bericht über den Android-Druckdialog.
+- Kurzbefehl am App-Symbol: *Zähler ablesen*. All-Home öffnet über `alltrack://` die App statt des Browsers.
+- Die alte App vom Juli zeigt auf der Startseite einen Hinweis auf die neue.
+
+**Für alle**
+- Registrierung und *Passwort vergessen* arbeiten mit einem Code aus der Mail (der Link in der Mail geht weiterhin).
+- Der Offline-Speicher fragt die Seite immer beim Server nach – nach einem Update erscheint sofort die neue Fassung.
+
 ## 7.4.1 – 19.10.2026
 
 - Gesperrte Konten: Sperrt der Administrator ein Konto (in All-Home unter *Mehr → Zentrale*), zeigt AllTrack nur noch
