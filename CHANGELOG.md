@@ -3,6 +3,11 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
 
+## 7.5.2 – 30.10.2026
+
+- Android-App: Beim Öffnen erschien jedes Mal Androids Seite „Alarme und Erinnerungen“ mit einem gesperrten Schalter.
+  Die Ablese-Erinnerung braucht keinen sekundengenauen Wecker und fragt jetzt nicht mehr danach.
+
 ## 7.5.1 – 25.10.2026
 
 - Download-Eintrag (*Mehr → Android-App*) und der Hinweis in der alten App erscheinen erst, wenn die neue App

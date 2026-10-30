@@ -549,7 +549,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.5.1";
+var APP_VERSION="7.5.2";
 /* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var DB_SCHEMA="public";
@@ -4129,7 +4129,10 @@ async function appPlanen(){
     if(offen&&offen.notifications&&offen.notifications.length)await LN.cancel({notifications:offen.notifications.map(function(n){return {id:n.id};})});
     if(liste.length)await LN.schedule({notifications:liste.slice(0,40).map(function(x,i){
       return {id:2000+i,title:"Zähler ablesen",body:x.text,channelId:"ablesen",smallIcon:"ic_stat_alltrack",
-        schedule:{at:x.at,allowWhileIdle:true},extra:{hh:x.hh,ziel:"ablesen"}};
+        /* isExactNotification:false ist Pflicht: Die Vorgabe „sekundengenau“ lässt das Plugin bei JEDEM Planen
+           Androids Seite „Alarme und Erinnerungen“ öffnen – die App verzichtet bewusst auf dieses Recht
+           (Manifest: SCHEDULE_EXACT_ALARM entfernt), der Schalter dort bleibt also grau. */
+        schedule:{at:x.at,allowWhileIdle:true},isExactNotification:false,extra:{hh:x.hh,ziel:"ablesen"}};
     })});
   }catch(e){}
 }
