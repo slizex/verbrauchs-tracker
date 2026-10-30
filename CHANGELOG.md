@@ -3,6 +3,13 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
 
+## 7.5.3 – 30.10.2026
+
+- KI-Stufe „Schnell“ nutzt jetzt Claude Haiku 5.5 statt Haiku 4.5: rund ein Zehntel der Kosten, und das Modell
+  prüft vor der Antwort mit. Nimmt es ein Dokument nicht an, springt wie bisher Haiku 4.5 ein; lehnt es ab, einmal Sonnet 5.5.
+- „Gründlich“ und „Maximal“: Lehnt das Modell eine Anfrage ab, rechnet Anthropic selbst mit einem Ersatzmodell weiter.
+- Edge Function `tarif-extract` v16 (Plattform-Version 17).
+
 ## 7.5.2 – 30.10.2026
 
 - Android-App: Beim Öffnen erschien jedes Mal Androids Seite „Alarme und Erinnerungen“ mit einem gesperrten Schalter.

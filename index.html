@@ -549,7 +549,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.5.2";
+var APP_VERSION="7.5.3";
 /* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var DB_SCHEMA="public";
@@ -958,10 +958,11 @@ async function recognizeMeterB64(cat,b64,mime){
 function fileToBase64(file){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){var s=String(r.result||"");var i=s.indexOf(",");res(i>=0?s.slice(i+1):s);};r.onerror=function(){rej(new Error("Datei konnte nicht gelesen werden."));};r.readAsDataURL(file);});}
 /* KI-Stufen – müssen zur Edge Function tarif-extract passen (dort wird das Modell fest zugeordnet).
    Preise: US-Dollar je 1 Mio. Tokens laut Anthropic. foto = gemessene Kosten je Zählerfoto in Euro-Cent
-   (Test 28.09.2026: 0,23 / 0,93 / 1,86 US-Cent). Standard ist „Gründlich“ – Haiku las im Test
-   die rote Nachkommastelle als ganze Ziffer. */
+   (Test 28.09.2026: 0,23 / 0,93 / 1,86 US-Cent). Standard ist „Gründlich“ – Haiku 4.5 las im Test
+   die rote Nachkommastelle als ganze Ziffer. Seit 30.10.2026 ist „Schnell“ Haiku 5.5 (ein Zehntel des Preises,
+   denkt vor der Antwort mit); foto dort geschätzt, bis ai_calls einen echten Wert liefert. */
 var AI_LEVELS={
-  basic:{name:"Schnell",model:"Claude Haiku 4.5",inp:1,out:5,foto:0.2,sub:"Klare Fotos und einfache Belege"},
+  basic:{name:"Schnell",model:"Claude Haiku 5.5",inp:0.1,out:0.5,foto:0.05,sub:"Klare Fotos und einfache Belege"},
   advanced:{name:"Gründlich",model:"Claude Sonnet 5.5",inp:2,out:10,foto:0.8,sub:"Mehrseitige Verträge, schwierige Fotos"},
   max:{name:"Maximal",model:"Claude Opus 5.5",inp:4,out:20,foto:1.6,sub:"Stärkstes Modell für knifflige Abrechnungen"}
 };
@@ -3019,7 +3020,7 @@ function mehrInfo(){
 var USD_EUR=0.86; /* grobe Umrechnung – Anthropic rechnet in US-Dollar ab */
 var AI_MODE_LABEL={zaehler:"Zählerfoto",tarif:"Tarif/Vertrag",abrechnung:"Jahresabrechnung"};
 function eurCost(usd,cents){var e=(Number(usd)||0)*USD_EUR;if(cents||e<1)return "≈ "+(e*100).toLocaleString("de-DE",{maximumFractionDigits:e*100<10?1:0})+" ct";return "≈ "+eur(e);}
-var AI_MODEL_NAMES={"claude-haiku-4-5":"Claude Haiku 4.5","claude-sonnet-5-5":"Claude Sonnet 5.5","claude-opus-5-5":"Claude Opus 5.5","claude-sonnet-4-6":"Claude Sonnet 4.6"};
+var AI_MODEL_NAMES={"claude-haiku-5-5":"Claude Haiku 5.5","claude-haiku-4-5":"Claude Haiku 4.5","claude-sonnet-5-5":"Claude Sonnet 5.5","claude-opus-5-5":"Claude Opus 5.5","claude-sonnet-4-6":"Claude Sonnet 4.6"};
 function aiModelName(id){var m=String(id||"");for(var k in AI_MODEL_NAMES){if(m.indexOf(k)===0)return AI_MODEL_NAMES[k];}return m||"—";}
 async function loadAiCalls(){
   MH.ki={hh:activeHousehold,rows:null,err:null};

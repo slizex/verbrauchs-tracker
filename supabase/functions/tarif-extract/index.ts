@@ -1,4 +1,4 @@
-// Supabase Edge Function: tarif-extract (v15, AllTrack 7.4.1 – Grenzen aus der All-Home-Zentrale)
+// Supabase Edge Function: tarif-extract (v16, AllTrack 7.5.3 – Schnell = Haiku 5.5 mit Rueckfaellen, Server-Ersatz bei Opus/Sonnet)
 // Liest Tarif-/Vertragsdokumente, Jahres-/Schlussabrechnungen ODER Zaehler-Fotos
 // (PDF/Bild, base64) per Claude-API aus und gibt die Felder als JSON zurueck.
 // mode='tarif' (Default) | 'abrechnung' | 'zaehler'.
@@ -12,21 +12,28 @@
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
-// Drei Stufen. Preise in US-Dollar je 1 Mio. Tokens (Anthropic, Stand 09/2026) –
+// Drei Stufen. Preise in US-Dollar je 1 Mio. Tokens (Anthropic, Stand 10/2026) –
 // muessen zu AI_LEVELS in index.html passen. effort nur bei Modellen, die es kennen.
+// Seit 30.10.2026 Schnell = Haiku 5.5: ein Zehntel des Preises von Haiku 4.5, denkt vor der Antwort mit
+// (das Mitdenken zaehlt zu max_tokens, darum mehr als die 1024 von Haiku 4.5).
 type Level = { model: string; maxTokens: number; effort?: string };
 const LEVELS: Record<string, Level> = {
-  basic: { model: "claude-haiku-4-5", maxTokens: 1024 },
+  basic: { model: "claude-haiku-5-5", maxTokens: 6000, effort: "medium" },
   advanced: { model: "claude-sonnet-5-5", maxTokens: 6000, effort: "medium" },
   max: { model: "claude-opus-5-5", maxTokens: 8000, effort: "medium" },
 };
-// Wird ein Modell abgeschaltet (Haiku 4.5: fruehestens 15.10.2026), springt die Stufe hierauf.
+// Nimmt Haiku 5.5 eine Anfrage nicht an (400/404), wie bisher mit Haiku 4.5 (kennt kein effort).
+const HAIKU_ALT: Level = { model: "claude-haiku-4-5", maxTokens: 2048 };
+// Lehnt Haiku 5.5 ab oder ist Opus nicht verfuegbar, springt die Stufe hierauf.
 const FALLBACK: Level = { model: "claude-sonnet-5-5", maxTokens: 4096, effort: "low" };
 const PRICES: Record<string, [number, number]> = {
+  "claude-haiku-5-5": [0.1, 0.5],
   "claude-haiku-4-5": [1, 5],
   "claude-sonnet-5-5": [2, 10],
   "claude-opus-5-5": [4, 20],
 };
+// Opus/Sonnet: lehnen die Sicherheitsfilter ab, rechnet Anthropic mit einem passenden Ersatzmodell weiter.
+const SERVER_ERSATZ = new Set(["claude-sonnet-5-5", "claude-opus-5-5"]);
 // Missbrauchsschutz: Dateigroesse, Aufrufe pro Person und Tag, Kosten aller Nutzer pro Tag und Monat.
 // Die Grenzen stellt der Superadmin in der All-Home-Zentrale ein (public.ki_einstellungen, gemeinsam mit All-Home);
 // nur wenn die Datenbank nicht antwortet, gelten diese Rueckfallwerte.
@@ -336,26 +343,28 @@ async function loadDoc(id: string, sh: Record<string, string>): Promise<{ doc: D
 }
 
 function costUsd(model: string, inp: number, out: number): number {
-  const p = PRICES[model] || [0, 0];
+  let p = PRICES[model] || [0, 0];
+  if (model === "claude-haiku-5-5" && inp > 100_000) p = [0.5, 2.5];   // Haiku 5.5 ab 100.000 Eingabe-Tokens je Anfrage
   return Math.round(((inp * p[0] + out * p[1]) / 1_000_000) * 1_000_000) / 1_000_000;
 }
 
-async function callClaude(lv: Level, docBlock: unknown, prompt: string): Promise<Response> {
+async function callClaude(lv: Level, docBlock: unknown, prompt: string, ersatz = false): Promise<Response> {
   const body: Record<string, unknown> = {
     model: lv.model,
     max_tokens: lv.maxTokens,
     messages: [{ role: "user", content: [docBlock, { type: "text", text: prompt }] }],
   };
   if (lv.effort) body.output_config = { effort: lv.effort };
-  return await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY as string,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify(body),
-  });
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    "x-api-key": ANTHROPIC_API_KEY as string,
+    "anthropic-version": "2023-06-01",
+  };
+  if (ersatz && SERVER_ERSATZ.has(lv.model)) {
+    headers["anthropic-beta"] = "server-side-fallback-2026-07-01";
+    body.fallbacks = "default";
+  }
+  return await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers, body: JSON.stringify(body) });
 }
 
 Deno.serve(async (req: Request) => {
@@ -469,14 +478,35 @@ Deno.serve(async (req: Request) => {
 
   let aResp: Response;
   try {
-    aResp = await callClaude(lv, docBlock, prompt);
-    // Modell abgeschaltet/unbekannt -> einmal mit dem Ersatzmodell
+    let mitErsatz = true;
+    aResp = await callClaude(lv, docBlock, prompt, mitErsatz);
+    // Server kennt den Ersatz-Parameter (noch) nicht -> einmal ohne
+    if (aResp.status === 400 && SERVER_ERSATZ.has(lv.model) && /fallback/i.test(await aResp.clone().text())) {
+      mitErsatz = false;
+      aResp = await callClaude(lv, docBlock, prompt, false);
+    }
     if (aResp.status === 404 || aResp.status === 400) {
       const peek = await aResp.clone().text();
-      if (/not_found_error|model/i.test(peek) && /model/i.test(peek) && lv.model !== FALLBACK.model) {
+      if (lv.model === LEVELS.basic.model) {
+        // Haiku 5.5 nimmt die Anfrage nicht an -> wie bisher mit Haiku 4.5
+        console.warn("Haiku 5.5 nimmt die Anfrage nicht an (" + aResp.status + "), Rueckfall Haiku 4.5:", peek.slice(0, 200));
+        lv = HAIKU_ALT;
+        aResp = await callClaude(lv, docBlock, prompt);
+      } else if (/model/i.test(peek) && /not_found|not found|invalid|unknown|deprecated/i.test(peek) && lv.model !== FALLBACK.model) {
+        // Modell abgeschaltet/unbekannt -> einmal mit dem Ersatzmodell
         console.warn("Modell nicht verfuegbar, nutze Ersatz:", lv.model, peek.slice(0, 200));
         lv = FALLBACK;
-        aResp = await callClaude(lv, docBlock, prompt);
+        aResp = await callClaude(lv, docBlock, prompt, mitErsatz);
+      }
+    }
+    // Haiku 5.5 hat keinen Server-Ersatz: lehnt es ab, einmal mit Sonnet 5.5
+    if (aResp.ok && lv.model === LEVELS.basic.model) {
+      let abgelehnt = false;
+      try { abgelehnt = (await aResp.clone().json())?.stop_reason === "refusal"; } catch (_) { /* unten normal lesen */ }
+      if (abgelehnt) {
+        console.warn("Haiku 5.5 lehnt ab, einmal mit Sonnet 5.5");
+        lv = FALLBACK;
+        aResp = await callClaude(lv, docBlock, prompt, mitErsatz);
       }
     }
   } catch (e) {
