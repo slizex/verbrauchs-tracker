@@ -3,6 +3,25 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
 
+## 7.5.4 – 31.10.2026
+
+Ergebnis eines Gesamttests mit echten Daten (alle Ansichten auf Handy, Tablet und PC, hell und dunkel, alle Rechnungen
+unabhängig nachgerechnet).
+- Prognose, erwarteter Zählerstand und Verbrauchs-Auffälligkeiten vergleichen nur noch mit demselben Monat der
+  **letzten zwei Jahre**. Vorher zählten auch Jahre vor dem Heizungswechsel mit: Die Gas-Prognose kam so auf eine
+  Nachzahlung, obwohl ein Guthaben zu erwarten ist.
+- Der empfohlene Abschlag rechnet jetzt mit dem **aktuellen Tarif** und dem Verbrauch der letzten 12 Monate.
+  Vorher galten noch alte, teurere Preise.
+- Vertragskarte: „Saldo seit Beginn“ nennt jetzt den Monat, ab dem gerechnet wird.
+- Besser lesbar im hellen Modus: Grau-, Rot-, Grün-, Orange- und Blautöne etwas dunkler (wie in All-Home).
+- Kleine Text-Knöpfe („Alle“, „Bericht“, „frühere Tarife“ …) und die Schalter unter *Mehr* haben eine größere,
+  unsichtbare Tippfläche.
+- Lange Dokumentnamen werden umbrochen statt abgeschnitten (in den Vertragskarten bis zu drei Zeilen).
+  „+50 %“ in Auffälligkeiten bricht nicht mehr zwischen Zahl und Prozentzeichen um.
+- *Mehr → Rechenweg* erklärt jetzt auch Prognose und empfohlenen Abschlag. Im Abrechnungsbericht und in der Vertragskarte stehen die
+  Beträge auf einer Höhe, auch wenn eine Beschriftung zwei Zeilen braucht.
+- Haushalts-Eingabefelder sind für Bildschirmleser beschriftet.
+
 ## 7.5.3 – 30.10.2026
 
 - KI-Stufe „Schnell“ nutzt jetzt Claude Haiku 5.5 statt Haiku 4.5: rund ein Zehntel der Kosten, und das Modell

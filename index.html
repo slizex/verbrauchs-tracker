@@ -29,9 +29,9 @@
 :root{
   --bg:#f7f4ef;--surface:#ffffff;--surface-2:#f2eee7;--surface-3:#e9e3d9;
   --line:#e7e0d5;--line-2:#d9d0c2;
-  --text:#231f1a;--muted:#7a7166;--muted-2:#a39a8d;
+  --text:#231f1a;--muted:#6a6156;--muted-2:#a39a8d;
   --ink:#231f1a;--ink-fg:#fffaf2;
-  --pos:#1f9d62;--pos-bg:#e3f5ec;--neg:#d8453a;--neg-bg:#fde8e5;--warn:#b86e00;--warn-bg:#fff1d6;--info:#3b6fd8;--info-bg:#e6eefc;
+  --pos:#147a4a;--pos-bg:#e3f5ec;--neg:#b8352b;--neg-bg:#fde8e5;--warn:#965800;--warn-bg:#fff1d6;--info:#2f5cbb;--info-bg:#e6eefc;
   --strom:#e8930c;--strom-bg:#fff2d9;--wasser:#1a9fd8;--wasser-bg:#e0f3fb;--gas:#ec6431;--gas-bg:#fde7dc;
   --r-xl:28px;--r-lg:22px;--r:16px;--r-sm:12px;
   --sh-1:0 1px 2px rgba(35,31,26,.05);
@@ -263,7 +263,7 @@ a{color:inherit;text-decoration:none}
 .minp .u{position:absolute;right:18px;top:50%;transform:translateY(-50%);font-weight:900;color:var(--muted);pointer-events:none}
 .camb{width:78px;flex:none;border-radius:22px;background:var(--surface-2);display:grid;place-items:center;position:relative;color:var(--text)}
 .camb:hover{background:var(--surface-3)}
-.camb .ki{position:absolute;right:8px;bottom:8px;font-size:.6rem;font-weight:900;background:var(--ink);color:var(--ink-fg);border-radius:6px;padding:1px 5px}
+.camb .ki{position:absolute;right:8px;bottom:8px;font-size:.7rem;font-weight:900;background:var(--ink);color:var(--ink-fg);border-radius:6px;padding:1px 5px}
 .camb:disabled{cursor:default}
 .spin{width:22px;height:22px;border-radius:50%;border:3px solid var(--line-2);border-top-color:var(--ink);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -273,6 +273,9 @@ a{color:inherit;text-decoration:none}
 .hint.red{color:var(--neg)}.hint.yellow{color:var(--warn)}.hint.green{color:var(--pos)}
 .fsec{margin-top:14px}
 .linkbtn{font-weight:800;color:var(--muted);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line-2)}
+/* Kleine Text-Knöpfe: unsichtbar vergrößerte Tippfläche (mind. 36 px hoch), ohne das Layout zu verschieben */
+.linkbtn,.lnk,.vpast,.back,.hero .tog,.sect .more,.sug .dis{position:relative}
+.linkbtn::after,.lnk::after,.vpast::after,.back::after,.hero .tog::after,.sect .more::after,.sug .dis::after{content:"";position:absolute;inset:-8px -4px}
 .linkbtn:hover{color:var(--text)}
 .dateline{display:flex;align-items:center;gap:10px;margin-top:18px;padding:12px 14px;border-radius:16px;background:var(--surface-2);font-weight:800;color:var(--muted)}
 .dateline input{margin-left:auto;border:0;background:transparent;font-weight:900;color:var(--text);outline:none;min-width:0}
@@ -327,7 +330,7 @@ a{color:inherit;text-decoration:none}
 .ytab thead th{color:var(--muted);font-weight:800}
 .ytab tbody th{text-align:left;color:var(--muted);font-weight:800}
 .ytab td{font-weight:800;border-radius:8px}
-.ytab td.na{color:var(--muted-2)}.ytab td.avg{color:var(--muted)}
+.ytab td.na{color:var(--muted)}.ytab td.avg{color:var(--muted)}
 .ytab tr.sum th,.ytab tr.sum td{border-top:1px solid var(--line);font-weight:900}
 .chk{display:flex;align-items:center;gap:10px;font-weight:800;margin:4px 4px 12px}
 .chk input{width:20px;height:20px}
@@ -341,7 +344,7 @@ a{color:inherit;text-decoration:none}
 .vch .nm{font-weight:900;font-size:1.1rem}.vch .mt{color:var(--muted);font-weight:700;font-size:.86rem}
 .vch .ibtn{margin-left:auto}
 .kv{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
-.kv>div{background:var(--surface-2);border-radius:14px;padding:10px 12px;display:grid;gap:2px;min-width:0}
+.kv>div{background:var(--surface-2);border-radius:14px;padding:10px 12px;display:grid;gap:2px;min-width:0;align-content:space-between}
 .kv span{color:var(--muted);font-weight:700;font-size:.8rem}.kv b{font-weight:900}
 .vlines{display:grid;gap:6px;margin-top:12px}
 .vline{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;font-weight:800;font-size:.88rem;text-align:left;width:100%}
@@ -350,7 +353,7 @@ a{color:inherit;text-decoration:none}
 .vline b{margin-left:auto;text-decoration:underline;text-underline-offset:3px}
 .drow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .dchip{display:flex;align-items:center;gap:8px;max-width:100%;padding:8px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);text-align:left;color:var(--muted)}
-.dchip span{display:grid;min-width:0}.dchip b{font-size:.84rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}.dchip small{font-weight:700;font-size:.74rem}
+.dchip span{display:grid;min-width:0}.dchip b{font-size:.84rem;color:var(--text);overflow:hidden;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;max-width:200px}.dchip small{font-weight:700;font-size:.74rem}
 .dchip.more{font-weight:800}
 .vact{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .vpast{display:flex;align-items:center;gap:6px;margin-top:14px;font-weight:800;color:var(--muted)}
@@ -363,7 +366,7 @@ details.more{margin:4px 0 8px}
 details.more summary{cursor:pointer;font-weight:800;color:var(--muted);padding:8px 2px}
 .drow2{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
 .dopen{display:flex;align-items:center;gap:10px;flex:1;text-align:left;padding:6px 2px;min-width:0}
-.dopen span{display:grid;min-width:0}.dopen b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dopen small{color:var(--muted);font-weight:700;font-size:.8rem}
+.dopen span{display:grid;min-width:0}.dopen b{overflow-wrap:anywhere}.dopen small{color:var(--muted);font-weight:700;font-size:.8rem}
 .ytab.abr th{text-align:left}
 select.inp{padding-right:10px}
 
@@ -379,6 +382,7 @@ button.mrow2:hover,a.mrow2:hover{background:var(--surface-2)}
 .mrow2.off{opacity:.5}
 .nssw{width:50px;height:30px;border-radius:99px;background:var(--line-2);position:relative;flex:none;transition:background .2s}
 .nssw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:var(--sh-1);transition:transform .2s var(--ease)}
+.nssw::before{content:"";position:absolute;inset:-7px -4px} /* Tippfläche 44 px hoch, ::after ist der Knopf */
 .nssw.on{background:var(--pos)}.nssw.on::after{transform:translateX(20px)}
 .nssw:disabled{opacity:.45;cursor:default}
 .back{display:inline-flex;align-items:center;gap:4px;font-weight:800;color:var(--muted);margin:2px 0}
@@ -415,7 +419,7 @@ a.vsep.abr span{color:var(--text)}
 .abrbusy{display:grid;justify-items:center;gap:10px;padding:48px 20px;text-align:center}.abrbusy small{color:var(--muted);font-weight:700}
 .abrhead .vch{margin-bottom:6px}
 .abrres{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
-.abrres>div{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px;display:grid;gap:2px}
+.abrres>div{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px;display:grid;gap:2px;align-content:start}
 .abrres span{color:var(--muted);font-weight:800;font-size:.84rem}.abrres b{font-size:1.6rem;font-weight:900}.abrres small{color:var(--muted);font-weight:700}
 .abrexpl{margin:-4px 4px 0;font-weight:800;color:var(--muted);font-size:.9rem}
 .cause{border-radius:var(--r-lg);padding:14px 16px;border:1px solid var(--line);background:var(--surface);display:grid;gap:8px;justify-items:start}
@@ -425,7 +429,7 @@ a.vsep.abr span{color:var(--text)}
 .cause .vline{width:auto}
 .abrki{margin:0 4px;color:var(--muted);font-weight:700;font-size:.86rem}
 .abrmon{margin:0}
-.ytab.abr th small{display:block;font-weight:700;color:var(--muted-2);font-size:.74rem}
+.ytab.abr th small{display:block;font-weight:700;color:var(--muted);font-size:.74rem}
 .ytab.abr .pill{font-size:.76rem;padding:2px 8px}
 @media (min-width:1100px){.abrgrid{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}}
 @media (min-width:900px){.abrgrid>.grid>.sect:first-child{margin-top:4px}}
@@ -549,7 +553,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.5.3";
+var APP_VERSION="7.5.4";
 /* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var DB_SCHEMA="public";
@@ -847,7 +851,7 @@ function forecastRows(cat,count){
   var out=[];
   for(var k=1;k<=count;k++){
     var idx=lastIdx+k,m=((idx%12)+12)%12,datum=billIndexToReadDatum(idx);
-    var same=hist.filter(function(r){return billIndex(r.reading.datum)%12===m;});
+    var same=hist.filter(function(r){var bi=billIndex(r.reading.datum);return bi%12===m&&bi>=idx-24;}); /* nur die letzten 2 Jahre: alte Heizung/Haushalt verzerrt sonst */
     var projVerb=same.length?same.reduce(function(s,r){return s+r.verbrauch;},0)/same.length:recentAvg;
     var tariff=tariffForDate(cat,datum);
     var row={reading:{datum:datum,_forecast:true},tariff:tariff,verbrauch:projVerb,forecast:true,seasonal:same.length>0};
@@ -898,7 +902,7 @@ function consumptionAnomalies(){
     if(billIndex(last.reading.datum)>=curIdx)return null;         /* laufenden Monat nicht bewerten (unvollständig) */
     var m=((billIndex(last.reading.datum)%12)+12)%12;
     var prior=hist.slice(0,-1);
-    var sameMonth=prior.filter(function(r){return ((billIndex(r.reading.datum)%12)+12)%12===m;});
+    var lastBi=billIndex(last.reading.datum),sameMonth=prior.filter(function(r){var bi=billIndex(r.reading.datum);return ((bi%12)+12)%12===m&&bi>=lastBi-24;});
     var baseRows=sameMonth.length?sameMonth:prior.slice(-12);
     if(!baseRows.length)return null;
     var base=baseRows.reduce(function(s,r){return s+r.verbrauch;},0)/baseRows.length;
@@ -1389,7 +1393,7 @@ function saveMeter(cat,value){
 
 /* ---- Erwarteter Zählerstand (intelligente Vorschläge „Beim Ablesen“) ----
    Aus den Rohständen: Zuwachs pro Tag zwischen zwei Ablesungen, bevorzugt aus demselben
-   Kalendermonat der Vorjahre (Gas im Winter ≠ Sommer), sonst Ø der letzten 12 Abschnitte.
+   Kalendermonat der letzten 2 Jahre (Gas im Winter ≠ Sommer), sonst Ø der letzten 12 Abschnitte.
    Zählerwechsel-Abschnitte zählen nicht mit. */
 function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/86400000);}
 function lastReadingBefore(cat,iso){var rs=readingsAsc(cat).filter(function(r){return r.datum<iso;});return rs.length?rs[rs.length-1]:null;}
@@ -1400,7 +1404,7 @@ function meterRates(cat){
     if(b.startwert!=null&&isFinite(b.startwert))continue;
     var d=daysBetween(a.datum,b.datum),dz=b.zaehlerstand-a.zaehlerstand;
     if(d<5||!(dz>=0))continue;
-    out.push({rate:dz/d,month:((billIndex(b.datum)%12)+12)%12});
+    out.push({rate:dz/d,month:((billIndex(b.datum)%12)+12)%12,idx:billIndex(b.datum)});
   }
   return out;
 }
@@ -1408,7 +1412,7 @@ function expectedMeter(cat,iso){
   var last=lastReadingBefore(cat,iso);if(!last)return null;
   var days=daysBetween(last.datum,iso);if(days<=0)return null;
   var rates=meterRates(cat);if(rates.length<3)return null;
-  var m=((billIndex(iso)%12)+12)%12,same=rates.filter(function(r){return r.month===m;});
+  var bi=billIndex(iso),m=((bi%12)+12)%12,same=rates.filter(function(r){return r.month===m&&r.idx>=bi-24;});
   var pool=same.length?same:rates.slice(-12);
   var avg=pool.reduce(function(s,r){return s+r.rate;},0)/pool.length;
   return {value:last.zaehlerstand+avg*days,delta:avg*days,last:last,days:days,seasonal:same.length>0};
@@ -1589,10 +1593,12 @@ function abrAnalyse(cat,v){
 }
 function monthName(key){var n=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];return n[Number(key.slice(5,7))-1]+" "+key.slice(0,4);}
 
-/* Monatlicher Bedarf = Ø Gesamtkosten der letzten 12 abgerechneten Monate (mind. 6). */
+/* Monatlicher Bedarf = Jahreskosten zum aktuellen Tarif (Verbrauch der letzten 12 Monate) / 12, mind. 6 Monate.
+   Ohne aktuellen Tarif: Ø Gesamtkosten der letzten 12 abgerechneten Monate. */
 function monthlyNeed(cat){
   var rows=catRows(cat).filter(function(r){return isFinite(r.gesamtkosten);}).slice(-12);
   if(rows.length<6)return null;
+  var y=yearCostWith(tariffForDate(cat,todayISO()),cat);if(y!=null&&isFinite(y))return y/12;
   return rows.reduce(function(s,r){return s+r.gesamtkosten;},0)/rows.length;
 }
 /* Prognose zur nächsten Abrechnung: offene Monate seit letzter Abrechnung/Anbieterbeginn + Vorschau bis 12 Monate. */
@@ -1683,8 +1689,8 @@ function buildSuggestions(){
     consumptionAnomalies().forEach(function(a){
       var c=CATS[a.cat],u=c.billUnit||c.unit,mk=billKey(a.month),up=a.dir==="up";
       add({key:"s:anom|"+anomalyKey(a),group:"auffaellig",prio:up?70:30,tone:up?"warn":"good",icon:up?"trendUp":"trendDown",cat:a.cat,
-        title:c.label+" im "+monthName(mk)+" "+(up?"+":"")+a.pct+" %",
-        text:fmtVerb(a.cat,a.verbrauch)+" statt Ø "+fmtVerb(a.cat,a.base)+" "+u+(a.seasonal?" im selben Monat der Vorjahre.":" der letzten Monate."),
+        title:c.label+" im "+monthName(mk)+" "+(up?"+":"−")+Math.abs(a.pct)+" %",
+        text:fmtVerb(a.cat,a.verbrauch)+" statt Ø "+fmtVerb(a.cat,a.base)+" "+u+(a.seasonal?" im selben Monat der letzten zwei Jahre.":" der letzten Monate."),
         action:{label:"Verlauf ansehen",route:"#/verlauf?cat="+a.cat}});
     });
     var cut=billIndex(today)-12;
@@ -2476,7 +2482,7 @@ function contractCard(cat,focus){
     '<div><span>'+priceLabel(cat)+'</span><b class="num">'+priceText(cat,t)+'</b></div>'+
     '<div><span>Grundpreis</span><b class="num">'+eur(t.grundpreisJahr)+'/Jahr</b></div>'+
     '<div><span>Abschlag</span><b class="num">'+(ab!=null?eur(ab):"–")+'/Monat</b></div>'+
-    '<div><span>Saldo '+(si&&si.kind==="abrechnung"?"seit Abrechnung":"seit Beginn")+'</span><b class="num '+(sal>=0?"pos-t":"neg-t")+'">'+signed(sal)+'</b></div></div>';
+    '<div><span>Saldo '+(si&&si.kind==="abrechnung"?"seit Abrechnung":si&&si.rows.length?"seit "+monthName(billKey(si.rows[0].reading.datum)):"seit Beginn")+'</span><b class="num '+(sal>=0?"pos-t":"neg-t")+'">'+signed(sal)+'</b></div></div>';
   var lines=lst?'<a class="vline good" href="#/abrechnung?id='+esc(lst.id)+'">'+ic("check",16)+'<span>Abrechnung bis '+deDate(lst.period_to)+': '+settlementErgebnisText(lst)+'</span><b>Bericht</b></a>':"";
   if(smartOn("geld")){
     var need=monthlyNeed(cat);
@@ -2617,7 +2623,7 @@ function abschlagSheet(cat,err){
   var need=monthlyNeed(cat);
   openSheet('<h3>Abschlag '+CATS[cat].label+'</h3>'+
     '<div class="dl"><span>Aktuell</span><b class="num">'+(cur!=null?eur(cur):"–")+'/Monat</b></div>'+
-    (need!=null&&smartOn("geld")?'<div class="dl"><span>Ø Bedarf (12 Monate)</span><b class="num">'+eur(need)+'</b></div>':"")+
+    (need!=null&&smartOn("geld")?'<div class="dl"><span>Ø Bedarf zum aktuellen Tarif</span><b class="num">'+eur(need)+'</b></div>':"")+
     '<form id="abForm" novalidate style="margin-top:14px"><div class="two"><label class="fld"><span>Neuer Abschlag (€)</span><input class="inp" id="ab_betrag" inputmode="decimal" value="'+(VT.abPrefill!=null?String(VT.abPrefill).replace(".",","):(need!=null&&smartOn("geld")?String(Math.ceil(need)):""))+'"></label>'+
     '<label class="fld"><span>Gültig ab</span><input class="inp" type="date" id="ab_gueltig" value="'+firstOfMonthISO()+'"></label></div>'+
     (err?'<div class="ferr">'+esc(err)+'</div>':"")+
@@ -2963,12 +2969,12 @@ function mehrBereiche(){
 function mehrHaushalt(){
   var nm=activeHouseholdName()||"";
   return subHead("Haushalt verwalten")+'<div class="grid">'+
-    (IAM_ADMIN?'<form class="card" id="hhRenameForm" novalidate><div class="nm" style="font-weight:900;margin-bottom:10px">Umbenennen</div><div class="rowin"><input class="inp" id="hh_name" value="'+esc(nm)+'" autocomplete="off"><button class="btn" type="submit">Speichern</button></div></form>':"")+
+    (IAM_ADMIN?'<form class="card" id="hhRenameForm" novalidate><div class="nm" style="font-weight:900;margin-bottom:10px">Umbenennen</div><div class="rowin"><input class="inp" id="hh_name" value="'+esc(nm)+'" autocomplete="off" aria-label="Neuer Name des Haushalts"><button class="btn" type="submit">Speichern</button></div></form>':"")+
     '<form class="card" id="hhNewForm" novalidate><div class="nm" style="font-weight:900;margin-bottom:10px">Neuer Haushalt</div>'+
-      '<input class="inp" id="hh_new" placeholder="Name, z. B. Ferienwohnung" autocomplete="off">'+
+      '<input class="inp" id="hh_new" placeholder="Name, z. B. Ferienwohnung" autocomplete="off" aria-label="Name des neuen Haushalts">'+
       '<div class="catpick">'+["strom","wasser","gas"].map(function(c){return '<label class="cpk"><input type="checkbox" data-newcat="'+c+'" checked>'+catBadge(c,true)+CATS[c].label+'</label>';}).join("")+'</div>'+
       '<button class="btn full" type="submit">Anlegen</button></form>'+
-    '<form class="card" id="hhJoinForm" novalidate><div class="nm" style="font-weight:900;margin-bottom:10px">Einer Einladung beitreten</div><div class="rowin"><input class="inp" id="hh_code" placeholder="Code" autocomplete="off" autocapitalize="off"><button class="btn" type="submit">Beitreten</button></div></form>'+
+    '<form class="card" id="hhJoinForm" novalidate><div class="nm" style="font-weight:900;margin-bottom:10px">Einer Einladung beitreten</div><div class="rowin"><input class="inp" id="hh_code" placeholder="Code" autocomplete="off" autocapitalize="off" aria-label="Einladungscode"><button class="btn" type="submit">Beitreten</button></div></form>'+
     '<div class="card"><div class="nm" style="font-weight:900;margin-bottom:6px">Haushalt verlassen</div><p class="mut-t" style="font-weight:700;margin:0 0 12px">Du siehst die Daten von „'+esc(nm)+'“ danach nicht mehr.</p>'+
       (MH.leaveAsk?'<button class="btn full" style="background:var(--neg);color:#fff" data-a="hh-leave-yes">Wirklich verlassen</button>':'<button class="btn soft full" data-a="hh-leave">Verlassen</button>')+'</div>'+
   '</div>';
@@ -3012,7 +3018,7 @@ function mehrInfo(){
     '<div class="card"><div class="nm" style="font-weight:900;margin-bottom:8px">So rechnet AllTrack</div><ul class="calc">'+
       '<li><b>Verbrauch</b> = aktueller − letzter Zählerstand</li><li><b>Grundkosten</b> = Grundpreis pro Jahr ÷ 12</li>'+
       '<li><b>Verbrauchskosten</b> = Verbrauch × Arbeitspreis (Wasser: × Wasser+Kanal)</li><li><b>Gas in kWh</b> = m³ × Wandelfaktor × Zustandszahl × Brennwert</li>'+
-      '<li><b>Differenz</b> = Abschlag − Gesamtkosten · Plus = Guthaben</li><li><b>Offener Saldo</b> = Differenzen seit der letzten übernommenen Jahresabrechnung bzw. seit Beginn beim aktuellen Anbieter</li><li>Eine Ablesung am 1. zählt zum Vormonat.</li><li>Fehlende Monate werden gleichmäßig verteilt (geschätzt).</li></ul></div>'+
+      '<li><b>Differenz</b> = Abschlag − Gesamtkosten · Plus = Guthaben</li><li><b>Offener Saldo</b> = Differenzen seit der letzten übernommenen Jahresabrechnung bzw. seit Beginn beim aktuellen Anbieter</li><li>Eine Ablesung am 1. zählt zum Vormonat.</li><li>Fehlende Monate werden gleichmäßig verteilt (geschätzt).</li><li><b>Prognose</b> = offene Monate + Vorschau mit dem Ø desselben Monats der letzten zwei Jahre</li><li><b>Empfohlener Abschlag</b> = Jahreskosten zum aktuellen Tarif (Verbrauch der letzten 12 Monate) ÷ 12</li></ul></div>'+
     '<div class="card" style="margin-top:12px"><div class="nm" style="font-weight:900;margin-bottom:6px">Version '+APP_VERSION+'</div><p class="mut-t" style="font-weight:700;margin:0 0 12px">Stand dieser Fassung: '+stand+'</p><button class="btn sm soft" data-a="upd-check">Nach Updates suchen</button></div>';
 }
 
