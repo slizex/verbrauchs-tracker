@@ -3,6 +3,19 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
 
+## 7.6.0 – 31.10.2026
+
+**„Bitte prüfen“ auf der Startseite**: Widersprüche in den Daten stehen jetzt ganz oben, vor „Für dich“
+(bis zu drei, sonst „Alle“). Jede Karte führt mit einem Knopf direkt zur Stelle, an der man prüft oder korrigiert.
+Mit dem × blendest du einen Punkt aus, wenn er so stimmt.
+- **Zwei Abschläge:** Bis drei Monate nach Tarifbeginn wurde der Abschlag auf einen anderen Betrag geändert als im
+  Tarif steht. Der Knopf öffnet das Abschlag-Fenster, das jetzt auch den Betrag laut Tarif zeigt.
+- **Offene Punkte der letzten Jahresabrechnung:** Warnungen und Korrekturen aus dem Abrechnungsbericht
+  (z. B. andere Zahl an Abschlägen, neuer Abschlag mit anderem Beginn). Der Knopf öffnet den Bericht. Ist ein Punkt
+  dort korrigiert, verschwindet er auch auf der Startseite.
+- Dieselben Punkte erscheinen als Zeile in der Vertragskarte.
+- Abschaltbar unter *Mehr → Intelligente Vorschläge → Bitte prüfen*.
+
 ## 7.5.4 – 31.10.2026
 
 Ergebnis eines Gesamttests mit echten Daten (alle Ansichten auf Handy, Tablet und PC, hell und dunkel, alle Rechnungen

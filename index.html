@@ -425,6 +425,7 @@ a.vsep.abr span{color:var(--text)}
 .cause{border-radius:var(--r-lg);padding:14px 16px;border:1px solid var(--line);background:var(--surface);display:grid;gap:8px;justify-items:start}
 .cause .ct{display:flex;align-items:center;gap:8px}.cause p{margin:0;color:var(--text);font-size:.92rem}
 .cause.warn{border-color:color-mix(in srgb,var(--warn) 40%,var(--line))}.cause.warn .ct{color:var(--warn)}
+.sugs.pruef .sug{border-color:color-mix(in srgb,var(--warn) 40%,var(--line))}
 .cause.info .ct{color:var(--info)}
 .cause .vline{width:auto}
 .abrki{margin:0 4px;color:var(--muted);font-weight:700;font-size:.86rem}
@@ -553,7 +554,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.5.4";
+var APP_VERSION="7.6.0";
 /* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var DB_SCHEMA="public";
@@ -1090,7 +1091,7 @@ function two(n){return String(n).padStart(2,"0");}
 
 /* ================= 3. Sitzung, Laden, Speichern (ohne Oberfläche) ================= */
 var USER_PREFS=null;
-var SMART_GROUPS=["ablesen","geld","vertraege","auffaellig","sicherung"];
+var SMART_GROUPS=["ablesen","geld","vertraege","auffaellig","pruefen","sicherung"];
 var pendingRecovery=(/type=recovery/i.test(location.hash)||/[?&]type=recovery/i.test(location.search));
 var rtChannel=null,rtHousehold=null,rtTimer=null,rtBatch=[];
 var BOOTED=false;              /* true, sobald die erste Anmeldung verarbeitet ist */
@@ -1713,6 +1714,32 @@ function buildSuggestions(){
   }
   return out.sort(function(a,b){return b.prio-a.prio;});
 }
+/* Unstimmigkeiten in den Daten → Startseite „Bitte prüfen“ und Vertragskarte.
+   A: Abschlag bis 3 Monate nach Tarifbeginn auf einen anderen Betrag geändert (welcher stimmt?).
+   B: offene Punkte der letzten Jahresabrechnung (Warnungen und Korrekturen aus dem Bericht). */
+function dataChecks(cat){
+  if(LOAD_FAILED||!smartOn("pruefen"))return [];
+  var out=[],today=todayISO();
+  function add(s){if(!isNotifDismissed(s.key))out.push(Object.assign({group:"pruefen",tone:"warn",icon:"alert"},s));}
+  (cat?[cat]:householdCats()).forEach(function(c){
+    var name=CATS[c].label,cur=tariffForDate(c,today);
+    if(cur&&cur.gueltigAb&&cur.abschlag!=null&&isFinite(Number(cur.abschlag)))(STATE[c].abschlagChanges||[]).forEach(function(a){
+      if(a.gueltigAb>cur.gueltigAb&&a.gueltigAb<=addDays(cur.gueltigAb,92)&&Math.abs(Number(a.betrag)-Number(cur.abschlag))>=0.005)
+        add({key:"s:pruef|ab|"+c+"|"+a.id+"|"+a.betrag+"|"+cur.abschlag,cat:c,
+          title:name+": zwei Abschläge",
+          text:"Tarif "+(cur.anbieter||"")+" ab "+deDate(cur.gueltigAb)+": "+eur(cur.abschlag)+", Änderung ab "+deDate(a.gueltigAb)+": "+eur(a.betrag)+". Gerechnet wird mit "+eur(a.betrag)+".",
+          short:"Zwei Abschläge: Tarif "+eur(cur.abschlag)+", ab "+deDate(a.gueltigAb)+" "+eur(a.betrag),
+          action:{label:"Abschlag prüfen",a:"vt-ab",cat:c}});
+    });
+    var st=settlementsFor(c)[0],v=st&&st.details&&st.details.v;
+    if(v)abrAnalyse(c,v).causes.forEach(function(x){
+      if(x.tone!=="warn"&&!(x.action&&!x.action.route))return;
+      add({key:"s:pruef|abr|"+st.id+"|"+x.k,cat:c,title:name+"-Abrechnung: "+x.title,text:x.text,short:"Abrechnung: "+x.title+" prüfen",
+        action:{label:"Im Bericht ansehen",route:"#/abrechnung?id="+st.id}});
+    });
+  });
+  return out;
+}
 
 /* ================= 5. Oberfläche ================= */
 var AUTH_MODE="login",LOADING=false,HERO_OPEN=false;
@@ -1845,7 +1872,7 @@ function sparkSvg(vals,cat){
 }
 function sugCard(s){
   return '<div class="sug '+s.tone+'"><span class="si">'+ic(s.icon)+'</span><div class="sb2"><div class="st">'+esc(s.title)+'</div><div class="sx">'+esc(s.text)+'</div>'+
-    (s.action?'<div class="sa"><a class="btn sm soft" href="'+s.action.route+'">'+esc(s.action.label)+'</a></div>':"")+
+    (s.action?'<div class="sa">'+(s.action.a?'<button class="btn sm soft" data-a="'+s.action.a+'" data-cat="'+esc(s.action.cat||"")+'">'+esc(s.action.label)+'</button>':'<a class="btn sm soft" href="'+s.action.route+'">'+esc(s.action.label)+'</a>')+'</div>':"")+
     '</div><button class="dis" data-a="dismiss" data-key="'+esc(s.key)+'" data-text="'+esc(s.title)+'" aria-label="Ausblenden">'+ic("x",18)+'</button></div>';
 }
 function loadFailedNote(){
@@ -1910,10 +1937,11 @@ function screenStart(){
       '<div class="foot"><span>Saldo <b class="num '+(s>=0?"pos-t":"neg-t")+'">'+signed(s)+'</b></span>'+(zl||'<span>'+(L.estimated?"geschätzt":"abgelesen "+deDate(L.reading.datum))+'</span>')+'</div></a>';
   }).join("")+'</div>';
 
-  /* Für dich */
-  var sugs=buildSuggestions(),sugHtml="";
+  /* Bitte prüfen (Unstimmigkeiten, max. 3) und Für dich */
+  var chk=dataChecks(),sugs=buildSuggestions(),sugHtml="";
+  if(chk.length)sugHtml+='<div class="sect"><span>Bitte prüfen ('+chk.length+')</span>'+(chk.length>3?'<button class="more" data-a="chk-all">Alle</button>':"")+'</div><div class="sugs pruef">'+chk.slice(0,3).map(sugCard).join("")+'</div>';
   if(sugs.length){
-    sugHtml='<div class="sect"><span>Für dich</span>'+(sugs.length>2?'<button class="more" data-a="sugs-all">Alle ('+sugs.length+')</button>':"")+'</div><div class="sugs">'+sugs.slice(0,2).map(sugCard).join("")+'</div>';
+    sugHtml+='<div class="sect"><span>Für dich</span>'+(sugs.length>2?'<button class="more" data-a="sugs-all">Alle ('+sugs.length+')</button>':"")+'</div><div class="sugs">'+sugs.slice(0,2).map(sugCard).join("")+'</div>';
   }
 
   return top+'<div class="grid grid-2"><div class="grid">'+hero+dueHtml+'</div><div>'+sugHtml.replace('class="sect"','class="sect" style="margin-top:0"')+'</div></div>'+
@@ -2483,7 +2511,9 @@ function contractCard(cat,focus){
     '<div><span>Grundpreis</span><b class="num">'+eur(t.grundpreisJahr)+'/Jahr</b></div>'+
     '<div><span>Abschlag</span><b class="num">'+(ab!=null?eur(ab):"–")+'/Monat</b></div>'+
     '<div><span>Saldo '+(si&&si.kind==="abrechnung"?"seit Abrechnung":si&&si.rows.length?"seit "+monthName(billKey(si.rows[0].reading.datum)):"seit Beginn")+'</span><b class="num '+(sal>=0?"pos-t":"neg-t")+'">'+signed(sal)+'</b></div></div>';
-  var lines=lst?'<a class="vline good" href="#/abrechnung?id='+esc(lst.id)+'">'+ic("check",16)+'<span>Abrechnung bis '+deDate(lst.period_to)+': '+settlementErgebnisText(lst)+'</span><b>Bericht</b></a>':"";
+  var lines=dataChecks(cat).map(function(s){var A=s.action;
+    return (A.a?'<button class="vline warn" data-a="'+A.a+'" data-cat="'+cat+'">':'<a class="vline warn" href="'+A.route+'">')+ic("alert",16)+'<span>'+esc(s.short)+'</span><b>'+(A.a?"Prüfen":"Bericht")+'</b>'+(A.a?'</button>':'</a>');}).join("");
+  lines+=lst?'<a class="vline good" href="#/abrechnung?id='+esc(lst.id)+'">'+ic("check",16)+'<span>Abrechnung bis '+deDate(lst.period_to)+': '+settlementErgebnisText(lst)+'</span><b>Bericht</b></a>':"";
   if(smartOn("geld")){
     var need=monthlyNeed(cat);
     if(need!=null&&ab>0){var diff=ab-need,lim=Math.max(5,ab*0.08);
@@ -2620,9 +2650,10 @@ function tariffSheet(cat,id){
 function abschlagSheet(cat,err){
   VT.abCat=cat;
   var cur=abschlagForDate(cat,todayISO()),list=(STATE[cat].abschlagChanges||[]).slice().sort(function(a,b){return a.gueltigAb<b.gueltigAb?1:-1;});
-  var need=monthlyNeed(cat);
+  var need=monthlyNeed(cat),tt=tariffForDate(cat,todayISO()),tab=tt&&tt.abschlag!=null&&isFinite(Number(tt.abschlag))?Number(tt.abschlag):null;
   openSheet('<h3>Abschlag '+CATS[cat].label+'</h3>'+
     '<div class="dl"><span>Aktuell</span><b class="num">'+(cur!=null?eur(cur):"–")+'/Monat</b></div>'+
+    (tab!=null&&cur!=null&&Math.abs(tab-cur)>=0.005?'<div class="dl"><span>Laut Tarif '+esc(tt.anbieter||"")+' (ab '+deDate(tt.gueltigAb)+')</span><b class="num">'+eur(tab)+'</b></div>':"")+
     (need!=null&&smartOn("geld")?'<div class="dl"><span>Ø Bedarf zum aktuellen Tarif</span><b class="num">'+eur(need)+'</b></div>':"")+
     '<form id="abForm" novalidate style="margin-top:14px"><div class="two"><label class="fld"><span>Neuer Abschlag (€)</span><input class="inp" id="ab_betrag" inputmode="decimal" value="'+(VT.abPrefill!=null?String(VT.abPrefill).replace(".",","):(need!=null&&smartOn("geld")?String(Math.ceil(need)):""))+'"></label>'+
     '<label class="fld"><span>Gültig ab</span><input class="inp" type="date" id="ab_gueltig" value="'+firstOfMonthISO()+'"></label></div>'+
@@ -2980,7 +3011,7 @@ function mehrHaushalt(){
   '</div>';
 }
 function mehrVorschlaege(){
-  var sc=smartCfg(),G=[["ablesen","Beim Ablesen","Erwarteter Stand und Ampel beim Tippen"],["geld","Geld","Abschlag-Empfehlung und Prognose"],["vertraege","Verträge","Kündigungsfristen und Preisänderungen"],["auffaellig","Auffälligkeiten","Ungewöhnlicher Verbrauch, fehlende Monate"],["sicherung","Datensicherung","Erinnerung an eine Kopie auf deinem Gerät"]];
+  var sc=smartCfg(),G=[["ablesen","Beim Ablesen","Erwarteter Stand und Ampel beim Tippen"],["geld","Geld","Abschlag-Empfehlung und Prognose"],["vertraege","Verträge","Kündigungsfristen und Preisänderungen"],["auffaellig","Auffälligkeiten","Ungewöhnlicher Verbrauch, fehlende Monate"],["pruefen","Bitte prüfen","Abschlag oder Abrechnung passen nicht zu den Daten"],["sicherung","Datensicherung","Erinnerung an eine Kopie auf deinem Gerät"]];
   var hidden=DISMISSED_NOTIFS;
   return subHead("Intelligente Vorschläge")+
     '<div class="mlist"><div class="mrow2"><span class="mi">'+ic("sparkles")+'</span><span class="mt2"><b>Vorschläge anzeigen</b><small>Gilt für dich auf allen Geräten</small></span>'+sw(sc.on,"smart",'Vorschläge anzeigen',' data-g="on"')+'</div>'+
@@ -3364,6 +3395,7 @@ function onAction(e){
   if(a==="hero-toggle"){HERO_OPEN=!HERO_OPEN;render();}
   else if(a==="dismiss"){e.preventDefault();dismissSug(b.getAttribute("data-key"),b.getAttribute("data-text"));if(sheetEl)closeSheet();}
   else if(a==="sugs-all"){openSheet('<h3>Für dich</h3><div class="sugs">'+buildSuggestions().map(sugCard).join("")+'</div>');}
+  else if(a==="chk-all"){openSheet('<h3>Bitte prüfen</h3><div class="sugs pruef">'+dataChecks().map(sugCard).join("")+'</div>');}
   else if(a==="hh-pick"){
     openSheet('<h3>Haushalt wählen</h3>'+HOUSEHOLDS.map(function(h){return '<button class="opt" data-a="hh-set" data-id="'+esc(h.id)+'">'+ic("house")+esc(h.name||"Haushalt")+(h.id===activeHousehold?'<span class="ck">'+ic("check")+'</span>':"")+'</button>';}).join(""));
   }
