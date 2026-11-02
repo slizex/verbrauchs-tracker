@@ -554,7 +554,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.6.1";
+var APP_VERSION="7.7.0";
 /* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var DB_SCHEMA="public";
@@ -3607,6 +3607,8 @@ var APP_PLAN_INFO=null;   /* letzte Planung {gewollt,recht,fehler,naechste:{at,t
 var APP_GETEILT=null,APP_GETEILT_WAHL=null,APP_GETEILT_LAEUFT=false;
 var APP_ANSICHT=null;      /* Dokument-Ansicht: {d, blob, name, pdf, seiten, url, zoom} */
 var APP_ABLESEN_KEY="vt_app_ablesen";   /* Ablese-Erinnerung je Gerät: {an, tag, zeit} */
+var APP_AB_IDS_KEY="vt_app_ablesen_ids";   /* geplante Meldungen je Gerät: {id: Haushalt} – zum Aufräumen angezeigter Meldungen */
+var APP_AB_TAGE=62,APP_AB_SLOTS=16,APP_AB_MAX=200;   /* Tage im Voraus, Haushalte je Tag, Meldungen insgesamt (Android erlaubt ~500 Wecker je App) */
 /* Öffentlicher Download-Link – zeigt immer auf die neueste veröffentlichte Version, ohne GitHub-Konto */
 var APP_LINK="https://github.com/slizex/verbrauchs-tracker/releases/latest/download/alltrack.apk";
 
@@ -3750,9 +3752,9 @@ function mehrApp(){
         sw(!!APP.sperre,"app-sperre","App-Sperre",(APP.sperreMoeglich||APP.sperre)?"":" disabled")+'</div>'+
       '<div class="mrow2"><span class="mi">'+ic("shield")+'</span><span class="mt2"><b>Bildschirmschutz</b><small>Keine Screenshots, keine Vorschau in der App-Übersicht</small></span>'+
         sw(!!APP.schutz,"app-schutz","Bildschirmschutz")+'</div>'+
-      '<div class="mrow2"><span class="mi">'+ic("bell")+'</span><span class="mt2"><b>Ablese-Erinnerung</b><small>Monatlich, wenn Zähler fällig sind · alle Haushalte</small></span>'+
+      '<div class="mrow2"><span class="mi">'+ic("bell")+'</span><span class="mt2"><b>Ablese-Erinnerung</b><small>Täglich, bis der Vormonat abgelesen ist · alle Haushalte</small></span>'+
         sw(c.an,"app-ablesen","Ablese-Erinnerung")+'</div>'+
-      (c.an?mrow("clock","Tag und Uhrzeit","Am "+c.tag+". um "+c.zeit+" Uhr",null,'data-a="app-ablesen-zeit"')+appPlanZeile():"")+
+      (c.an?mrow("clock","Tag und Uhrzeit","Ab dem "+c.tag+". um "+c.zeit+" Uhr",null,'data-a="app-ablesen-zeit"')+appPlanZeile():"")+
     '</div>'+
     '<div class="mgrp">Version</div><div class="card">'+
       '<div class="appver"><span>AllTrack-App</span><b>'+esc(APP.version||"?")+'</b></div>'+
@@ -4064,7 +4066,7 @@ async function appScannen(ziel){
 
 /* ================= Ablese-Erinnerung =================
    Lokal geplant, kein Server: bei jedem Öffnen und nach jeder Ablesung neu, für alle Haushalte.
-   Erinnert wird nur, wenn am gewählten Tag nach heutigem Stand noch Zähler fällig sind. */
+   Ab dem gewählten Tag täglich, solange nach heutigem Stand noch Zähler fällig sind. */
 function appAblesenCfg(){
   var c={an:false,tag:1,zeit:"09:00"};
   try{
@@ -4077,7 +4079,7 @@ function appAblesenCfg(){
   }catch(e){}
   return c;
 }
-function appAblesenText(c){return "Monatlich am "+c.tag+". um "+c.zeit+" Uhr, wenn Zähler fällig sind";}
+function appAblesenText(c){return "Ab dem "+c.tag+". täglich um "+c.zeit+" Uhr, bis der Vormonat abgelesen ist";}
 function appAblesenSetzen(c){try{localStorage.setItem(APP_ABLESEN_KEY,JSON.stringify({an:!!c.an,tag:c.tag,zeit:c.zeit}));}catch(e){}}
 async function appAblesenSchalten(an,still){
   var LN=appP("LocalNotifications");if(!LN)return;
@@ -4098,9 +4100,9 @@ function appAblesenZeitBlatt(){
   var c=appAblesenCfg(),tage="";
   for(var t=1;t<=28;t++)tage+='<option value="'+t+'"'+(t===c.tag?" selected":"")+'>'+t+'.</option>';
   openSheet('<h3>Ablese-Erinnerung</h3><form id="appZeitForm" novalidate>'+
-    '<label class="fld"><span>Tag im Monat</span><select class="inp" id="app_tag">'+tage+'</select></label>'+
+    '<label class="fld"><span>Ab Tag im Monat</span><select class="inp" id="app_tag">'+tage+'</select></label>'+
     '<label class="fld"><span>Uhrzeit</span><input class="inp" id="app_zeit" type="time" value="'+esc(c.zeit)+'" required></label>'+
-    '<p class="mut-t" style="font-weight:700;font-size:.86rem;margin:0 4px">Ein Stand vom 1. zählt noch zum Vormonat.</p>'+
+    '<p class="mut-t" style="font-weight:700;font-size:.86rem;margin:0 4px">Danach täglich zur selben Uhrzeit, bis abgelesen ist. Ein Stand vom 1. zählt noch zum Vormonat.</p>'+
     '<div class="factions"><button class="btn lg full" type="submit">Speichern</button></div></form>');
 }
 async function appAblesenZeitSpeichern(){
@@ -4109,7 +4111,7 @@ async function appAblesenZeitSpeichern(){
   c.tag=t;c.zeit=z;appAblesenSetzen(c);
   closeSheet();await appPlanen();render();
   if(APP_PLAN_INFO&&APP_PLAN_INFO.gewollt&&!APP_PLAN_INFO.recht)toast("Gespeichert – Android blockiert die Erinnerung noch",true);
-  else toast("Erinnerung am "+t+". um "+z+" Uhr");
+  else toast("Erinnerung ab dem "+t+". um "+z+" Uhr");
 }
 /* Kategorien eines Haushalts aus seiner Bereichs-Einstellung (wie householdCats) */
 function haushaltCats(h){
@@ -4148,36 +4150,78 @@ async function haushaltStaende(h){
 }
 /* Nach Ablesungen und Änderungen gebündelt neu planen */
 function appPlanSpaeter(){if(!istApp())return;clearTimeout(APP_PLAN_T);APP_PLAN_T=setTimeout(appPlanen,3000);}
+/* Stichtag für die Fälligkeit an einem Erinnerungstag: ab dem eingestellten Tag zählt der Vormonat, davor noch
+   der Monat davor – die Erinnerung läuft also über das Monatsende weiter, bis abgelesen ist */
+function appStichtag(d,tag){
+  var s=d.getDate()>=tag?d:new Date(d.getFullYear(),d.getMonth()-1,1);
+  return s.getFullYear()+"-"+two(s.getMonth()+1)+"-"+two(s.getDate());
+}
+/* feste Nummer je Tag und Haushalt: beim Neuplanen bleibt sie gleich, vergangene Tage stoßen nicht mit künftigen zusammen */
+function appAblesenId(d,slot){
+  var n=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-new Date(2026,0,1))/864e5);
+  return 20000+((n%3000+3000)%3000)*APP_AB_SLOTS+slot;
+}
+/* Angezeigte Ablese-Meldungen aufräumen: Haushalt abgelesen (oder Erinnerung aus) → weg; noch offen → nur die neueste
+   bleibt stehen. faellig: {hh:true|false} je geladenem Haushalt, null = alle weg. Gibt {id:hh} der stehenden zurück. */
+async function appZugestellteAufraeumen(LN,faellig){
+  var alt={},bleibt={};
+  try{alt=JSON.parse(localStorage.getItem(APP_AB_IDS_KEY)||"{}")||{};}catch(e){}
+  try{
+    var z=await LN.getDeliveredNotifications(),weg=[],neueste={};
+    ((z&&z.notifications)||[]).forEach(function(n){
+      var id=+n.id,hh=alt[id];
+      if(id>=2000&&id<2040){weg.push(n);return;}   /* Monatsmeldungen bis 7.6.1 */
+      if(!(id>=20000&&id<20000+3000*APP_AB_SLOTS))return;
+      if(!faellig||!hh||faellig[hh]===false){weg.push(n);return;}
+      if(faellig[hh]!==true){bleibt[id]=hh;return;}   /* Haushalt gerade nicht geladen – stehen lassen */
+      var v=neueste[hh];
+      if(v&&+v.id>id){weg.push(n);return;}
+      if(v)weg.push(v);
+      neueste[hh]=n;
+    });
+    Object.keys(neueste).forEach(function(hh){bleibt[neueste[hh].id]=hh;});
+    if(weg.length)await LN.removeDeliveredNotifications({notifications:weg.map(function(n){return n.tag?{id:+n.id,tag:n.tag}:{id:+n.id};})});
+  }catch(e){/* ohne diese Funktionen bleiben angezeigte Meldungen einfach stehen */}
+  return bleibt;
+}
 async function appPlanen(){
   if(!istApp()||!currentUser)return;
   var LN=appP("LocalNotifications");if(!LN)return;
   APP_PLAN_AM=Date.now();
   var c=appAblesenCfg(),liste=[],gewollt=c.an,recht=true,fehler=false;
   if(c.an){try{var p=await LN.checkPermissions();if(p.display!=="granted"){c.an=false;recht=false;}}catch(e){c.an=false;recht=false;}}
+  var faelligJetzt=null;   /* je Haushalt: heute noch etwas offen? – zum Aufräumen schon angezeigter Meldungen */
   if(c.an){
-    var haeuser=[];
+    var haeuser=[];faelligJetzt={};
     for(var i=0;i<HOUSEHOLDS.length;i++){
-      try{haeuser.push(await haushaltStaende(HOUSEHOLDS[i]));}catch(e){/* ein Haushalt nicht erreichbar – die anderen trotzdem planen */}
+      try{var hs=await haushaltStaende(HOUSEHOLDS[i]);hs.slot=i;haeuser.push(hs);}catch(e){/* ein Haushalt nicht erreichbar – die anderen trotzdem planen */}
     }
-    var jetzt=new Date(),hm=c.zeit.split(":"),mehrere=HOUSEHOLDS.length>1;
-    /* dieser und die nächsten fünf Monate – bei jedem Öffnen kommt der nächste dazu */
-    for(var k=0;k<6;k++){
-      var at=new Date(jetzt.getFullYear(),jetzt.getMonth()+k,c.tag,+hm[0],+hm[1],0);
+    var heute=new Date(),hm=c.zeit.split(":"),mehrere=HOUSEHOLDS.length>1;
+    haeuser.forEach(function(d){faelligJetzt[d.id]=faelligAm(d.cats,d.tarif,d.lesungen,appStichtag(heute,c.tag)).length>0;});
+    /* täglich zur eingestellten Uhrzeit, solange ein Stand fehlt – bei jedem Öffnen rollt das Fenster weiter */
+    for(var k=0;k<APP_AB_TAGE;k++){
+      var at=new Date(heute.getFullYear(),heute.getMonth(),heute.getDate()+k,+hm[0],+hm[1],0);
       if(at.getTime()<=Date.now()+60*1000)continue;
-      var stich=at.getFullYear()+"-"+two(at.getMonth()+1)+"-"+two(at.getDate());
+      var stich=appStichtag(at,c.tag);
       haeuser.forEach(function(d){
+        if(d.slot>=APP_AB_SLOTS)return;
         var f=faelligAm(d.cats,d.tarif,d.lesungen,stich);if(!f.length)return;
+        /* ohne Monatsnamen: ab dem 2. zählt ein neuer Stand schon zum laufenden Monat */
         var lab=f.map(function(x){return CATS[x].label;}).join(", ");
-        liste.push({at:at,text:lab+(mehrere&&d.name?" · "+d.name:""),hh:d.id,kurz:mehrere&&d.name?d.name+" ("+lab+")":lab});
+        liste.push({at:at,id:appAblesenId(at,d.slot),text:lab+(mehrere&&d.name?" · "+d.name:""),hh:d.id,kurz:mehrere&&d.name?d.name+" ("+lab+")":lab});
       });
     }
+    liste=liste.slice(0,APP_AB_MAX);
   }
   try{
     await LN.createChannel({id:"ablesen",name:"Ablese-Erinnerung",importance:4,visibility:0});
     var offen=await LN.getPending();
     if(offen&&offen.notifications&&offen.notifications.length)await LN.cancel({notifications:offen.notifications.map(function(n){return {id:n.id};})});
-    if(liste.length)await LN.schedule({notifications:liste.slice(0,40).map(function(x,i){
-      return {id:2000+i,title:"Zähler ablesen",body:x.text,channelId:"ablesen",smallIcon:"ic_stat_alltrack",
+    var ids=await appZugestellteAufraeumen(LN,faelligJetzt);
+    liste.forEach(function(x){ids[x.id]=x.hh;});
+    try{localStorage.setItem(APP_AB_IDS_KEY,JSON.stringify(ids));}catch(e){}
+    if(liste.length)await LN.schedule({notifications:liste.map(function(x){
+      return {id:x.id,title:"Zähler ablesen",body:x.text,channelId:"ablesen",smallIcon:"ic_stat_alltrack",
         /* isExactNotification:false ist Pflicht: Die Vorgabe „sekundengenau“ lässt das Plugin bei JEDEM Planen
            Androids Seite „Alarme und Erinnerungen“ öffnen – die App verzichtet bewusst auf dieses Recht
            (Manifest: SCHEDULE_EXACT_ALARM entfernt), der Schalter dort bleibt also grau. */
@@ -4203,6 +4247,8 @@ async function appAbmelden(){
   if(APP_ANSICHT)ansichtZu();
   var LN=appP("LocalNotifications");if(!LN)return;
   try{var o=await LN.getPending();if(o&&o.notifications&&o.notifications.length)await LN.cancel({notifications:o.notifications.map(function(n){return {id:n.id};})});}catch(e){}
+  await appZugestellteAufraeumen(LN,null);
+  try{localStorage.removeItem(APP_AB_IDS_KEY);}catch(e){}
 }
 
 /* ---- Start ---- */

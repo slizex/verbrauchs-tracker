@@ -3,6 +3,18 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
 
+## 7.7.0 – 02.11.2026
+
+**Ablese-Erinnerung täglich, bis abgelesen ist** (Android-App): Ab dem eingestellten Tag kommt die Erinnerung jeden
+Tag zur eingestellten Uhrzeit, solange für den Vormonat noch ein Stand fehlt, auch über das Monatsende hinaus.
+Sobald der Stand eingetragen ist, hört sie auf.
+- Je Haushalt eine Meldung am Tag. Fehlt nur noch ein Teil (z. B. Strom ist da, Gas fehlt), nennt sie nur noch den Rest.
+- Nach dem Eintragen verschwinden die schon angezeigten Meldungen dieses Haushalts. Bei mehreren unerledigten
+  Tagen bleibt nur die neueste stehen.
+- Geplant wird 62 Tage im Voraus, bei jedem Öffnen der App neu.
+- Trägt jemand den Stand auf einem anderen Gerät ein, merkt dieses Handy das erst beim nächsten Öffnen der App.
+- Texte angepasst: „Täglich, bis der Vormonat abgelesen ist“, „Ab dem 1. um 09:00 Uhr“.
+
 ## 7.6.1 – 02.11.2026
 
 **Ablese-Erinnerung nachprüfbar** (Android-App): Unter *Mehr → App* steht jetzt, wann die nächste Erinnerung kommt
