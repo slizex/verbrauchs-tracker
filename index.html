@@ -554,7 +554,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.6.0";
+var APP_VERSION="7.6.1";
 /* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var DB_SCHEMA="public";
@@ -1721,6 +1721,10 @@ function dataChecks(cat){
   if(LOAD_FAILED||!smartOn("pruefen"))return [];
   var out=[],today=todayISO();
   function add(s){if(!isNotifDismissed(s.key))out.push(Object.assign({group:"pruefen",tone:"warn",icon:"alert"},s));}
+  /* App: Ablese-Erinnerung ist an, aber Android lässt keine Benachrichtigungen zu */
+  if(!cat&&istApp()&&APP_PLAN_INFO&&APP_PLAN_INFO.gewollt&&!APP_PLAN_INFO.recht)
+    add({key:"s:pruef|recht",title:"Ablese-Erinnerung blockiert",text:"Die Erinnerung ist an, aber Android lässt für AllTrack keine Benachrichtigungen zu.",
+      action:{label:"Erlauben",a:"app-ablesen-recht"}});
   (cat?[cat]:householdCats()).forEach(function(c){
     var name=CATS[c].label,cur=tariffForDate(c,today);
     if(cur&&cur.gueltigAb&&cur.abschlag!=null&&isFinite(Number(cur.abschlag)))(STATE[c].abschlagChanges||[]).forEach(function(a){
@@ -3439,6 +3443,7 @@ function onAction(e){
   else if(a==="app-schutz"){appSchutzUmschalten();}
   else if(a==="app-ablesen"){appAblesenSchalten(!appAblesenCfg().an,false);}
   else if(a==="app-ablesen-zeit"){appAblesenZeitBlatt();}
+  else if(a==="app-ablesen-recht"){appAblesenSchalten(true,false);}
   else if(a==="app-update"){appAktualisieren();}
   else if(a==="app-link-teilen"){appLinkTeilen();}
   else if(a==="geteilt-was"){geteiltWaehle(b.getAttribute("data-v"),null);}
@@ -3598,6 +3603,7 @@ var APP_ZIEL=null;         /* Sprung (Kurzbefehl, Erinnerung, All-Home), bis die
 var APP_SCAN_FEHLT=false;  /* Google-Scanner fehlt → nur noch Dateiauswahl */
 var APP_EINRICHTEN_GEZEIGT=false;
 var APP_PLAN_AM=0,APP_PLAN_T=null;
+var APP_PLAN_INFO=null;   /* letzte Planung {gewollt,recht,fehler,naechste:{at,text}|null} – für Mehr › App und „Bitte prüfen“ */
 var APP_GETEILT=null,APP_GETEILT_WAHL=null,APP_GETEILT_LAEUFT=false;
 var APP_ANSICHT=null;      /* Dokument-Ansicht: {d, blob, name, pdf, seiten, url, zoom} */
 var APP_ABLESEN_KEY="vt_app_ablesen";   /* Ablese-Erinnerung je Gerät: {an, tag, zeit} */
@@ -3746,7 +3752,7 @@ function mehrApp(){
         sw(!!APP.schutz,"app-schutz","Bildschirmschutz")+'</div>'+
       '<div class="mrow2"><span class="mi">'+ic("bell")+'</span><span class="mt2"><b>Ablese-Erinnerung</b><small>Monatlich, wenn Zähler fällig sind · alle Haushalte</small></span>'+
         sw(c.an,"app-ablesen","Ablese-Erinnerung")+'</div>'+
-      (c.an?mrow("clock","Tag und Uhrzeit","Am "+c.tag+". um "+c.zeit+" Uhr",null,'data-a="app-ablesen-zeit"'):"")+
+      (c.an?mrow("clock","Tag und Uhrzeit","Am "+c.tag+". um "+c.zeit+" Uhr",null,'data-a="app-ablesen-zeit"')+appPlanZeile():"")+
     '</div>'+
     '<div class="mgrp">Version</div><div class="card">'+
       '<div class="appver"><span>AllTrack-App</span><b>'+esc(APP.version||"?")+'</b></div>'+
@@ -4075,16 +4081,17 @@ function appAblesenText(c){return "Monatlich am "+c.tag+". um "+c.zeit+" Uhr, we
 function appAblesenSetzen(c){try{localStorage.setItem(APP_ABLESEN_KEY,JSON.stringify({an:!!c.an,tag:c.tag,zeit:c.zeit}));}catch(e){}}
 async function appAblesenSchalten(an,still){
   var LN=appP("LocalNotifications");if(!LN)return;
+  var verweigert=false;
   if(an){
     try{
       var p=await LN.checkPermissions();
       if(p.display!=="granted")p=await LN.requestPermissions();
-      if(p.display!=="granted"){toast("Benachrichtigungen sind für AllTrack ausgeschaltet (Android-Einstellungen).",true);an=false;}
+      if(p.display!=="granted"){toast("Benachrichtigungen sind für AllTrack ausgeschaltet (Android-Einstellungen).",true);an=false;verweigert=true;}
     }catch(e){an=false;}
   }
   var c=appAblesenCfg();c.an=an;appAblesenSetzen(c);
   await appPlanen();
-  if(!still)toast(an?"Ablese-Erinnerung an":"Ablese-Erinnerung aus");
+  if(!still&&!verweigert)toast(an?"Ablese-Erinnerung an":"Ablese-Erinnerung aus");   /* Hinweis „ausgeschaltet“ nicht überschreiben */
   if(route().name==="mehr")render();
 }
 function appAblesenZeitBlatt(){
@@ -4100,7 +4107,9 @@ async function appAblesenZeitSpeichern(){
   var c=appAblesenCfg(),t=parseInt((($("#app_tag")||{}).value)||"",10),z=String((($("#app_zeit")||{}).value)||"");
   if(!(t>=1&&t<=28)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(z)){toast("Bitte Tag und Uhrzeit wählen.",true);return;}
   c.tag=t;c.zeit=z;appAblesenSetzen(c);
-  closeSheet();await appPlanen();render();toast("Erinnerung am "+t+". um "+z+" Uhr");
+  closeSheet();await appPlanen();render();
+  if(APP_PLAN_INFO&&APP_PLAN_INFO.gewollt&&!APP_PLAN_INFO.recht)toast("Gespeichert – Android blockiert die Erinnerung noch",true);
+  else toast("Erinnerung am "+t+". um "+z+" Uhr");
 }
 /* Kategorien eines Haushalts aus seiner Bereichs-Einstellung (wie householdCats) */
 function haushaltCats(h){
@@ -4143,8 +4152,8 @@ async function appPlanen(){
   if(!istApp()||!currentUser)return;
   var LN=appP("LocalNotifications");if(!LN)return;
   APP_PLAN_AM=Date.now();
-  var c=appAblesenCfg(),liste=[];
-  if(c.an){try{var p=await LN.checkPermissions();if(p.display!=="granted")c.an=false;}catch(e){c.an=false;}}
+  var c=appAblesenCfg(),liste=[],gewollt=c.an,recht=true,fehler=false;
+  if(c.an){try{var p=await LN.checkPermissions();if(p.display!=="granted"){c.an=false;recht=false;}}catch(e){c.an=false;recht=false;}}
   if(c.an){
     var haeuser=[];
     for(var i=0;i<HOUSEHOLDS.length;i++){
@@ -4158,7 +4167,8 @@ async function appPlanen(){
       var stich=at.getFullYear()+"-"+two(at.getMonth()+1)+"-"+two(at.getDate());
       haeuser.forEach(function(d){
         var f=faelligAm(d.cats,d.tarif,d.lesungen,stich);if(!f.length)return;
-        liste.push({at:at,text:f.map(function(x){return CATS[x].label;}).join(", ")+(mehrere&&d.name?" · "+d.name:""),hh:d.id});
+        var lab=f.map(function(x){return CATS[x].label;}).join(", ");
+        liste.push({at:at,text:lab+(mehrere&&d.name?" · "+d.name:""),hh:d.id,kurz:mehrere&&d.name?d.name+" ("+lab+")":lab});
       });
     }
   }
@@ -4173,7 +4183,19 @@ async function appPlanen(){
            (Manifest: SCHEDULE_EXACT_ALARM entfernt), der Schalter dort bleibt also grau. */
         schedule:{at:x.at,allowWhileIdle:true},isExactNotification:false,extra:{hh:x.hh,ziel:"ablesen"}};
     })});
-  }catch(e){}
+  }catch(e){fehler=true;}
+  /* Status sichtbar machen: nächster Termin (alle Haushalte desselben Termins) oder warum nichts geplant ist */
+  var alt=JSON.stringify(APP_PLAN_INFO),n0=liste[0]||null;
+  APP_PLAN_INFO={gewollt:gewollt,recht:recht,fehler:fehler,naechste:n0?{at:n0.at.getTime(),text:liste.filter(function(x){return x.at.getTime()===n0.at.getTime();}).map(function(x){return x.kurz;}).join(", ")}:null};
+  if(JSON.stringify(APP_PLAN_INFO)!==alt&&(route().name==="mehr"||route().name==="start"))render();
+}
+function appPlanZeile(){
+  var i=APP_PLAN_INFO;if(!i||!i.gewollt)return "";
+  if(!i.recht)return '<div class="mrow2"><span class="mi">'+ic("alert")+'</span><span class="mt2"><b class="neg-t">Android blockiert die Erinnerung</b><small>Benachrichtigungen für AllTrack sind ausgeschaltet</small></span><button class="btn sm soft" data-a="app-ablesen-recht">Erlauben</button></div>';
+  if(i.fehler)return '<div class="mrow2"><span class="mi">'+ic("alert")+'</span><span class="mt2"><b class="neg-t">Erinnerung nicht geplant</b><small>Beim nächsten Öffnen wird es erneut versucht</small></span></div>';
+  var d=i.naechste?new Date(i.naechste.at):null;
+  return '<div class="mrow2"><span class="mi">'+ic("calendar")+'</span><span class="mt2"><b>Nächste Erinnerung</b><small>'+
+    (d?two(d.getDate())+"."+two(d.getMonth()+1)+"."+d.getFullYear()+" um "+two(d.getHours())+":"+two(d.getMinutes())+" · "+esc(i.naechste.text):"Gerade ist kein Zähler fällig")+'</small></span></div>';
 }
 async function appAbmelden(){
   if(!istApp())return;

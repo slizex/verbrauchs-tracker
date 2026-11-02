@@ -3,6 +3,20 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
 
+## 7.6.1 – 02.11.2026
+
+**Ablese-Erinnerung nachprüfbar** (Android-App): Unter *Mehr → App* steht jetzt, wann die nächste Erinnerung kommt
+und für welche Haushalte und Zähler, z. B. „01.12.2026 um 09:00 · Solms (Strom, Wasser, Gas), CSN Beratershop (Strom)“.
+Ist gerade nichts fällig, steht dort „Gerade ist kein Zähler fällig“.
+- **Android blockiert die Erinnerung:** Sind die Benachrichtigungen für AllTrack in Android ausgeschaltet, zeigt
+  *Mehr → App* eine rote Zeile mit „Erlauben“, und auf der Startseite erscheint unter „Bitte prüfen“ die Karte
+  „Ablese-Erinnerung blockiert“.
+- Hintergrund: Erinnert wird nur, wenn für den Vormonat noch kein Stand da ist. Ein Stand vom 2. eines Monats zählt
+  schon für diesen Monat; am 1. des Folgemonats ist dann nichts fällig.
+- Korrektur: Der Hinweis „Benachrichtigungen ausgeschaltet“ wird nicht mehr sofort von „Ablese-Erinnerung aus“
+  überdeckt, und nach dem Speichern der Uhrzeit meldet die App bei blockierten Benachrichtigungen nicht mehr
+  „Erinnerung am …“.
+
 ## 7.6.0 – 31.10.2026
 
 **„Bitte prüfen“ auf der Startseite**: Widersprüche in den Daten stehen jetzt ganz oben, vor „Für dich“
