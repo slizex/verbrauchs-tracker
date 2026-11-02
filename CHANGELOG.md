@@ -3,6 +3,22 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
 
+## 7.8.0 – 02.11.2026
+
+**Ablesung bis zum 15. zählt zum Vormonat** (bisher nur am 1.). Wer in den ersten Tagen des Monats abliest, meint den
+Stand zum Monatsende davor. Die App hatte solche Stände dem neuen Monat zugeordnet. Im Haushalt CSN Beratershop
+(Stände 03.07., 03.08., 09.09., 02.10.) lag sie dadurch überall einen Monat daneben:
+- Am 01.11. stand „Alles abgelesen“, obwohl der Oktober fehlte (der Stand vom 02.10. galt als Oktober).
+  Jetzt: „1 Zähler fällig · für Oktober“, und die Ablese-Erinnerung kommt.
+- Der Abrechnungsbericht zählte 12 Monate statt 11 und meldete unter „Bitte prüfen“ fälschlich
+  „Beleg 11 Abschläge, App 12 Monate“. Jetzt zählt die App wie der Beleg 11 Abschläge (1.210 €), das App-Ergebnis
+  liegt bei 173 € statt 268 € (Beleg: 161,53 €).
+- Im Verlauf heißen die Monate jetzt Juni bis September statt Juli bis Oktober.
+
+Die Stände anderer Haushalte (Ablesung am 1. oder zum Monatsende) bleiben, wo sie waren; Saldo und Monate von Solms
+ändern sich nicht. Die Startkarte nennt den Monat, in den ein heutiger Stand fällt. Die Ablese-Erinnerung lässt
+sich nur noch ab dem 1. bis 15. einstellen; später würde sie nie an den Vormonat erinnern.
+
 ## 7.7.0 – 02.11.2026
 
 **Ablese-Erinnerung täglich, bis abgelesen ist** (Android-App): Ab dem eingestellten Tag kommt die Erinnerung jeden

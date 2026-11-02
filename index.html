@@ -554,7 +554,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.7.0";
+var APP_VERSION="7.8.0";
 /* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var DB_SCHEMA="public";
@@ -652,7 +652,10 @@ function kuendigungInfo(t){
   if(t.kuendigungsfrist)return {kind:"note",frist:t.kuendigungsfrist};
   return null;
 }
-function billISO(iso){return addDays(iso,-1);}
+/* Abrechnungsmonat: Eine Ablesung bis zum 15. gilt als Stand zum Ende des Vormonats (man liest meist in den ersten
+   Tagen ab, auch der Stand einer Jahresabrechnung fällt oft auf Anfang des Monats), ab dem 16. zählt sie zum laufenden. */
+var BILL_VORMONAT_BIS=15;
+function billISO(iso){var d=+iso.slice(8,10);return d<=BILL_VORMONAT_BIS?addDays(iso,-d):addDays(iso,-1);}
 function billKey(iso){return billISO(iso).slice(0,7);}
 function billLabel(iso){return monthLabel(billISO(iso));}
 function billIndex(iso){var b=billISO(iso).split("-");return Number(b[0])*12+(Number(b[1])-1);}
@@ -894,7 +897,7 @@ async function fetchDismissedNotifs(){
 function anomalyKey(a){return a.cat+"|"+billKey(a.month)+"|"+a.dir;}
 function isNotifDismissed(k){return DISMISSED_NOTIFS.some(function(n){return n.notif_key===k&&n.household_id===activeHousehold;});}
 function consumptionAnomalies(){
-  var curIdx=billIndex(todayISO()); /* Abrechnungsmonat einer heutigen Ablesung = laufender, unfertiger Monat */
+  var t0=todayISO(),curIdx=Number(t0.slice(0,4))*12+Number(t0.slice(5,7))-1; /* laufender Kalendermonat = unfertig */
   return householdCats().map(function(c){
     var hist=history(c).filter(function(r){return !r.baseline&&isFinite(r.verbrauch);});
     if(hist.length<4)return null;
@@ -990,7 +993,7 @@ function periodAppSums(cat,von,bis){
   rows.forEach(function(r){
     if(r.baseline)return;
     var dt=r.reading&&r.reading.datum;if(!dt)return;
-    /* nach Abrechnungsmonat abgrenzen (Ablesung am 1. zaehlt zum Vormonat) – sonst fehlt der letzte Monat */
+    /* nach Abrechnungsmonat abgrenzen (Ablesung bis zum 15. zaehlt zum Vormonat) – sonst fehlt der letzte Monat */
     if(von&&billISO(dt)<von)return;
     if(bis&&billISO(dt)>bis)return;
     if(isFinite(r.verbrauch))v+=r.verbrauch;
@@ -1504,7 +1507,7 @@ function abrNorm(x){
     preis:n(x.arbeitspreis),grund:n(x.grundpreisJahr),preise:Array.isArray(x.preise)?x.preise.filter(function(p){return p&&abrNum(p.arbeitspreis)!=null;}):[],
     rechnungsnummer:String(x.rechnungsnummer||""),schluss:!!x.schlussrechnung,zaehlerwechsel:!!x.zaehlerwechsel,kategorie:String(x.kategorie||""),hinweise:String(x.hinweise||"")};
 }
-/* App-Monate eines Zeitraums (nach Abrechnungstag; Ablesung am 1. zählt zum Vormonat) */
+/* App-Monate eines Zeitraums (nach Abrechnungstag; Ablesung bis zum 15. zählt zum Vormonat) */
 function abrPeriodRows(cat,von,bis){return history(cat).filter(function(r){if(r.baseline)return false;var d=billISO(r.reading.datum);return (!von||d>=von)&&(!bis||d<=bis);});}
 function tariffPrice(cat,t){return t?(cat==="wasser"?Number(t.wasserKanal):Number(t.arbeitspreis)):NaN;}
 function daysBetween(a,b){var pa=a.split("-").map(Number),pb=b.split("-").map(Number);return Math.round((Date.UTC(pb[0],pb[1]-1,pb[2])-Date.UTC(pa[0],pa[1]-1,pa[2]))/864e5);}
@@ -1921,7 +1924,7 @@ function screenStart(){
   /* Fällig */
   var due=dueOrFresh(),dueHtml;
   if(due.length){
-    dueHtml='<a class="due" href="#/ablesen"><span class="dots">'+due.map(function(c){return catBadge(c);}).join("")+'</span><span><span class="t">'+due.length+' Zähler fällig</span><br><span class="s">'+(readingsDue().length?"für "+monthName(prevBillKey()):"Startwert eintragen")+'</span></span><span class="btn onink sm go">Ablesen '+ic("arrow",16)+'</span></a>';
+    dueHtml='<a class="due" href="#/ablesen"><span class="dots">'+due.map(function(c){return catBadge(c);}).join("")+'</span><span><span class="t">'+due.length+' Zähler fällig</span><br><span class="s">'+(readingsDue().length?"für "+monthName(billKey(todayISO())):"Startwert eintragen")   /* der Monat, in den ein heutiger Stand fällt */+'</span></span><span class="btn onink sm go">Ablesen '+ic("arrow",16)+'</span></a>';
   }else{
     var nx=addMonthsISO(firstOfMonthISO(),1);
     dueHtml='<div class="done">'+ic("check",22)+'<span>Alles abgelesen<small>Nächste Ablesung ab '+deDate(nx)+'</small></span></div>';
@@ -3053,7 +3056,7 @@ function mehrInfo(){
     '<div class="card"><div class="nm" style="font-weight:900;margin-bottom:8px">So rechnet AllTrack</div><ul class="calc">'+
       '<li><b>Verbrauch</b> = aktueller − letzter Zählerstand</li><li><b>Grundkosten</b> = Grundpreis pro Jahr ÷ 12</li>'+
       '<li><b>Verbrauchskosten</b> = Verbrauch × Arbeitspreis (Wasser: × Wasser+Kanal)</li><li><b>Gas in kWh</b> = m³ × Wandelfaktor × Zustandszahl × Brennwert</li>'+
-      '<li><b>Differenz</b> = Abschlag − Gesamtkosten · Plus = Guthaben</li><li><b>Offener Saldo</b> = Differenzen seit der letzten übernommenen Jahresabrechnung bzw. seit Beginn beim aktuellen Anbieter</li><li>Eine Ablesung am 1. zählt zum Vormonat.</li><li>Fehlende Monate werden gleichmäßig verteilt (geschätzt).</li><li><b>Prognose</b> = offene Monate + Vorschau mit dem Ø desselben Monats der letzten zwei Jahre</li><li><b>Empfohlener Abschlag</b> = Jahreskosten zum aktuellen Tarif (Verbrauch der letzten 12 Monate) ÷ 12</li></ul></div>'+
+      '<li><b>Differenz</b> = Abschlag − Gesamtkosten · Plus = Guthaben</li><li><b>Offener Saldo</b> = Differenzen seit der letzten übernommenen Jahresabrechnung bzw. seit Beginn beim aktuellen Anbieter</li><li>Eine Ablesung bis zum 15. zählt als Stand zum Ende des Vormonats, ab dem 16. zum laufenden Monat.</li><li>Fehlende Monate werden gleichmäßig verteilt (geschätzt).</li><li><b>Prognose</b> = offene Monate + Vorschau mit dem Ø desselben Monats der letzten zwei Jahre</li><li><b>Empfohlener Abschlag</b> = Jahreskosten zum aktuellen Tarif (Verbrauch der letzten 12 Monate) ÷ 12</li></ul></div>'+
     '<div class="card" style="margin-top:12px"><div class="nm" style="font-weight:900;margin-bottom:6px">Version '+APP_VERSION+'</div><p class="mut-t" style="font-weight:700;margin:0 0 12px">Stand dieser Fassung: '+stand+'</p><button class="btn sm soft" data-a="upd-check">Nach Updates suchen</button></div>';
 }
 
@@ -4073,7 +4076,7 @@ function appAblesenCfg(){
     var j=JSON.parse(localStorage.getItem(APP_ABLESEN_KEY)||"null");
     if(j&&typeof j==="object"){
       c.an=j.an===true;
-      var t=parseInt(j.tag,10);if(t>=1&&t<=28)c.tag=t;
+      var t=parseInt(j.tag,10);if(t>=1&&t<=28)c.tag=Math.min(t,BILL_VORMONAT_BIS);   /* später erinnert nie an den Vormonat */
       if(/^([01]\d|2[0-3]):[0-5]\d$/.test(String(j.zeit||"")))c.zeit=j.zeit;
     }
   }catch(e){}
@@ -4098,16 +4101,16 @@ async function appAblesenSchalten(an,still){
 }
 function appAblesenZeitBlatt(){
   var c=appAblesenCfg(),tage="";
-  for(var t=1;t<=28;t++)tage+='<option value="'+t+'"'+(t===c.tag?" selected":"")+'>'+t+'.</option>';
+  for(var t=1;t<=BILL_VORMONAT_BIS;t++)tage+='<option value="'+t+'"'+(t===c.tag?" selected":"")+'>'+t+'.</option>';
   openSheet('<h3>Ablese-Erinnerung</h3><form id="appZeitForm" novalidate>'+
     '<label class="fld"><span>Ab Tag im Monat</span><select class="inp" id="app_tag">'+tage+'</select></label>'+
     '<label class="fld"><span>Uhrzeit</span><input class="inp" id="app_zeit" type="time" value="'+esc(c.zeit)+'" required></label>'+
-    '<p class="mut-t" style="font-weight:700;font-size:.86rem;margin:0 4px">Danach täglich zur selben Uhrzeit, bis abgelesen ist. Ein Stand vom 1. zählt noch zum Vormonat.</p>'+
+    '<p class="mut-t" style="font-weight:700;font-size:.86rem;margin:0 4px">Danach täglich zur selben Uhrzeit, bis abgelesen ist. Ein Stand bis zum 15. zählt noch zum Vormonat.</p>'+
     '<div class="factions"><button class="btn lg full" type="submit">Speichern</button></div></form>');
 }
 async function appAblesenZeitSpeichern(){
   var c=appAblesenCfg(),t=parseInt((($("#app_tag")||{}).value)||"",10),z=String((($("#app_zeit")||{}).value)||"");
-  if(!(t>=1&&t<=28)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(z)){toast("Bitte Tag und Uhrzeit wählen.",true);return;}
+  if(!(t>=1&&t<=BILL_VORMONAT_BIS)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(z)){toast("Bitte Tag und Uhrzeit wählen.",true);return;}
   c.tag=t;c.zeit=z;appAblesenSetzen(c);
   closeSheet();await appPlanen();render();
   if(APP_PLAN_INFO&&APP_PLAN_INFO.gewollt&&!APP_PLAN_INFO.recht)toast("Gespeichert – Android blockiert die Erinnerung noch",true);
@@ -4206,7 +4209,7 @@ async function appPlanen(){
       haeuser.forEach(function(d){
         if(d.slot>=APP_AB_SLOTS)return;
         var f=faelligAm(d.cats,d.tarif,d.lesungen,stich);if(!f.length)return;
-        /* ohne Monatsnamen: ab dem 2. zählt ein neuer Stand schon zum laufenden Monat */
+        /* ohne Monatsnamen: ab dem 16. zählt ein neuer Stand schon zum laufenden Monat */
         var lab=f.map(function(x){return CATS[x].label;}).join(", ");
         liste.push({at:at,id:appAblesenId(at,d.slot),text:lab+(mehrere&&d.name?" · "+d.name:""),hh:d.id,kurz:mehrere&&d.name?d.name+" ("+lab+")":lab});
       });
