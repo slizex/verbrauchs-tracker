@@ -1,8 +1,8 @@
 {
-  "version": "1.0.0",
-  "code": 1,
+  "version": "1.0.1",
+  "code": 2,
   "mindest": 0,
-  "url": "https://github.com/slizex/verbrauchs-tracker/releases/download/app-v1.0.0/alltrack-1.0.0.apk",
-  "sha256": "9a38384447cc5a5d39b676f20c3c22ea9a71ff78094fb320e20256374052b1f8",
-  "groesse": 3775197
+  "url": "https://github.com/slizex/verbrauchs-tracker/releases/download/app-v1.0.1/alltrack-1.0.1.apk",
+  "sha256": "f214aff3e01e0dc16bf40734743f20c906c63523807ecef573f0c46e271b9089",
+  "groesse": 3775461
 }
