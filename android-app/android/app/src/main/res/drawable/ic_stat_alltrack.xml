@@ -10,9 +10,9 @@
         android:scaleY="0.05917"
         android:translateX="-3.148"
         android:translateY="-3.266">
-        <path android:fillColor="#FFFFFFFF" android:pathData="M170,323a23,23 0 0 1 46,0v26a23,23 0 0 1 -46,0z" />
-        <path android:fillColor="#FFFFFFFF" android:pathData="M238,283a23,23 0 0 1 46,0v66a23,23 0 0 1 -46,0z" />
-        <path android:fillColor="#FFFFFFFF" android:pathData="M306,243a23,23 0 0 1 46,0v106a23,23 0 0 1 -46,0z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M165,323a23,23 0 0 1 46,0v26a23,23 0 0 1 -46,0z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M233,283a23,23 0 0 1 46,0v66a23,23 0 0 1 -46,0z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M301,243a23,23 0 0 1 46,0v106a23,23 0 0 1 -46,0z" />
         <path
             android:fillColor="#00000000"
             android:pathData="M256,104L408,226L408,392Q408,412 388,412L124,412Q104,412 104,392L104,226Z"
