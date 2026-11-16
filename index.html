@@ -194,6 +194,7 @@ a{color:inherit;text-decoration:none}
 .scrim.on{opacity:1}
 .sheet{position:fixed;z-index:81;left:0;right:0;bottom:0;max-height:86vh;overflow:auto;background:var(--surface);border-radius:26px 26px 0 0;padding:10px 18px calc(22px + var(--unten));box-shadow:var(--sh-3);transform:translateY(100%);transition:transform .26s var(--ease)}
 .sheet.on{transform:none}
+.sheet:focus{outline:none}
 .sheet .grab{width:42px;height:5px;border-radius:9px;background:var(--line-2);margin:4px auto 12px}
 .sheet h3{margin:4px 0 12px;font-size:1.15rem;font-weight:900}
 @media (min-width:900px){.sheet{left:50%;right:auto;bottom:auto;top:50%;width:480px;border-radius:24px;transform:translate(-50%,-46%);opacity:0;transition:transform .2s var(--ease),opacity .2s}.sheet.on{transform:translate(-50%,-50%);opacity:1}.sheet .grab{display:none}}
@@ -554,7 +555,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.8.0";
+var APP_VERSION="7.8.1";
 /* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var DB_SCHEMA="public";
@@ -626,13 +627,15 @@ function addDays(iso,d){var p=iso.split("-").map(Number);var dt=new Date(p[0],p[
 function addMonthsISO(iso,m){var p=iso.split("-").map(Number);var dt=new Date(p[0],p[1]-1+m,p[2]);return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
 function firstOfMonthISO(){return todayISO().slice(0,7)+"-01";}
 function kfLabel(code){return KF_LABEL[code]||"";}
+/* Monate zurück, am Monatsende begrenzt: 31.03. − 1 Monat = 28.02. (new Date(…) liefe auf den 03.03. über) */
+function monateZurueck(iso,m){var p=iso.split("-").map(Number),i=p[0]*12+p[1]-1-m,y=Math.floor(i/12),mo=i-y*12,l=new Date(y,mo+1,0).getDate();return y+"-"+String(mo+1).padStart(2,"0")+"-"+String(Math.min(p[2],l)).padStart(2,"0");}
 function kfSub(iso,code){
   switch(code){
     case "2wochen":return addDays(iso,-14);
     case "4wochen":return addDays(iso,-28);
     case "6wochen":return addDays(iso,-42);
-    case "1monat":return addMonthsISO(iso,-1);
-    case "3monate":return addMonthsISO(iso,-3);
+    case "1monat":return monateZurueck(iso,1);
+    case "3monate":return monateZurueck(iso,3);
     default:return iso;
   }
 }
@@ -899,21 +902,29 @@ function isNotifDismissed(k){return DISMISSED_NOTIFS.some(function(n){return n.n
 function consumptionAnomalies(){
   var t0=todayISO(),curIdx=Number(t0.slice(0,4))*12+Number(t0.slice(5,7))-1; /* laufender Kalendermonat = unfertig */
   return householdCats().map(function(c){
-    var hist=history(c).filter(function(r){return !r.baseline&&isFinite(r.verbrauch);});
+    /* Verbrauch je Tag zwischen den echten Ablesedaten (geschätzte Monate sind schon Monatsanteile) */
+    var all=history(c),hist=[],rate=[];
+    all.forEach(function(r,i){
+      if(r.baseline||!isFinite(r.verbrauch))return;
+      var d=!r.estimated&&i>0?daysBetween(all[i-1].reading.datum,r.reading.datum):0;
+      hist.push(r);rate.push(d>0?r.verbrauch/d:r.verbrauch/30.44);
+    });
     if(hist.length<4)return null;
-    var last=hist[hist.length-1];
+    var li=hist.length-1,last=hist[li];
     if(last.synthetic||last.estimated)return null;               /* nur echte Ablesungen bewerten */
     if(billIndex(last.reading.datum)>=curIdx)return null;         /* laufenden Monat nicht bewerten (unvollständig) */
-    var m=((billIndex(last.reading.datum)%12)+12)%12;
-    var prior=hist.slice(0,-1);
-    var lastBi=billIndex(last.reading.datum),sameMonth=prior.filter(function(r){var bi=billIndex(r.reading.datum);return ((bi%12)+12)%12===m&&bi>=lastBi-24;});
-    var baseRows=sameMonth.length?sameMonth:prior.slice(-12);
-    if(!baseRows.length)return null;
-    var base=baseRows.reduce(function(s,r){return s+r.verbrauch;},0)/baseRows.length;
-    if(!(base>0))return null;
-    var pct=(last.verbrauch-base)/base*100;
-    if(Math.abs(pct)<25)return null;
-    return {cat:c,pct:Math.round(pct),dir:pct>0?"up":"down",month:last.reading.datum,verbrauch:last.verbrauch,base:base,seasonal:sameMonth.length>0};
+    var lastBi=billIndex(last.reading.datum),m=((lastBi%12)+12)%12,idx=[];
+    for(var i=0;i<li;i++){var bi=billIndex(hist[i].reading.datum);if(((bi%12)+12)%12===m&&bi>=lastBi-24)idx.push(i);}
+    var seasonal=idx.length>0;
+    if(!seasonal)for(var j=Math.max(0,li-12);j<li;j++)idx.push(j);
+    if(!idx.length)return null;
+    var base=idx.reduce(function(s,i){return s+hist[i].verbrauch;},0)/idx.length,baseR=idx.reduce(function(s,i){return s+rate[i];},0)/idx.length;
+    if(!(base>0)||!(baseR>0))return null;
+    var pct=(last.verbrauch-base)/base*100,pctR=(rate[li]-baseR)/baseR*100;
+    /* Ein Stand ein paar Tage neben dem Monatswechsel verschiebt Verbrauch in den Nachbarmonat (z. B. Stand der
+       Jahresabrechnung am 09.09. zählt zum August). Gemeldet wird nur, wenn auch der Verbrauch je Tag deutlich abweicht. */
+    if(Math.abs(pct)<25||Math.abs(pctR)<25||(pct>0)!==(pctR>0))return null;
+    return {cat:c,pct:Math.round(pct),dir:pct>0?"up":"down",month:last.reading.datum,verbrauch:last.verbrauch,base:base,seasonal:seasonal};
   }).filter(Boolean);
 }
 function annualVerbrauchEst(cat){
@@ -1025,7 +1036,7 @@ async function createBackup(kind,period){
   BACKUPS.unshift(r.data);
   await pruneBackups();
 }
-function csvEsc(s){s=String(s);if(/[";\n\r]/.test(s)){return '"'+s.replace(/"/g,'""')+'"';}return s;}
+function csvEsc(s){s=String(s);if(/^[=+\-@\t\r]/.test(s)&&!/^[+-]?\d[\d.,]*$/.test(s))s="'"+s;if(/[";\n\r]/.test(s)){return '"'+s.replace(/"/g,'""')+'"';}return s;}
 function splitCSV(line,sep){
   var out=[],cur="",q=false;
   for(var i=0;i<line.length;i++){var ch=line[i];
@@ -1040,7 +1051,8 @@ function parseDateAny(s){
   if(m=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/))return m[3]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[1]).padStart(2,"0");
   return null;
 }
-function parseReadingsCSV(text){
+function realISO(iso){var p=String(iso||"").split("-").map(Number),d=new Date(p[0],p[1]-1,p[2]);return p.length===3&&d.getFullYear()===p[0]&&d.getMonth()===p[1]-1&&d.getDate()===p[2];}
+function parseReadingsCSV(text,cat){
   text=text.replace(/^﻿/,"");
   var lines=text.split(/\r?\n/).filter(function(l){return l.trim()!=="";});
   if(!lines.length)return {rows:[],skipped:0};
@@ -1053,9 +1065,9 @@ function parseReadingsCSV(text){
   var rows=[],skipped=0;
   for(var i=start;i<lines.length;i++){
     var ce=splitCSV(lines[i],sep);
-    var iso=parseDateAny(ce[di]||""),z=parseNum(ce[zi]||"");
+    var iso=parseDateAny(ce[di]||""),z=cat&&CATS[cat]?parseMeterVal(cat,ce[zi]||""):parseNum(ce[zi]||"");
     /* Zukunftsdaten werden wie ungültige Zeilen behandelt und mitgezählt. */
-    if(iso&&iso<=todayISO()&&isFinite(z)&&String(ce[zi]).trim()!=="")rows.push({datum:iso,zaehler:z});
+    if(iso&&realISO(iso)&&iso<=todayISO()&&isFinite(z)&&String(ce[zi]).trim()!=="")rows.push({datum:iso,zaehler:z});
     else skipped++;
   }
   return {rows:rows,skipped:skipped};
@@ -1107,7 +1119,8 @@ async function loadFromDB(){
   var rq=sb.from("readings").select("*").eq("household_id",activeHousehold);
   var aq=sb.from("abschlag_changes").select("*").eq("household_id",activeHousehold);
   var cq=sb.from("gas_conversion").select("*").eq("household_id",activeHousehold);
-  var res=await Promise.all([tq,rq,aq,cq.maybeSingle()]);
+  var hh=activeHousehold,res=await Promise.all([tq,rq,aq,cq.maybeSingle()]);
+  if(hh!==activeHousehold)return;   /* inzwischen gewechselt – der neuere Aufruf lädt den richtigen Haushalt */
   var err=res[0].error||res[1].error||res[2].error;if(err)throw err;
   (res[0].data||[]).forEach(function(r){if(st[r.category])st[r.category].tariffs.push(rowToTariff(r));});
   (res[1].data||[]).forEach(function(r){if(st[r.category])st[r.category].readings.push(rowToReading(r));});
@@ -1192,6 +1205,7 @@ async function retryLoad(){
 }
 async function switchHousehold(hid){
   if(!hid||hid===activeHousehold)return;
+  uiZuruecksetzen();
   activeHousehold=hid;saveActiveHousehold();
   try{await loadFromDB();LOAD_FAILED=false;}catch(e){LOAD_FAILED=true;}
   render();
@@ -1272,7 +1286,18 @@ async function freigabePruefen(){
   if(fr==="offen"||fr==="gesperrt"){authMsg(fr==="gesperrt"?"Das Konto ist weiterhin gesperrt.":"Noch nicht freigegeben – bitte später noch einmal.","err");return;}
   enteredUserId=null;FREIGABE=null;handleSession(ses);
 }
+/* Beim Wechsel von Haushalt oder Konto: nichts Halbfertiges in den neuen Haushalt mitnehmen – ein angefangener
+   Ablese-Durchgang würde sonst dort gespeichert, ein Einladungs-Code gälte für den alten Haushalt. */
+function uiZuruecksetzen(){
+  FLOW=null;ABR=null;SETUP.step=1;
+  VT.open={};VT.form=null;VT.pick=null;VT.docsHH=null;VT.abDel=null;VT.tDel=null;VT.docDel=null;VT.abPrefill=null;
+  VL.sel=null;VL.period="12";VL.limit=18;VL.edit=null;VL.delAsk=null;
+  MH.invite=null;MH.memAsk=null;MH.leaveAsk=false;MH.restoreAsk=null;MH.notifAsk=null;MH.clearAsk=false;MH.imp=null;MH.impData=null;MH.impCsv=null;MH.bkHH=null;MH.ki=null;
+  documentsCache=[];lastAiDoc=null;
+  closeSheet(true);
+}
 function resetSession(){
+  uiZuruecksetzen();
   SETTLEMENTS=[];ABR=null;FREIGABE=null;
   unsubscribeRealtime();enteredUserId=null;currentUser=null;HOUSEHOLDS=[];activeHousehold=null;
   STATE=defaults();BACKUPS=[];DISMISSED_NOTIFS=[];USER_PREFS=null;MEMBERS=[];IAM_ADMIN=false;LOAD_FAILED=false;
@@ -1385,7 +1410,7 @@ async function setHouseholdConfig(cfg){
   if(!activeHousehold)return false;
   var h=HOUSEHOLDS.find(function(x){return x.id===activeHousehold;}),prev=h?h.category_config:null;
   if(h)h.category_config=cfg;
-  try{var r=await sbPub.from("households").update({category_config:cfg}).eq("id",activeHousehold);if(r.error)throw r.error;return true;}
+  try{var r=await sbPub.from("households").update({category_config:cfg}).eq("id",activeHousehold);if(r.error)throw r.error;appPlanSpaeter();return true;}
   catch(e){if(h)h.category_config=prev;toast("Konnte Einstellung nicht speichern: "+errMsg(e),true);return false;}
 }
 function saveMeter(cat,value){
@@ -1399,7 +1424,6 @@ function saveMeter(cat,value){
    Aus den Rohständen: Zuwachs pro Tag zwischen zwei Ablesungen, bevorzugt aus demselben
    Kalendermonat der letzten 2 Jahre (Gas im Winter ≠ Sommer), sonst Ø der letzten 12 Abschnitte.
    Zählerwechsel-Abschnitte zählen nicht mit. */
-function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/86400000);}
 function lastReadingBefore(cat,iso){var rs=readingsAsc(cat).filter(function(r){return r.datum<iso;});return rs.length?rs[rs.length-1]:null;}
 function meterRates(cat){
   var rs=readingsAsc(cat),out=[];
@@ -1815,21 +1839,24 @@ function toast(msg,err,undo){
   if(undo){var b=document.createElement("button");b.textContent="Rückgängig";b.onclick=function(){t.className="";undo();};t.appendChild(b);}
   t.className="on"+(err?" err":"")+(sheetEl?" top":"");clearTimeout(toastT);toastT=setTimeout(function(){t.className="";},undo?6000:3200);
 }
-var sheetEl=null,scrimEl=null;
+var sheetEl=null,scrimEl=null,sheetVorher=null;
 function openSheet(html){
-  closeSheet(true);
+  var vorher=sheetEl?sheetVorher:document.activeElement;
+  closeSheet(true);sheetVorher=vorher;
   scrimEl=document.createElement("div");scrimEl.className="scrim";scrimEl.onclick=function(){closeSheet();};
   sheetEl=document.createElement("div");sheetEl.className="sheet";sheetEl.setAttribute("role","dialog");sheetEl.setAttribute("aria-modal","true");
-  sheetEl.innerHTML='<div class="grab"></div>'+html;
+  sheetEl.tabIndex=-1;sheetEl.innerHTML='<div class="grab"></div>'+html;
+  var ht=sheetEl.querySelector("h3");if(ht){ht.id="sheetTitel";sheetEl.setAttribute("aria-labelledby","sheetTitel");}
   /* Klicks im Fenster nur hier verarbeiten – sonst liefe jede Aktion ein zweites Mal ueber document. */
   sheetEl.addEventListener("click",function(e){onAction(e);e.stopPropagation();});
   document.body.appendChild(scrimEl);document.body.appendChild(sheetEl);
   /* an genau dieses Fenster binden – es kann vor dem naechsten Bild schon wieder ersetzt sein */
-  var s0=sheetEl,c0=scrimEl;requestAnimationFrame(function(){c0.classList.add("on");s0.classList.add("on");});
+  var s0=sheetEl,c0=scrimEl;requestAnimationFrame(function(){c0.classList.add("on");s0.classList.add("on");if(sheetEl===s0&&!s0.contains(document.activeElement))try{s0.focus({preventScroll:true});}catch(e){}});
 }
 function closeSheet(now){
-  var s=sheetEl,c=scrimEl;sheetEl=null;scrimEl=null;if(!s)return;
+  var s=sheetEl,c=scrimEl,vf=sheetVorher;sheetEl=null;scrimEl=null;sheetVorher=null;if(!s)return;
   if(now){s.remove();c.remove();return;}
+  if(vf&&vf.focus&&document.contains(vf))try{vf.focus({preventScroll:true});}catch(e){}
   s.classList.remove("on");c.classList.remove("on");setTimeout(function(){s.remove();c.remove();},260);
 }
 
@@ -1879,7 +1906,7 @@ function sparkSvg(vals,cat){
 }
 function sugCard(s){
   return '<div class="sug '+s.tone+'"><span class="si">'+ic(s.icon)+'</span><div class="sb2"><div class="st">'+esc(s.title)+'</div><div class="sx">'+esc(s.text)+'</div>'+
-    (s.action?'<div class="sa">'+(s.action.a?'<button class="btn sm soft" data-a="'+s.action.a+'" data-cat="'+esc(s.action.cat||"")+'">'+esc(s.action.label)+'</button>':'<a class="btn sm soft" href="'+s.action.route+'">'+esc(s.action.label)+'</a>')+'</div>':"")+
+    (s.action?'<div class="sa">'+(s.action.a?'<button class="btn sm soft" data-a="'+esc(s.action.a)+'" data-cat="'+esc(s.action.cat||"")+'">'+esc(s.action.label)+'</button>':'<a class="btn sm soft" href="'+esc(s.action.route)+'">'+esc(s.action.label)+'</a>')+'</div>':"")+
     '</div><button class="dis" data-a="dismiss" data-key="'+esc(s.key)+'" data-text="'+esc(s.title)+'" aria-label="Ausblenden">'+ic("x",18)+'</button></div>';
 }
 function loadFailedNote(){
@@ -1893,6 +1920,13 @@ function loadFailedNote(){
 function dueOrFresh(){
   var d=readingsDue();
   return householdCats().filter(function(c){return d.indexOf(c)>=0||(STATE[c].tariffs.length>0&&!STATE[c].readings.length);});
+}
+
+/* Ab wann wieder ein Stand fehlt: der Monat nach dem ältesten letzten Abrechnungsmonat, fällig ab dem 1. des Folgemonats */
+function naechsteAblesung(){
+  var ls=householdCats().filter(function(c){return STATE[c].tariffs.length&&STATE[c].readings.length;}).map(function(c){var rs=readingsAsc(c);return billIndex(rs[rs.length-1].datum);});
+  var nx=ls.length?billIndexToReadDatum(Math.min.apply(null,ls)+1):null,min=addMonthsISO(firstOfMonthISO(),1);
+  return nx&&nx>min?nx:min;
 }
 
 /* ---- Startseite ---- */
@@ -1926,7 +1960,7 @@ function screenStart(){
   if(due.length){
     dueHtml='<a class="due" href="#/ablesen"><span class="dots">'+due.map(function(c){return catBadge(c);}).join("")+'</span><span><span class="t">'+due.length+' Zähler fällig</span><br><span class="s">'+(readingsDue().length?"für "+monthName(billKey(todayISO())):"Startwert eintragen")   /* der Monat, in den ein heutiger Stand fällt */+'</span></span><span class="btn onink sm go">Ablesen '+ic("arrow",16)+'</span></a>';
   }else{
-    var nx=addMonthsISO(firstOfMonthISO(),1);
+    var nx=naechsteAblesung();
     dueHtml='<div class="done">'+ic("check",22)+'<span>Alles abgelesen<small>Nächste Ablesung ab '+deDate(nx)+'</small></span></div>';
   }
 
@@ -2129,7 +2163,7 @@ function flowSummary(){
   return '<div class="flow"><div class="donehero"><div class="ok">'+ic("check",38)+'</div><h2>Geschafft!</h2>'+
     '<p class="mut-t" style="font-weight:700">'+saved.length+' Zähler für '+monthName(mk)+(queued?" – offline gespeichert, wird automatisch übertragen":" gespeichert")+'</p></div>'+
     '<div class="card" style="padding:4px 16px">'+rows+'</div>'+
-    (totK>0?'<div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center"><div><div class="mmeta">Kosten diesen Monat</div><div class="num" style="font-size:1.4rem;font-weight:900">'+eur(totK)+'</div></div>'+
+    (totK>0?'<div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center"><div><div class="mmeta">Kosten '+monthName(mk)+'</div><div class="num" style="font-size:1.4rem;font-weight:900">'+eur(totK)+'</div></div>'+
       '<div style="text-align:right"><div class="mmeta">gegenüber Abschlag '+eur(totA)+'</div><div class="num '+(diff>=0?"pos-t":"neg-t")+'" style="font-size:1.4rem;font-weight:900">'+signed(diff)+'</div></div></div>':"")+
     '<div class="factions"><a class="btn lg full" href="#/start" data-a="flow-reset">Zur Startseite</a><a class="btn soft full" href="#/verlauf" data-a="flow-reset">Verlauf ansehen</a></div></div>';
 }
@@ -2140,7 +2174,7 @@ async function onPhoto(cat,file){
   try{
     var p=await photoB64(file),z=await recognizeMeterB64(cat,p.b64,p.mime),val=z.zaehlerstand;
     if(val==null||val===""||!isFinite(Number(val)))toast("Keine Zahl erkannt – bitte eintippen oder neu fotografieren.",true);
-    else{v.z=String(val).replace(".",",");v.ai=z.hinweise||"";delete FLOW.err[cat];}
+    else if(FLOW&&FLOW.v[cat]===v){v.z=String(val).replace(".",",");v.ai=z.hinweise||"";delete FLOW.err[cat];}
   }catch(e){toast("Foto-Erkennung fehlgeschlagen: "+errMsg(e),true);}
   finally{v.cam=false;render();}
 }
@@ -2342,7 +2376,7 @@ async function deleteReading(cat,id){
 async function restoreReading(cat,r){
   try{
     var ri=await sb.from("readings").insert(readingToCols(cat,{datum:r.datum,zaehlerstand:r.zaehlerstand,startwert:r.startwert,zaehlerstandKwh:r.zaehlerstandKwh})).select().single();
-    if(ri.error)throw ri.error;STATE[cat].readings.push(rowToReading(ri.data));_histMemo=null;_tgMemo=null;render();toast("Wiederhergestellt");
+    if(ri.error)throw ri.error;STATE[cat].readings.push(rowToReading(ri.data));_histMemo=null;_tgMemo=null;appPlanSpaeter();render();toast("Wiederhergestellt");
   }catch(e){toast("Wiederherstellen fehlgeschlagen: "+errMsg(e),true);}
 }
 
@@ -2389,20 +2423,20 @@ async function saveTariffData(cat,obj,editId){
     STATE[cat].tariffs.push(rowToTariff(ri.data));
     if(VT.form&&VT.form.docId){sb.from("documents").update({tariff_id:ri.data.id}).eq("id",VT.form.docId).then(function(){ensureDocs(true);},function(){});}
   }
-  _histMemo=null;_tgMemo=null;
+  _histMemo=null;_tgMemo=null;appPlanSpaeter();
 }
 async function deleteTariff(cat,id){
   var t=STATE[cat].tariffs.find(function(x){return x.id===id;});if(!t)return;
   try{
     var d=await sb.from("tariffs").delete().eq("id",id);if(d.error)throw d.error;
-    STATE[cat].tariffs=STATE[cat].tariffs.filter(function(x){return x.id!==id;});_histMemo=null;_tgMemo=null;
+    STATE[cat].tariffs=STATE[cat].tariffs.filter(function(x){return x.id!==id;});_histMemo=null;_tgMemo=null;appPlanSpaeter();
     closeSheet();render();
     toast('Tarif „'+(t.anbieter||"")+'“ gelöscht',false,function(){restoreTariff(cat,t);});
   }catch(e){toast("Löschen fehlgeschlagen: "+errMsg(e),true);}
 }
 async function restoreTariff(cat,t){
   try{var r=await sb.from("tariffs").insert(tariffToCols(cat,t)).select().single();if(r.error)throw r.error;
-    STATE[cat].tariffs.push(rowToTariff(r.data));_histMemo=null;_tgMemo=null;render();toast("Wiederhergestellt");}
+    STATE[cat].tariffs.push(rowToTariff(r.data));_histMemo=null;_tgMemo=null;appPlanSpaeter();render();toast("Wiederhergestellt");}
   catch(e){toast("Wiederherstellen fehlgeschlagen: "+errMsg(e),true);}
 }
 async function saveAbschlagData(cat,betrag,iso){
@@ -2437,7 +2471,7 @@ async function saveConversion(wf,zz,bw){
 async function docOpen(id){
   var d=(documentsCache||[]).find(function(x){return String(x.id)===String(id);});if(!d)return;
   if(istApp()){appDokAnsicht(d);return;}   /* die App-Hülle kennt keine neuen Fenster */
-  var w=window.open("","_blank");
+  var w=window.open("","_blank");try{if(w)w.opener=null;}catch(e){}
   try{var r=await sb.storage.from("documents").createSignedUrl(d.storage_path,120);if(r.error)throw r.error;
     if(w)w.location=r.data.signedUrl;else location.href=r.data.signedUrl;}
   catch(e){if(w)w.close();toast("Konnte Dokument nicht öffnen: "+errMsg(e),true);}
@@ -2445,7 +2479,7 @@ async function docOpen(id){
 async function docDelete(id){
   var d=(documentsCache||[]).find(function(x){return String(x.id)===String(id);});if(!d)return;
   try{
-    await sb.storage.from("documents").remove([d.storage_path]);
+    var rm=await sb.storage.from("documents").remove([d.storage_path]);if(rm&&rm.error)throw rm.error;
     var del=await sb.from("documents").delete().eq("id",d.id);if(del.error)throw del.error;
     documentsCache=documentsCache.filter(function(x){return x.id!==d.id;});VT.docDel=null;
     docsSheet(d.category);render();toast("Dokument gelöscht");
@@ -2519,7 +2553,7 @@ function contractCard(cat,focus){
     '<div><span>Abschlag</span><b class="num">'+(ab!=null?eur(ab):"–")+'/Monat</b></div>'+
     '<div><span>Saldo '+(si&&si.kind==="abrechnung"?"seit Abrechnung":si&&si.rows.length?"seit "+monthName(billKey(si.rows[0].reading.datum)):"seit Beginn")+'</span><b class="num '+(sal>=0?"pos-t":"neg-t")+'">'+signed(sal)+'</b></div></div>';
   var lines=dataChecks(cat).map(function(s){var A=s.action;
-    return (A.a?'<button class="vline warn" data-a="'+A.a+'" data-cat="'+cat+'">':'<a class="vline warn" href="'+A.route+'">')+ic("alert",16)+'<span>'+esc(s.short)+'</span><b>'+(A.a?"Prüfen":"Bericht")+'</b>'+(A.a?'</button>':'</a>');}).join("");
+    return (A.a?'<button class="vline warn" data-a="'+A.a+'" data-cat="'+cat+'">':'<a class="vline warn" href="'+esc(A.route)+'">')+ic("alert",16)+'<span>'+esc(s.short)+'</span><b>'+(A.a?"Prüfen":"Bericht")+'</b>'+(A.a?'</button>':'</a>');}).join("");
   lines+=lst?'<a class="vline good" href="#/abrechnung?id='+esc(lst.id)+'">'+ic("check",16)+'<span>Abrechnung bis '+deDate(lst.period_to)+': '+settlementErgebnisText(lst)+'</span><b>Bericht</b></a>':"";
   if(smartOn("geld")){
     var need=monthlyNeed(cat);
@@ -2607,7 +2641,7 @@ async function tariffFromAI(cat,file){
   if(!VT.form||VT.form.cat!==cat)VT.form={cat:cat,editId:null,v:tariffFormFrom(cat,null),err:null,ai:null,docId:null};
   VT.form.busy=true;drawTariffForm();
   try{
-    var res=await aiExtract(cat,file,"tarif"),t=res.data,f=VT.form;if(!f)return;
+    var res=await aiExtract(cat,file,"tarif"),t=res.data,f=VT.form;if(!f||f.cat!==cat)return;
     f.docId=res.docId;
     function s(x){return (x==null||x==="")?"":String(x);}
     if(t.anbieter)f.v.anbieter=s(t.anbieter);
@@ -2849,22 +2883,23 @@ function abrReadForm(){
   v.neuerAbschlag=num("ab_neu");v.neuerAbschlagAb=abrIso(g("ab_neuab"));v.anbieter=g("ab_anb").trim();v.rechnungsnummer=g("ab_nr").trim();
 }
 async function abrUpload(file){
-  var cat=ABR.cat;ABR.err=null;
+  var R=ABR,cat=R.cat;R.err=null;
   if(file.size>6.5*1024*1024){toast("Die Datei ist zu groß für die KI (max. ca. 6 MB).",true);return;}
   toast("Beleg wird gespeichert …");
-  try{var path=await uploadDocFile(cat,file);var rec=await addDocRecord(cat,file,path,"abrechnung",null,null);documentsCache=[rec].concat(documentsCache||[]);ABR.docId=rec.id;ABR.step="modell";render();window.scrollTo(0,0);}
+  try{var path=await uploadDocFile(cat,file);var rec=await addDocRecord(cat,file,path,"abrechnung",null,null);if(ABR!==R)return;documentsCache=[rec].concat(documentsCache||[]);ABR.docId=rec.id;ABR.step="modell";render();window.scrollTo(0,0);}
   catch(e){toast("Upload fehlgeschlagen: "+errMsg(e),true);}
 }
 async function abrRun(){
   var cat=ABR.cat;ABR.busy=true;ABR.err=null;render();window.scrollTo(0,0);
   try{
-    var data=await aiInvoke(aiBody({document_id:ABR.docId,category:cat,mode:"abrechnung",level:ABR.level}));
+    var R=ABR,data=await aiInvoke(aiBody({document_id:ABR.docId,category:cat,mode:"abrechnung",level:ABR.level}));
+    if(ABR!==R)return;   /* Haushalt oder Abrechnung inzwischen gewechselt */
     ABR.raw=data.abrechnung||{};ABR.usage=data.usage||null;ABR.v=abrNorm(ABR.raw);ABR.art=ABR.v.ergebnis!=null&&ABR.v.ergebnis<0?"nachzahlung":"guthaben";
     ABR.step="bericht";ABR.fixed={};
     sb.from("documents").update({extracted:ABR.raw}).eq("id",ABR.docId).then(function(){ensureDocs(true);},function(){});
     try{localStorage.setItem("vt_abr_level",ABR.level);}catch(e){}
     if(!USER_PREFS||USER_PREFS.abr_level!==ABR.level)saveUserPref({abr_level:ABR.level});
-  }catch(e){ABR.err=errMsg(e);ABR.step="modell";}
+  }catch(e){if(ABR!==R)return;ABR.err=errMsg(e);ABR.step="modell";}
   ABR.busy=false;render();window.scrollTo(0,0);
 }
 async function abrSave(){
@@ -2928,10 +2963,12 @@ async function deleteAbschlagSilent(cat,id){
 var MH={invite:null,memAsk:null,leaveAsk:false,restoreAsk:null,notifAsk:null,clearAsk:false,csvCat:null,installEvt:null};
 window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();MH.installEvt=e;if(route().name==="mehr")render();});
 window.addEventListener("appinstalled",function(){MH.installEvt=null;toast("App installiert");});
-function downloadFile(filename,mime,text){
-  if(istApp()){appSpeichern(new Blob([text],{type:mime}),filename);return;}   /* App: „Speichern unter“ statt Download */
+/* Liefert true, wenn die Datei heruntergeladen bzw. gespeichert wurde */
+async function downloadFile(filename,mime,text){
+  if(istApp())return await appSpeichern(new Blob([text],{type:mime}),filename,true);   /* App: „Speichern unter“ statt Download */
   var blob=new Blob([text],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  return true;
 }
 function sw(on,action,label,extra){return '<button class="nssw'+(on?" on":"")+'" role="switch" aria-checked="'+(on?"true":"false")+'" aria-label="'+esc(label)+'" data-a="'+action+'"'+(extra||"")+'></button>';}
 function mrow(icon,title,sub,right,attrs){return '<'+(attrs&&attrs.indexOf("href=")===0?"a ":"button ")+(attrs||"")+' class="mrow2">'+'<span class="mi">'+ic(icon)+'</span><span class="mt2"><b>'+title+'</b>'+(sub?'<small>'+sub+'</small>':"")+'</span>'+(right||'<span class="mr">'+ic("right",18)+'</span>')+'</'+(attrs&&attrs.indexOf("href=")===0?"a":"button")+'>';}
@@ -3019,13 +3056,13 @@ function mehrHaushalt(){
 }
 function mehrVorschlaege(){
   var sc=smartCfg(),G=[["ablesen","Beim Ablesen","Erwarteter Stand und Ampel beim Tippen"],["geld","Geld","Abschlag-Empfehlung und Prognose"],["vertraege","Verträge","Kündigungsfristen und Preisänderungen"],["auffaellig","Auffälligkeiten","Ungewöhnlicher Verbrauch, fehlende Monate"],["pruefen","Bitte prüfen","Abschlag oder Abrechnung passen nicht zu den Daten"],["sicherung","Datensicherung","Erinnerung an eine Kopie auf deinem Gerät"]];
-  var hidden=DISMISSED_NOTIFS;
+  var hidden=DISMISSED_NOTIFS.filter(function(n){return n.household_id===activeHousehold;});
   return subHead("Intelligente Vorschläge")+
     '<div class="mlist"><div class="mrow2"><span class="mi">'+ic("sparkles")+'</span><span class="mt2"><b>Vorschläge anzeigen</b><small>Gilt für dich auf allen Geräten</small></span>'+sw(sc.on,"smart",'Vorschläge anzeigen',' data-g="on"')+'</div>'+
     G.map(function(g){return '<div class="mrow2'+(sc.on?"":" off")+'"><span class="mi"></span><span class="mt2"><b>'+g[1]+'</b><small>'+g[2]+'</small></span>'+sw(sc[g[0]],"smart",g[1],' data-g="'+g[0]+'"'+(sc.on?"":" disabled"))+'</div>';}).join("")+'</div>'+
     '<div class="mgrp">Ausgeblendet ('+hidden.length+')</div>'+
     (hidden.length?'<div class="mlist">'+hidden.map(function(n){var ask=MH.notifAsk===String(n.id);
-      return '<div class="mrow2"><span class="mt2"><b class="ell">'+esc(sanitizeNotif(n.text||n.notif_key))+'</b><small>'+(n.created_at?"ausgeblendet am "+deDateTime(n.created_at):"")+'</small></span>'+
+      return '<div class="mrow2"><span class="mt2"><b class="ell">'+esc(String(n.text||n.notif_key||"").replace(/<\/?b>/gi,""))+'</b><small>'+(n.created_at?"ausgeblendet am "+deDateTime(n.created_at):"")+'</small></span>'+
         (ask?'<button class="btn sm soft" data-a="notif-del-yes" data-id="'+esc(n.id)+'">Wieder zeigen</button>':'<button class="ibtn" data-a="notif-del" data-id="'+esc(n.id)+'" aria-label="Wieder einblenden">'+ic("refresh",18)+'</button>')+'</div>';}).join("")+'</div>'+
       (MH.clearAsk?'<button class="btn soft full" style="margin-top:10px" data-a="notif-clear-yes">Alle '+hidden.length+' wieder einblenden</button>':'<button class="linkbtn" style="margin:10px 4px" data-a="notif-clear">Alle wieder einblenden</button>')
     :'<p class="mut-t" style="font-weight:700">Nichts ausgeblendet.</p>');
@@ -3148,7 +3185,7 @@ async function hhJoin(code){
 }
 async function hhLeave(){
   try{var r=await sbPub.rpc("leave_household",{p_household_id:activeHousehold});if(r.error)throw r.error;
-    activeHousehold=null;MH.leaveAsk=false;
+    uiZuruecksetzen();activeHousehold=null;
     try{await loadHouseholds();await loadFromDB();LOAD_FAILED=false;}catch(e){LOAD_FAILED=true;}
     go("#/start");toast("Haushalt verlassen");}
   catch(e){var m=errMsg(e);if(/last_household/i.test(m))m="Das ist dein einziger Haushalt – verlassen nicht möglich.";toast(m,true);}
@@ -3161,7 +3198,7 @@ async function notifDel(id){
   MH.notifAsk=null;await fetchDismissedNotifs();render();toast("Wird wieder angezeigt");
 }
 async function notifClear(){
-  try{var r=await sb.from("notification_dismissals").delete().eq("user_id",currentUser.id);if(r.error)throw r.error;}catch(e){toast("Fehlgeschlagen: "+errMsg(e),true);return;}
+  try{var r=await sb.from("notification_dismissals").delete().eq("user_id",currentUser.id).eq("household_id",activeHousehold);if(r.error)throw r.error;}catch(e){toast("Fehlgeschlagen: "+errMsg(e),true);return;}
   MH.clearAsk=false;await fetchDismissedNotifs();render();toast("Alle wieder eingeblendet");
 }
 async function backupNow(){
@@ -3188,7 +3225,7 @@ function onImpFile(file){
       openSheet('<h3>Sicherung laden?</h3><p class="mut-t" style="font-weight:700">Das ersetzt alle Daten von „'+esc(activeHouseholdName())+'“ (Strom, Wasser, Gas). Vom jetzigen Stand wird vorher automatisch ein Cloud-Backup angelegt.</p><div class="factions"><button class="btn full" data-a="imp-json-yes">Ersetzen</button><button class="btn soft full" data-a="sheet-close">Abbrechen</button></div>');
       MH.impData=data;
     }else{
-      var res=parseReadingsCSV(rd.result);
+      var res=parseReadingsCSV(rd.result,imp.cat);
       if(!res.rows.length){toast("Keine gültigen Zeilen gefunden (Spalten „Ablesedatum“ und „Zählerstand“).",true);return;}
       MH.impCsv={cat:imp.cat,rows:res.rows,skipped:res.skipped};
       openSheet('<h3>Tabelle importieren?</h3><p class="mut-t" style="font-weight:700">'+res.rows.length+' Ablesung'+(res.rows.length===1?"":"en")+' in '+CATS[imp.cat].label+(res.skipped?" · "+res.skipped+" Zeilen übersprungen":"")+'. Bestehende Monate werden aktualisiert.</p><div class="factions"><button class="btn full" data-a="imp-csv-yes">Importieren</button><button class="btn soft full" data-a="sheet-close">Abbrechen</button></div>');
@@ -3212,8 +3249,8 @@ async function importCsvNow(){
         var ix=STATE[cat].readings.findIndex(function(r){return r.id===ex.id;});STATE[cat].readings[ix]=rowToReading(ru.data);updated++;}
       else{var ri=await sb.from("readings").insert(readingToCols(cat,{datum:rw.datum,zaehlerstand:rw.zaehler})).select().single();if(ri.error)throw ri.error;STATE[cat].readings.push(rowToReading(ri.data));added++;}
     }
-    _histMemo=null;_tgMemo=null;render();toast(added+" neu, "+updated+" aktualisiert"+(job.skipped?", "+job.skipped+" übersprungen":""));
-  }catch(e){_histMemo=null;_tgMemo=null;render();toast("Import abgebrochen: "+errMsg(e),true);}
+    _histMemo=null;_tgMemo=null;appPlanSpaeter();render();toast(added+" neu, "+updated+" aktualisiert"+(job.skipped?", "+job.skipped+" übersprungen":""));
+  }catch(e){_histMemo=null;_tgMemo=null;appPlanSpaeter();render();toast("Import abgebrochen: "+errMsg(e),true);}
 }
 function printReport(){
   if(istApp()){appDrucken(buildReportHtml());return;}   /* App: Android-Druckdialog, dort auch „Als PDF speichern“ */
@@ -3304,8 +3341,7 @@ function exportCSV(cat){
     lines.push(arr.map(csvEsc).join(sep));
   });
   var csv="﻿"+lines.join("\r\n");
-  downloadFile(cat+"-alltrack-tabelle-"+todayISO()+".csv","text/csv;charset=utf-8",csv);
-  toast("Tabelle exportiert");
+  downloadFile(cat+"-alltrack-tabelle-"+todayISO()+".csv","text/csv;charset=utf-8",csv).then(function(ok){if(ok)toast(istApp()?"Tabelle gespeichert":"Tabelle exportiert");});
 }
 function buildReportHtml(){
   var cats=householdCats(),hhName=activeHouseholdName()||"Haushalt",today=deDate(todayISO());
@@ -3430,7 +3466,7 @@ function onAction(e){
   else if(a==="bk-now"){backupNow();}
   else if(a==="bk-restore"){MH.restoreAsk=b.getAttribute("data-id");render();}
   else if(a==="bk-restore-yes"){backupRestore(b.getAttribute("data-id"));}
-  else if(a==="exp-json"){downloadFile("alltrack-sicherung-"+todayISO()+".json","application/json",JSON.stringify(STATE,null,2));saveUserPref({last_export:new Date().toISOString()});toast("Sicherung heruntergeladen");}
+  else if(a==="exp-json"){downloadFile("alltrack-sicherung-"+todayISO()+".json","application/json",JSON.stringify(STATE,null,2)).then(function(ok){if(!ok)return;saveUserPref({last_export:new Date().toISOString()});toast(istApp()?"Sicherung gespeichert":"Sicherung heruntergeladen");});}
   else if(a==="exp-csv"){exportCSV(b.getAttribute("data-cat"));}
   else if(a==="exp-pdf"){printReport();}
   else if(a==="imp-json"){pickImport("json");}
@@ -3568,7 +3604,16 @@ document.addEventListener("submit",function(e){
   else if(e.target.id==="flowForm"){e.preventDefault();if(FLOW&&!FLOW.busy)flowNext(false);}
   else if(e.target.id==="flowAllForm"){e.preventDefault();if(FLOW&&!FLOW.busy)flowSaveAll(false);}
 });
-document.addEventListener("keydown",function(e){if(e.key==="Escape"&&sheetEl)closeSheet();});
+document.addEventListener("keydown",function(e){
+  if(!sheetEl)return;
+  if(e.key==="Escape"){closeSheet();return;}
+  if(e.key!=="Tab")return;
+  var f=[].slice.call(sheetEl.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary')).filter(function(x){return x.offsetParent!==null;});
+  if(!f.length){e.preventDefault();sheetEl.focus();return;}
+  var act=document.activeElement;
+  if(e.shiftKey&&(act===f[0]||act===sheetEl||!sheetEl.contains(act))){e.preventDefault();f[f.length-1].focus();}
+  else if(!e.shiftKey&&(act===f[f.length-1]||!sheetEl.contains(act))){e.preventDefault();f[0].focus();}
+});
 document.addEventListener("input",function(e){
   var t=e.target;
   if(t.closest&&t.closest("#wxForm")){wechselCalc();return;}
@@ -3931,11 +3976,11 @@ async function geteiltUebernehmen(){
 }
 
 /* ================= Dateien: Speichern unter / Teilen / Drucken ================= */
-async function appSpeichern(blob,name){
+async function appSpeichern(blob,name,still){
   var A=appP("AllTrack");
   try{
     var r=await A.dateiSpeichern({name:name,mime:(blob.type||"application/octet-stream").split(";")[0],daten:await fileToBase64(blob)});
-    if(r&&r.gespeichert)toast("Gespeichert");
+    if(r&&r.gespeichert&&!still)toast("Gespeichert");
     return !!(r&&r.gespeichert);
   }catch(e){toast(errMsg(e),true);return false;}
 }

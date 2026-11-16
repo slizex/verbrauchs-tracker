@@ -3,6 +3,40 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
 
+## 7.8.1 – 16.11.2026
+
+**Gesamtprüfung: Korrekturen bei Haushaltswechsel, Import, Export und Bedienung.**
+- Haushalt wechseln oder abmelden nimmt nichts mehr mit. Ein angefangenes Ablesen, ein angezeigter Einladungs-Code,
+  offene Fenster und die Dokumentliste des bisherigen Haushalts werden verworfen. Vorher konnte ein angefangener
+  Stand im anderen Haushalt landen, und der Einladungs-Code des alten Haushalts blieb sichtbar.
+- „Alles abgelesen“ nennt den richtigen nächsten Termin. Ein Stand ab dem 16. zählt schon für den laufenden Monat,
+  dann ist die nächste Ablesung erst einen Monat später fällig.
+- Die Zusammenfassung nach dem Ablesen nennt den Monat („Kosten Oktober 2026“) statt „diesen Monat“, weil ein Stand
+  vom 2.11. für Oktober zählt.
+- Tabellen-Import: Zählerstände werden wie beim Ablesen gelesen (Strom „12.345“ = 12.345 kWh, Wasser bleibt
+  12,345 m³). Unmögliche Daten wie der 31.02. werden übersprungen statt in den März verschoben.
+- Mehr → Vorschläge zeigt unter „Ausgeblendet“ nur die Hinweise des aktiven Haushalts, „Alle wieder einblenden“
+  wirkt nur dort. Die Texte erscheinen ohne doppelt maskierte Zeichen.
+- Export: Meldung und Sicherungs-Datum kommen erst, wenn die Datei wirklich gespeichert ist. In der App lässt sich
+  der Speichern-Dialog abbrechen, dann gilt die Sicherung nicht als gemacht.
+- Die Ablese-Erinnerung (App) wird neu geplant, sobald sich Tarife, Bereiche oder Stände ändern, auch nach Löschen,
+  Wiederherstellen und Import.
+- Dokumente: Der Eintrag bleibt stehen, wenn die Datei im Speicher nicht gelöscht werden konnte. Im Browser geöffnete
+  Dokumente haben keinen Zugriff zurück auf AllTrack.
+- Fenster: Der Fokus springt beim Öffnen hinein und beim Schließen zurück, Tab bleibt im Fenster, Vorleseprogramme
+  lesen den Titel vor.
+- Auffälliger Verbrauch wird nur noch gemeldet, wenn auch der Verbrauch je Tag um mindestens 25 % abweicht.
+  Bisher zählte allein die Monatsmenge. Liegt ein Stand ein paar Tage neben dem Monatswechsel, ist ein Monat
+  länger und der nächste kürzer. Bei CSN Beratershop meldete die App deshalb „Strom im September −32 %“,
+  obwohl der September dort nur 23 Tage hatte (je Tag −8 %).
+- Kündigungsfrist am Monatsende: „1 Monat“ vor dem 31.03. ist der 28.02. Die App zeigte den 03.03., also drei
+  Tage zu spät. Betroffen waren nur Verträge, deren Verlängerungstag auf den 29. bis 31. fällt.
+- Tabellen-Export: Ein Anbietername, der wie eine Formel beginnt (=, +, −, @), wird als Text ausgegeben und
+  in Excel nicht mehr ausgeführt. Zahlen bleiben Zahlen.
+- Wer den Haushalt wechselt, während noch geladen wird oder die KI ein Dokument liest, bekommt das alte
+  Ergebnis nicht mehr in den neuen Haushalt geschrieben.
+- Kleinigkeiten: doppelte Datumsfunktion entfernt, Adressen in Knöpfen zusätzlich maskiert.
+
 ## 7.8.0 – 02.11.2026
 
 **Ablesung bis zum 15. zählt zum Vormonat** (bisher nur am 1.). Wer in den ersten Tagen des Monats abliest, meint den
