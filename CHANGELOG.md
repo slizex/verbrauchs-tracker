@@ -3,6 +3,11 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
 
+## 7.8.3 – 17.11.2026
+
+- Abrechnungsbericht: Hat der Unterschied nur eine Ursache, steht der Betrag nicht mehr doppelt da
+  („Unterschied −11,39 € durch höhere Kosten“ statt „−11,39 €: −11,39 € durch höhere Kosten“).
+
 ## 7.8.2 – 16.11.2026
 
 **Durchsicht der Oberfläche.**

@@ -558,7 +558,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.8.2";
+var APP_VERSION="7.8.3";
 /* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var DB_SCHEMA="public";
@@ -2834,10 +2834,11 @@ function abrReport(cat){
     '<div><span>App</span><b class="num '+(app.ergebnis>=0?"pos-t":"neg-t")+'">'+(ok?signed(app.ergebnis):"–")+'</b><small>'+(ok?app.months+" Monate"+(app.est?", "+app.est+" geschätzt":""):"keine Monate")+'</small></div></div>';
   var expl="";
   if(ok&&A.m.ergebnis&&A.m.ergebnis.sig&&A.m.abschlaege&&A.m.kosten){
-    var pa=A.m.abschlaege.d,pk=A.m.kosten.d,parts=[];
-    if(Math.abs(pa)>=0.005)parts.push(signed(pa)+(pa<0?' weniger':' mehr')+' Abschläge');
-    if(Math.abs(pk)>=0.005)parts.push(signed(-pk)+(pk>0?' durch höhere':' durch niedrigere')+' Kosten');
-    expl='<p class="abrexpl">Unterschied '+signed(A.m.ergebnis.d)+(parts.length?': '+parts.join(', '):'')+'.</p>';
+    var pa=A.m.abschlaege.d,pk=A.m.kosten.d,parts=[],grund=[];
+    if(Math.abs(pa)>=0.005){parts.push(signed(pa)+(pa<0?' weniger':' mehr')+' Abschläge');grund.push(pa<0?'durch weniger Abschläge':'durch mehr Abschläge');}
+    if(Math.abs(pk)>=0.005){parts.push(signed(-pk)+(pk>0?' durch höhere':' durch niedrigere')+' Kosten');grund.push(pk>0?'durch höhere Kosten':'durch niedrigere Kosten');}
+    /* nur eine Ursache: Betrag nicht doppelt nennen */
+    expl='<p class="abrexpl">Unterschied '+signed(A.m.ergebnis.d)+(parts.length===1?' '+grund[0]:parts.length?': '+parts.join(', '):'')+'.</p>';
   }
   /* Tabelle ohne Einheiten in den Zellen (stehen in der Zeile) – passt so aufs Handy */
   var n2=function(x){return Number(x).toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2});};
