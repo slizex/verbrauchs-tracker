@@ -3,6 +3,14 @@
 Versionsnummer: **Hauptzahl** = großer Umbau · **Mitte** = neue Funktionen · **hinten** = Korrekturen.
 Die aktuelle Nummer steht in der App unter *Mehr → Rechenweg und Version* (`APP_VERSION` in `index.html`).
 
+## 7.8.2 – 16.11.2026
+
+**Durchsicht der Oberfläche.**
+- Startseite auf dem Handy: Sind drei Zähler fällig, steht der Knopf „Ablesen“ in einer eigenen Zeile. Vorher brach
+  „3 Zähler fällig für November 2026“ in fünf Zeilen um.
+- Symbol: Die drei Balken stehen mittig im Haus (vorher leicht nach rechts versetzt), auch in den Symbolen für den
+  Startbildschirm.
+
 ## 7.8.1 – 16.11.2026
 
 **Gesamtprüfung: Korrekturen bei Haushaltswechsel, Import, Export und Bedienung.**

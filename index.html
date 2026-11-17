@@ -140,7 +140,10 @@ a{color:inherit;text-decoration:none}
 .due .dots .cb:first-child{margin-left:0}
 .due .t{font-weight:900}
 .due .s{opacity:.72;font-size:.86rem}
-.due .go{margin-left:auto}
+.due .go{margin-left:auto;flex:none}
+.due .dt{min-width:0}
+/* drei Zähler auf dem Handy: Knopf in eine eigene Zeile, sonst bricht der Text in fünf Zeilen um */
+@media (max-width:520px){.due.d3{flex-wrap:wrap}.due.d3 .dt{flex:1}.due.d3 .go{flex:1 1 100%;margin-left:0;justify-content:center}}
 .done{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--r-lg);background:var(--pos-bg);color:var(--pos);font-weight:800}
 .done small{display:block;color:var(--muted);font-weight:700}
 
@@ -555,7 +558,7 @@ var SB_URL="https://xiwibfscbfrglgfjadza.supabase.co";
 var SB_KEY="sb_publishable_HwDaZdyk-HcYjBLcJvsVnQ_gHCAcprm";
 /* Versionsnummer: Hauptzahl = großer Umbau, Mitte = neue Funktionen, hinten = Korrekturen.
    Änderungen stehen in CHANGELOG.md. */
-var APP_VERSION="7.8.1";
+var APP_VERSION="7.8.2";
 /* Pfad der App (Scope des Service Workers) */
 var APP_PATH=location.pathname.replace(/[^\/]*$/,"");
 var DB_SCHEMA="public";
@@ -1958,7 +1961,7 @@ function screenStart(){
   /* Fällig */
   var due=dueOrFresh(),dueHtml;
   if(due.length){
-    dueHtml='<a class="due" href="#/ablesen"><span class="dots">'+due.map(function(c){return catBadge(c);}).join("")+'</span><span><span class="t">'+due.length+' Zähler fällig</span><br><span class="s">'+(readingsDue().length?"für "+monthName(billKey(todayISO())):"Startwert eintragen")   /* der Monat, in den ein heutiger Stand fällt */+'</span></span><span class="btn onink sm go">Ablesen '+ic("arrow",16)+'</span></a>';
+    dueHtml='<a class="due'+(due.length>=3?" d3":"")+'" href="#/ablesen"><span class="dots">'+due.map(function(c){return catBadge(c);}).join("")+'</span><span class="dt"><span class="t">'+due.length+' Zähler fällig</span><br><span class="s">'+(readingsDue().length?"für "+monthName(billKey(todayISO())):"Startwert eintragen")   /* der Monat, in den ein heutiger Stand fällt */+'</span></span><span class="btn onink sm go">Ablesen '+ic("arrow",16)+'</span></a>';
   }else{
     var nx=naechsteAblesung();
     dueHtml='<div class="done">'+ic("check",22)+'<span>Alles abgelesen<small>Nächste Ablesung ab '+deDate(nx)+'</small></span></div>';
